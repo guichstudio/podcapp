@@ -12,15 +12,17 @@ Never trade script quality for speed or cost.
 
 ## Current state — update at the end of EVERY session
 
-- [ ] **Phase 0 — Manual golden path** (hand-made script + audio, rubric ≥ 3.5)
+- [~] **Phase 0 — Manual golden path** : script + audio DONE (2026-08-28), rubric score PENDING
 - [ ] Phase 1 — Knowledge layer (`processSource` on eval dataset)
 - [ ] Phase 2 — Editorial (final script, 0 unsupported claims, rubric ≥ 3.5)
 - [ ] Phase 3 — Audio + private RSS
 - [ ] Phase 4 — Live capture (`/ingest`, email inbound, Apple Shortcut)
 
-**Now:** Phase 0.
-**Next action:** pick 5–8 real saved links (FR + EN) and run the manual editorial pass.
-**Blockers:** none.
+**Now:** Phase 0, waiting on the human rubric pass.
+**Next action:** Louis listens to `phase0/episode_2026-08-28.mp3` end-to-end and scores it with `eval/rubric.md` (gate: avg ≥ 3.5). If below, iterate on the editorial approach in `phase0/`, not on infrastructure.
+**Blockers:** rubric score from Louis.
+
+**Phase 0 artifacts** (all in `phase0/`): sources (5 saved items: PDF dossier, 2 video transcripts via ElevenLabs Scribe, Species sources doc, 1 failed extraction), `analysis.md`, `outline.md`, `script_v1_draft.md`, `grounding_report.md` (4 fixes, 0 unsupported sentences shipped), `script_final.md`, `prompts.md` (seeds for `src/prompts/`), `episode_2026-08-28.mp3` (~10 min, voice `jGGIwkfv43kUFffPXEEO`). `ELEVENLABS_API_KEY` lives in `.env` (gitignored).
 
 ---
 
@@ -96,6 +98,10 @@ Session prompt: "Wire `POST /ingest` + Postmark inbound + per-user auth tokens; 
 | 2026-08 | Apple Shortcut instead of iOS share extension | 90% of the value, 0 days of dev, no App Store |
 | 2026-08 | Cut from V1: YouTube, PDF, X/Twitter, Deep Dive, interest scores, contradictions, agentic orchestration | Prove editorial quality first; pipeline > agent |
 | 2026-08 | Phase 0 manual golden path added before any code | Validate the listening experience before building infra |
+| 2026-08-28 | ElevenLabs Scribe (STT) added to the toolbox for video sources | Video transcripts unlock X/Facebook videos; same provider as TTS, one API key |
+| 2026-08-28 | Sources without clean extraction are named and discarded in the outro | Trust is a feature; never summarize from memory (FLock X article case) |
+| 2026-08-28 | A no-transcript video may ship on its official sources doc, hedged on air | Species video: claims doc = usable evidence if the script says so (accuracy > breadth) |
+| 2026-08-28 | Phase 0 voice: `Louis – French Documentary Narrator` (`jGGIwkfv43kUFffPXEEO`), single TTS request when script < 10k chars | Stitching only needed beyond one request; keep the pipe simple until Phase 3 |
 
 ---
 

@@ -1,0 +1,9 @@
+author: Quiver Quantitative
+date: Fri Aug 28 16:50:41 +0000 2026
+url: https://x.com/QuiverQuant/status/2093380763404144690
+
+BREAKING: Claude can now make stock trades using data on new trades by politicians, insiders, and hedge funds.
+
+You can have it build and test algorithmic trading strategies.
+
+Here is how it works:

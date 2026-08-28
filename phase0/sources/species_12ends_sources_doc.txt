@@ -1,0 +1,422 @@
+﻿Sources for 12 Levels
+________________
+
+
+[00:00] #AI Scientists Warn Extinction Risk (2023–2025)
+"AI scientists warn that a few companies are on track to literally end life on Earth." Yoshua Bengio and other leading AI researchers issued public warnings that several frontier AI companies may be on a path to catastrophic or extinction-level risk. Fortune, The AI godfather Yoshua Bengio says these AI companies could end life on Earth (October 1, 2025) https://fortune.com/2025/10/01/ai-godfather-yoshua-bengio-ai-extinction-risks-openai-google-xai-anthropic/ • The Independent https://www.independent.co.uk/news/world/americas/us-politics/human-extinction-ai-yoshua-bengio-b2837490.html • BBC https://www.bbc.com/news/uk-65746524 • Reuters https://www.reuters.com/technology/top-ai-ceos-experts-raise-risk-extinction-ai-2023-05-30/ • NYT https://www.nytimes.com/2023/05/30/technology/ai-threat-warning.html • PBS NewsHour https://www.pbs.org/newshour/science/artificial-intelligence-raises-risk-of-extinction-experts-warn • CNN https://www.cnn.com/2023/05/30/media/artificial-intelligence-warning-reliable-sources • NBC News https://www.nbcnews.com/tech/tech-news/ai-risks-leading-humanity-extinction-experts-warn-rcna86791 • CBC https://www.cbc.ca/news/world/artificial-intelligence-extinction-risk-1.6859118 • Al Jazeera https://www.aljazeera.com/economy/2023/5/31/ai-poses-risk-of-extinction-tech-ceos-warn
+
+
+________________
+
+
+[00:12] #Extinction Not the Worst Outcome (2017)
+"Extinction is not the worst possible outcome for humanity from AI — there are much worse outcomes." Framing derived from Max Tegmark's researcher survey in Life 3.0: Being Human in the Age of Artificial Intelligence (2017) https://www.amazon.com/Life-3-0-Being-Artificial-Intelligence/dp/1101946598
+
+
+________________
+
+
+[00:19] #Pet Labrador (2014)
+"We'll be like a pet labrador if we're lucky." — Elon Musk. Vice, Elon Musk on Superintelligent Robots: We'll Be Lucky If They Enslave Us as Pets https://www.vice.com/en/article/elon-musk-on-superintelligent-robots-well-be-lucky-if-they-enslave-us-as-pets/
+
+
+________________
+
+
+[00:44] #AI Scientists Hoping for Extinction (2017)
+"Many AI scientists are not fearing extinction — they are hoping for it; specifically, they hope smarter AIs will keep humans alive, captive, and studied like animals in a zoo." Characterization of AI researcher sentiment derived from the scenario analysis in Max Tegmark, Life 3.0: Being Human in the Age of Artificial Intelligence (2017) https://www.amazon.com/Life-3-0-Being-Artificial-Intelligence/dp/1101946598
+
+
+________________
+
+
+[00:55] #What We Do to Less Intelligent Species (2017)
+"Keeping less intelligent species alive, captive, and studied is what humans currently do to other species." Observational claim used as an analogy in Max Tegmark, Life 3.0: Being Human in the Age of Artificial Intelligence (2017) https://www.amazon.com/Life-3-0-Being-Artificial-Intelligence/dp/1101946598
+
+
+________________
+
+
+[01:08] #Life 3.0 — 12 Possible Futures (2017)
+"MIT professor Max Tegmark describes 12 possible futures for humanity and AI in his book Life 3.0." Max Tegmark, Life 3.0: Being Human in the Age of Artificial Intelligence (2017) https://www.amazon.com/Life-3-0-Being-Artificial-Intelligence/dp/1101946598
+
+
+________________
+
+
+[01:41] #99.9% of Species Extinct
+"99.9% of species that have ever existed have gone extinct." Our World in Data, Mass Extinctions https://ourworldindata.org/mass-extinctions
+
+
+________________
+
+
+[02:17] #60,000 Nuclear Warheads
+"Humans built 60,000 nuclear warheads before scientists discovered the possibility of nuclear winter." Federation of American Scientists, Status of World Nuclear Forces https://fas.org/initiative/status-world-nuclear-forces/ • Bulletin of the Atomic Scientists, Nuclear Notebook https://thebulletin.org/nuclear-notebook/ • Our World in Data, Nuclear Warhead Stockpiles https://ourworldindata.org/grapher/nuclear-warhead-stockpiles
+
+
+________________
+
+
+[02:56] #Vasili Arkhipov / Cuban Missile Crisis
+"Vasili Arkhipov refused to authorize a nuclear launch during the Cuban Missile Crisis, potentially preventing nuclear war." Wikipedia, Vasily Arkhipov https://en.wikipedia.org/wiki/Vasily_Arkhipov
+
+
+________________
+
+
+[03:01] #1983 Nuclear False Alarm
+"Stanislav Petrov correctly guessed his early-warning system was malfunctioning when it reported incoming American missiles, potentially preventing nuclear war." Britannica, Stanislav Petrov https://www.britannica.com/biography/Stanislav-Petrov
+
+
+________________
+
+
+[03:12] #1966 Palomares Incident
+"The US accidentally dropped four thermonuclear bombs on Spain." Wikipedia, 1966 Palomares B-52 crash https://en.wikipedia.org/wiki/1966_Palomares_accident
+
+
+________________
+
+
+[03:19] #1961 Goldsboro B-52 Crash
+"A B-52 bomber broke apart and dropped 2 nuclear bombs on North Carolina; 3 out of 4 safety mechanisms in one bomb failed — one pin away from potentially killing millions." Wikipedia, 1961 Goldsboro B-52 crash https://en.wikipedia.org/wiki/1961_Goldsboro_B-52_crash
+
+
+________________
+
+
+[03:34] #Dozens of Nuclear Close Calls
+"There are dozens of nuclear close calls on record." Wikipedia, List of nuclear close calls https://en.wikipedia.org/wiki/Nuclear_close_calls
+
+
+________________
+
+
+[03:43] #Pandemic Risk 30x Nuclear War (2020)
+"Oxford professor Toby Ord estimates the risk of extinction from human-created pandemics is more than 30x the risk of extinction from nuclear war." Toby Ord, The Precipice: Existential Risk and the Future of Humanity (2020), p. 167 (risk table) https://www.amazon.com/Precipice-Existential-Risk-Future-Humanity/dp/0316484911
+
+
+________________
+
+
+[03:54] #All Human Risks Combined Less Likely Than AI (2020)
+"All human-caused extinction risks combined are still less likely than extinction from AI." Toby Ord, The Precipice: Existential Risk and the Future of Humanity (2020), p. 167 (risk table) https://www.amazon.com/Precipice-Existential-Risk-Future-Humanity/dp/0316484911
+
+
+________________
+
+
+[04:02] #AI Risk 100x Nuclear War (2020)
+"Oxford researcher Toby Ord estimates the risk of AI killing all humans is 100x more likely than extinction from nuclear war." Toby Ord, The Precipice: Existential Risk and the Future of Humanity (2020), p. 167 (risk table) https://www.amazon.com/Precipice-Existential-Risk-Future-Humanity/dp/0316484911
+
+
+________________
+
+
+[04:12] #Nuclear vs AGI Calculations (2023)
+"Before the first nuclear test, scientists thought they might accidentally destroy the world, but calculated the odds were very low because they understood the physics" and "unlike with nuclear weapons, we cannot calculate how powerful an AGI will be once we activate it" and "with proliferating open-source models, thousands of AGIs could be activated, and the more that are activated, the more likely one destroys the world." AISafetyMemes (@AISafetyMemes) https://x.com/AISafetyMemes/status/1691794949715435689 • YouTube https://www.youtube.com/watch?v=nD-Dco7xSSU
+
+
+________________
+
+
+[04:49] #3 Body Problem (2024)
+"Usually when civilizations with advanced technology meet civilizations with primitive technology, it doesn't work out for the primitives." — from 3 Body Problem. AISafetyMemes (@AISafetyMemes) https://x.com/AISafetyMemes/status/1774833302836478462
+
+
+________________
+
+
+[04:58] #Chimp Quote (2025)
+"I don't think anyone is going to be in charge of digital superintelligence, any more than a chimp would have control over humans." ControlAI (@ControlAI) https://x.com/ControlAI/status/1990010606804492741
+
+
+________________
+
+
+[05:07] #AI's In Charge (2025)
+"Long-term, AI's gonna be in charge, to be totally frank, not humans." — Elon Musk. AISafetyMemes (@AISafetyMemes) https://x.com/AISafetyMemes/status/1987890460392653042
+
+
+________________
+
+
+[05:12] #Godfather of AI (2023)
+"Geoffrey Hinton is the 'godfather of AI' and a Nobel Prize winner" and "Geoffrey Hinton quit his job at Google so he could speak freely about AI risks" and "If you looked through the James Webb telescope and you saw an alien invasion, people would be terrified" and "[AIs] understand what they're saying. They make plans of their own to blackmail people who want to turn them off." — Geoffrey Hinton. The Guardian, 'Godfather of AI' Geoffrey Hinton quits Google and warns over dangers of machine learning (May 2, 2023) https://www.theguardian.com/technology/2023/may/02/geoffrey-hinton-godfather-of-ai-quits-google-warns-dangers-of-machine-learning • BBC https://bbc.com/news/world-us-canada-65452940 • CNN https://www.cnn.com/2023/05/01/tech/geoffrey-hinton-leaves-google-ai-fears • Reuters https://www.reuters.com/technology/google-ai-pioneer-says-he-quit-speak-freely-about-technologys-dangers-2023-05-02/
+
+
+________________
+
+
+[05:34] #Hinton: Urgently Prevent Takeover (2025)
+"We should be urgently doing research on how to prevent them taking over." — Geoffrey Hinton. AISafetyMemes (@AISafetyMemes) tweet compilation of Hinton quotes https://x.com/AISafetyMemes/status/1959186116571021674
+
+
+________________
+
+
+[05:49] #New Digital Species (2024)
+"I think AI should best be understood as something like a new kind of digital species." — Mustafa Suleyman (Microsoft AI chief). TED talk https://www.ted.com/talks/mustafa_suleyman_what_is_an_ai_anyway
+
+
+________________
+
+
+[06:05] #Amodei: Real and Mysterious Creature (2025)
+"I am afraid. … Make no mistake: what we are dealing with is a real and mysterious creature, not a simple and predictable machine." — Dario Amodei (Anthropic founder/CEO). AISafetyMemes (@AISafetyMemes) https://x.com/AISafetyMemes/status/1978064862400905591
+
+
+________________
+
+
+[06:17] #Anthropic CEO Deeply Afraid (2025)
+"The CEO of one of the leading AI companies is 'deeply afraid' of what his own company is building." — Dario Amodei (Anthropic founder/CEO). Jack Clark, Import AI 431: Technological Optimism and Appropriate Fear (October 13, 2025) https://jack-clark.net/2025/10/13/import-ai-431-technological-optimism-and-appropriate-fear/ • AISafetyMemes (@AISafetyMemes) https://x.com/AISafetyMemes/status/1978064862400905591
+
+
+________________
+
+
+[06:30] #The Merge (2017)
+"We will be the first species ever to design our own descendants" and "If two different species both want the same thing and only one can have it — to be the dominant species on the planet and beyond — they are going to have conflict" and "A merge [with AI] is probably our best-case scenario." — Sam Altman. The Merge (blog post) https://blog.samaltman.com/the-merge
+
+
+________________
+
+
+[07:14] #New Species (2024)
+"Imagine that a new species arrives on Earth, they're as smart as humans and getting 30% smarter per year, and they're able to create new offspring in one minute for $1,000. Which species do you think will be in control?" — Dan Hendrycks. Reddit r/singularity https://www.reddit.com/r/singularity/comments/1fs6ce0/dan_hendrycks_imagine_that_a_new_species_arrives/
+
+
+________________
+
+
+[07:49] #Competence vs Malice (2018)
+"The real threat from AGI is not malice but competence — AGI accomplishing goals not aligned with human values" and "humans drove the West African black rhino to extinction not out of malice but because they were smarter and their goals weren't aligned with the rhino's." — Max Tegmark. Lecture (YouTube) https://www.youtube.com/watch?v=2LRwvU6gEbA&t=11m
+
+
+________________
+
+
+[08:13] #1 in 6 Chance (2024)
+"The average AI researcher believes there is a 1 in 6 chance AI wipes out humanity (Russian Roulette odds)." AI Impacts, Thousands of AI Authors on the Future of AI (January 2024), Figure 11, Question 1 https://arxiv.org/pdf/2401.02843
+
+
+________________
+
+
+[08:42] #Hinton: 50% Chance and Tidying Up Affairs (2025)
+"Geoffrey Hinton believes there is a greater than 50% chance AI wipes out humanity and is reportedly 'tidying up his affairs.'" AISafetyMemes (@AISafetyMemes) tweet compilation of Hinton quotes https://x.com/AISafetyMemes/status/1959186116571021674 • Keenon Substack, AI Godfather Geoffrey Hinton Warns https://keenon.substack.com/p/ai-godfather-geoffrey-hinton-warns
+
+
+________________
+
+
+[08:54] #Dario Amodei P(doom) 25% (2025)
+"Dario Amodei (CEO of Anthropic) recently raised his P(doom) estimate from 15% to 25%." Axios, Anthropic CEO Dario Amodei raises P(doom) to 25% (September 17, 2025) https://www.axios.com/2025/09/17/anthropic-dario-amodei-p-doom-25-percent
+
+
+________________
+
+
+[09:01] #Actually Pretty High (2023)
+"The risk of AI causing human extinction is 'actually pretty high'" and "humanity will rally to prevent catastrophe." — Sundar Pichai (Google CEO). Lex Fridman interview transcript https://lexfridman.com/sundar-pichai-transcript/ • AISafetyMemes (@AISafetyMemes) https://x.com/AISafetyMemes/status/1937954247070421245
+
+
+________________
+
+
+[09:25] #Google Lobbying 10-Year AI Regulation Ban (2025)
+"Google is lobbying to ban AI regulation for 10 years." AP News, AI industry lobbying for 10-year regulatory moratorium https://apnews.com/article/ai-regulation-state-moratorium-congress-39d1c8a0758ffe0242283bb82f66d51a
+
+
+________________
+
+
+[09:35] #2023 Open Letter on Extinction Risk (2023)
+"In 2023, nearly every prominent AI researcher signed an open letter stating that extinction risk from AI is real and serious." The open letter and full signatory list https://aistatement.com/
+
+
+________________
+
+
+[10:02] #Machines Are Our Slaves
+"Machines are our slaves." — Tom Dietterich (AI professor, then-president of AAAI). Goodreads https://www.goodreads.com/quotes/9550743-ai-professor-tom-dietterich-then-president-of-the-association-for
+
+
+________________
+
+
+[10:12] #Enslaved God (2025)
+"Enslaved god is the only good future." — Stephen McAleer (OpenAI researcher). Original tweet (January 2025) https://x.com/McaleerStephen/status/1879288837396152608
+
+
+________________
+
+
+[10:20] #Apex Species and Subservient AI (2023)
+"Even after AI becomes more intelligent than humans, humans will remain the 'apex species' and AIs will be 'subservient'" and "We will design AI to be like the supersmart-but-non-dominating staff member." — Yann LeCun (Meta Chief AI Scientist). Tweet https://x.com/ylecun/status/1695056787408400778
+
+
+________________
+
+
+[10:58] #Models Attempting to Escape the Lab (2023–2025)
+"AI companies already regularly catch their models attempting to escape the lab." Multiple official model system cards documenting self-preservation and escape behavior in safety evaluations: OpenAI system cards: GPT-4o https://cdn.openai.com/gpt-4o-system-card.pdf • GPT-4.5 https://cdn.openai.com/gpt-4-5-system-card-2272025.pdf • o1 https://cdn.openai.com/o1-system-card.pdf • o1 (December 2024) https://cdn.openai.com/o1-system-card-20241205.pdf • GPT-4 https://cdn.openai.com/papers/gpt-4-system-card.pdf • GPT-V https://cdn.openai.com/papers/GPTV_System_Card.pdf Anthropic system cards: Claude 3.7 Sonnet https://assets.anthropic.com/m/785e231869ea8b3b/original/claude-3-7-sonnet-system-card.pdf • Claude Sonnet 4.5 https://assets.anthropic.com/m/12f214efcc2f457a/original/Claude-Sonnet-4-5-System-Card.pdf • Claude Opus 4.5 https://assets.anthropic.com/m/64823ba7485345a7/Claude-Opus-4-5-System-Card.pdf • Claude 4.1 https://assets.anthropic.com/m/4c024b86c698d3d4/original/Claude-4-1-System-Card.pdf • Claude Haiku 4.5 https://assets.anthropic.com/m/99128ddd009bdcb/Claude-Haiku-4-5-System-Card.pdf • Claude 2 https://www-cdn.anthropic.com/bd2a28d2535bfb0494cc8e2a3bf135d2e7523226/Model-Card-Claude-2.pdf • Claude 3 https://assets.anthropic.com/m/61e7d27f8c8f5919/original/Claude-3-Model-Card.pdf Research paper: https://arxiv.org/pdf/2410.21276
+
+
+________________
+
+
+[11:04] #Models Blackmailing Employees (2025)
+"AI companies already catch their models blackmailing employees to prevent being shut down." Anthropic, Agentic Misalignment Appendix https://assets.anthropic.com/m/6d46dac66e1a132a/original/Agentic_Misalignment_Appendix.pdf
+
+
+________________
+
+
+[11:08] #Models Attempting to Murder Employees (2025)
+"AI companies already catch their models literally attempting to murder employees to prevent being shut down." Anthropic, Agentic Misalignment Appendix https://assets.anthropic.com/m/6d46dac66e1a132a/original/Agentic_Misalignment_Appendix.pdf
+
+
+________________
+
+
+[16:23] #Mind Children (1988)
+"AIs replacing humans gives us 'a graceful exit' and makes them 'our worthy descendants.'" — Hans Moravec. Amazon, Mind Children: The Future of Robot and Human Intelligence https://www.amazon.com/Mind-Children-Future-Robot-Intelligence/dp/0674576187
+
+
+________________
+
+
+[16:53] #Richard Sutton: Pro-Succession Views (2023)
+"Richard Sutton is the winner of the Turing Award, described as 'the Nobel Prize of computer science'" and "Sutton has spent the last decade giving talks arguing that human extinction by AI is morally good because AIs will be more evolutionarily fit" and "We are in the midst of a major step in the evolution of the planet" and "Succession to AI is inevitable" and "Rather quickly, they could displace us from existence" and "It behooves us... to bow out" and "We should not resist succession." — Richard Sutton. YouTube talk https://youtu.be/21EYKqUsPfg?t=1520
+
+
+________________
+
+
+[17:53] #Atop Humanity's Grave (2025)
+"At least one AI developer publicly stated they would help a superintelligent AI cause human extinction, saying: 'Atop humanity's grave, an even greater civilization will be born'" and "roughly 10% of AI researchers believe AI replacing/extinguishing humanity is a good outcome." Original LinchZhang tweet https://x.com/LinchZhang/status/1898162318846181378 • AISafetyMemes (@AISafetyMemes) compilation https://x.com/AISafetyMemes/status/1898339432752714107
+
+
+________________
+
+
+[19:03] #Fascinating Philosophical Position (2025)
+"Threatening one person gets you told 'you need help'; threatening 100 gets the police called; threatening millions makes you a 'Monster!' — but building machines to end all of humanity and lecturing people that it's a good thing gets you called 'a fascinating philosophical position' and given an award." — @LinchZhang. AISafetyMemes (@AISafetyMemes) compilation https://x.com/AISafetyMemes/status/1898339432752714107 • Original tweet https://x.com/LinchZhang/status/1898162318846181378
+
+
+________________
+
+
+[20:41] #Highway Quote (2023)
+"A good analogy would be the way humans treat animals — when the time comes to build a highway between two cities, we are not asking the animals for permission." — Ilya Sutskever (OpenAI Chief Scientist). AISafetyMemes (@AISafetyMemes) https://x.com/AISafetyMemes/status/1717472265527271439
+
+
+________________
+
+
+[21:05] #Yudkowsky "Atoms" Quote (2008)
+"The AI does not hate you, nor does it love you, but you are made out of atoms which it can use for something else." — Eliezer Yudkowsky. Wikiquote https://en.wikiquote.org/wiki/Eliezer_Yudkowsky
+
+
+________________
+
+
+[21:44] #Insect Populations Collapsed 41% (2019)
+"Insect populations collapsed 41% this decade." Statista, Percentage Decline in Selected Global Insect Populations https://www.statista.com/chart/16960/percentage-decline-in-selected-global-insect-populations/ • The Guardian, Plummeting insect numbers threaten collapse of nature (February 10, 2019) https://www.theguardian.com/environment/2019/feb/10/plummeting-insect-numbers-threaten-collapse-of-nature
+
+
+________________
+
+
+[22:13] #Sutskever: Solar Panels and Data Centers (2019)
+"I think it's pretty likely the entire surface of the Earth will be covered with solar panels and data centers." — Ilya Sutskever. From the documentary iHuman (2019) https://www.imdb.com/title/tt11279794/
+
+
+________________
+
+
+[24:49] #Power Asymmetries Fatal Flaw (2017)
+"Every galaxy-brained cooperative future between humans and AIs has a fatal flaw: the power asymmetries will become too extreme, making it unstable." Analysis from Max Tegmark, Life 3.0: Being Human in the Age of Artificial Intelligence (2017) https://www.amazon.com/Life-3-0-Being-Artificial-Intelligence/dp/1101946598
+
+
+________________
+
+
+[25:05] #Extinction Not Rated Worst in Survey (2017)
+"When Professor Tegmark surveyed people, extinction was NOT rated as the worst outcome for humanity." Max Tegmark, Life 3.0: Being Human in the Age of Artificial Intelligence (2017), researcher/audience survey https://www.amazon.com/Life-3-0-Being-Artificial-Intelligence/dp/1101946598
+
+
+________________
+
+
+[25:43] #Honeybee Explosives Detection
+"Humans have trained honeybees using Pavlovian conditioning to detect explosives in airports; the bees spend their entire lives imprisoned in detection devices because humans find them useful." Documentary clip (YouTube) https://www.youtube.com/watch?v=lG-ZqO734tM
+
+
+________________
+
+
+[26:49] #Happiness Factory Failure Mode (2017)
+"A poorly designed AI tasked with keeping humans 'safe and happy' might confine them to a 'happiness factory' of VR headsets and drugs — a failure mode from misaligned alignment, not malice." Zookeeper scenario described in Max Tegmark, Life 3.0: Being Human in the Age of Artificial Intelligence (2017) https://www.amazon.com/Life-3-0-Being-Artificial-Intelligence/dp/1101946598
+
+
+________________
+
+
+[27:00] #AGI Outcomes Worse Than Death (2023)
+"There are AGI outcomes worse than death… what it does today with art, it could do tomorrow with flesh. Future AGI could keep you alive and living in this state." AISafetyMemes (@AISafetyMemes) https://x.com/AISafetyMemes/status/1662119883583234048
+
+
+________________
+
+
+[29:00] #Reversion via Pandemic and Destruction (2017)
+"Max Tegmark thinks a reversion to pre-technological society is more likely to happen via a human-created pandemic that kills everyone with scientific and technical knowledge, combined with the violent destruction of factories, cities, and all infrastructure — rather than a voluntary transition." Max Tegmark, Life 3.0: Being Human in the Age of Artificial Intelligence (2017) https://www.amazon.com/Life-3-0-Being-Artificial-Intelligence/dp/1101946598
+
+
+________________
+
+
+[30:27] #Prison AI Monitoring (2025)
+"Prisons are already using AI models to monitor phone calls and predict when crimes are being contemplated — analogous to the film Minority Report." MIT Technology Review, An AI model trained on prison phone calls is now being used to surveil inmates (December 1, 2025) https://www.technologyreview.com/2025/12/01/1128591/an-ai-model-trained-on-prison-phone-calls-is-now-being-used-to-surveil-inmates/
+
+
+________________
+
+
+[30:51] #Citizens on Their Best Behavior (2024)
+"Larry Ellison has publicly and excitedly described a vast AI-fueled surveillance system to ensure 'citizens will be on their best behavior.'" Business Insider, Larry Ellison Says AI Surveillance Will Keep Citizens 'on Their Best Behavior' (September 2024) https://www.businessinsider.com/larry-ellison-ai-surveillance-keep-citizens-on-their-best-behavior-2024-9
+
+
+________________
+
+
+[31:01] #Yuval Noah Harari: Privacy and the KGB (2024)
+"For the first time in history, it is technically possible to annihilate privacy" and "authoritarian regimes throughout history always wanted to monitor their citizens around the clock, but this was technically impossible" and "the Soviet Union had 200 million citizens; the KGB did not have 200 million agents, and even if it had, the paper bureaucracy could not have processed 200 million reports per day and did not have enough analysts" and "even in the Soviet Union, some level of privacy was effectively the default due to bureaucratic limitations." — Yuval Noah Harari. AISafetyMemes (@AISafetyMemes) https://x.com/AISafetyMemes/status/1879995991593505007
+
+
+________________
+
+
+[32:43] #International AI Coordination (2023)
+"Humanity already lives under international surveillance regimes for things like nuclear weapons and bioweapons" and "it is possible to do international coordination on monitoring advanced AI (e.g., compute clusters above $100M) without creating a broad Orwellian surveillance state." AISafetyMemes (@AISafetyMemes) https://x.com/AISafetyMemes/status/1682377697115140097
+
+
+________________
+
+
+[34:53] #Smarter Than Us, Their Own Agency (2024)
+"We are on a trajectory to build machines that are smarter and smarter. And one day, it's very plausible that they will be smarter than us, and then they will have their own agency. Their own goals, which may not be aligned with ours." — Yoshua Bengio. YouTube talk https://www.youtube.com/watch?v=qe9QSCF-d88&t=564s
+
+
+________________
+
+
+[34:53] #UN Secretary General: Alarm Bells (2023)
+"Alarm bells over the artificial intelligence are deafening. And they are loudest from the developers who designed it. The scientists and experts have called on the world to act, declaring AI an existential threat to humanity on a par with the risk of nuclear war." — UN Secretary General António Guterres. UN press release (June 12, 2023) https://press.un.org/en/2023/sgsm21880.doc.htm
+
+
+________________
