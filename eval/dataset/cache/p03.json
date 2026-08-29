@@ -1,0 +1,13 @@
+{
+  "id": "p03",
+  "file": "phase0/sources/lecho_bluowl_transcript.txt",
+  "title": "L'Echo : Blue Owl et les fissures du crédit privé",
+  "topic": "markets",
+  "lang": "fr",
+  "ok": true,
+  "extraction": {
+    "clean_text": "Vous avez aimé la crise des subprimes en 2007-2008 ? Vous allez adorer celle des crédits privés. Elle a déjà fait quelques victimes parmi les petits acteurs de la finance et du private equity aux États-Unis. Et comme le dit Jamie Dimon, le patron de la toute-puissante JP Morgan : « Quand on voit un cafard, c'est qu'il y en a probablement d'autres. » Alors c'est quoi ces crédits privés ? Au centre de la partie, il y a des fonds d'investissement, des business development companies comme Blue Owl ou New Mountain, par exemple. D'un côté, il y a les épargnants américains fortunés qui confient des actifs à ces business development companies. De l'autre, il y a des PME ou des start-up à qui ces fonds prêtent de l'argent sur plusieurs années. Tant que l'argent rentre, tout va bien. Mais si le doute s'installe, tout le monde se rue vers la sortie en même temps. Et les doutes, actuellement, ils ne manquent pas. Un exemple : First Brands, une société active dans les pièces détachées pour le secteur automobile. Le groupe grandit vite par acquisition, mais il se finance essentiellement par du crédit privé. À un moment donné, First Brands est étranglé par sa dette et ne parvient plus à rembourser. Par contre, les organismes qui ont accordé ces crédits privés, eux, ils doivent rembourser les épargnants. Et là, les dominos commencent à tomber. Blue Owl et New Mountain, entre autres, ont été obligés de vendre des actifs à perte et de limiter les retraits. Ça fait mauvais genre et surtout, ça rappelle de très mauvais souvenirs. D'autant que les grands fonds d'investissement comme BlackRock ou Blackstone, et puis les grandes banques aussi, ont également financé des crédits privés, directement ou indirectement. Vous savez, les banques, celles qui avaient mis les doigts dans la confiture avant 2007 avec les subprimes. Et bien, visiblement, elles auraient trouvé une nouvelle friandise, peut-être un peu pourrie. Le marché global du crédit privé est estimé à plus de mille huit cents milliards de dollars. Et cette semaine, les principales valeurs financières ont perdu entre deux et cinq pour cent en bourse à Wall Street. Mais ce n'est rien encore par rapport au cours de Blue Owl, qui a perdu plus de quarante pour cent depuis le début de l'année. Si tu veux vraiment comprendre ce qui se passe dans l'économie et sur les marchés, eh bien pense à t'abonner. ",
+    "title": "L'Echo : Blue Owl et les fissures du crédit privé",
+    "quality": 0.9
+  }
+}

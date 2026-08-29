@@ -1,0 +1,10 @@
+{
+  "id": "w12",
+  "url": "https://www.reuters.com/technology/top-ai-ceos-experts-raise-risk-extinction-ai-2023-05-30/",
+  "topic": "ai",
+  "lang": "en",
+  "group": "extinction-statement",
+  "ok": false,
+  "status": "unsupported",
+  "error": "jina 403: {\"data\":null,\"code\":403,\"name\":\"AbuseAlleviationError\",\"status\":40305,\"message\":\"Anonymous access to domain www.reuters.com blocked until Sat Aug 29 2026 01:23:46 GMT+0000 (Coordinated Universal Time) due to previous abuse found on https://www.reuters.com/commentary/breakingviews/anthropic-gives-les"
+}

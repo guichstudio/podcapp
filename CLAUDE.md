@@ -12,15 +12,15 @@ Never trade script quality for speed or cost.
 
 ## Current state — update at the end of EVERY session
 
-- [~] **Phase 0 — Manual golden path** : script + audio DONE (2026-08-28), rubric score PENDING
+- [x] **Phase 0 — Manual golden path** : DONE, validated by Louis 2026-08-29 (episode approved)
 - [ ] Phase 1 — Knowledge layer (`processSource` on eval dataset)
 - [ ] Phase 2 — Editorial (final script, 0 unsupported claims, rubric ≥ 3.5)
 - [ ] Phase 3 — Audio + private RSS
 - [ ] Phase 4 — Live capture (`/ingest`, email inbound, Apple Shortcut)
 
-**Now:** Phase 0, waiting on the human rubric pass.
-**Next action:** Louis listens to `phase0/episode_2026-08-28.mp3` end-to-end and scores it with `eval/rubric.md` (gate: avg ≥ 3.5). If below, iterate on the editorial approach in `phase0/`, not on infrastructure.
-**Blockers:** rubric score from Louis.
+**Now:** Phase 1 (knowledge layer).
+**Next action:** scaffold per ARCHITECTURE.md §3-4, implement `processSource`, build `eval/dataset`, run it, inspect clusters (DoD: 50 sources, dup rate < 10%).
+**Blockers:** need DEEPSEEK_API_KEY, OPENAI_API_KEY (and later DATABASE_URL Neon + TRIGGER_SECRET_KEY) in `.env`.
 
 **Phase 0 artifacts** (all in `phase0/`): sources (5 saved items: PDF dossier, 2 video transcripts via ElevenLabs Scribe, Species sources doc, 1 failed extraction), `analysis.md`, `outline.md`, `script_v1_draft.md`, `grounding_report.md` (4 fixes, 0 unsupported sentences shipped), `script_final.md`, `prompts.md` (seeds for `src/prompts/`), `episode_2026-08-28.mp3` (~10 min, voice `jGGIwkfv43kUFffPXEEO`). `ELEVENLABS_API_KEY` lives in `.env` (gitignored).
 
@@ -108,11 +108,17 @@ Session prompt: "Wire `POST /ingest` + Postmark inbound + per-user auth tokens; 
 ## Open questions (resolve on eval evidence, not defaults)
 
 - Writer model: `claude-sonnet-5` vs `claude-opus-5`
+- TTS voice: replace Phase 0 voice with a smoother, Jarvis-like one (Louis's feedback 2026-08-29); browse ElevenLabs library, pick on listening test
 - TTS tier: `eleven_multilingual_v2` vs Flash
 - Similarity thresholds (0.86 merge / 0.70 review) tuning
 - First beta: daily cron vs on-demand only
 
 ---
+
+## Practical notes
+
+- Repo lives at `~/Code/podcapp` since 2026-08-29 (macOS TCC blocks the app's access to `~/Desktop`; the Desktop copy is stale).
+- `.env` (gitignored) holds ELEVENLABS_API_KEY; add the other keys there.
 
 ## Reference material (`docs/reference/`, not V1 scope)
 
