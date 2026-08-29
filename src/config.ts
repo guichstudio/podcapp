@@ -1,8 +1,10 @@
 // All tunable constants. Swapping a stage's model must never require code changes.
 
+// Cheap stages run on gpt-5-mini so ONE OpenAI key covers all of Phase 1
+// (chat + embeddings). DeepSeek routing stays a config swap when optimizing.
 export const MODELS = {
-  analyze:    { provider: 'deepseek',  model: 'deepseek-chat' },
-  adjudicate: { provider: 'deepseek',  model: 'deepseek-chat' },
+  analyze:    { provider: 'openai',    model: 'gpt-5-mini' },
+  adjudicate: { provider: 'openai',    model: 'gpt-5-mini' },
   editorial:  { provider: 'deepseek',  model: 'deepseek-reasoner' },
   ground:     { provider: 'deepseek',  model: 'deepseek-chat' },
   write:      { provider: 'anthropic', model: 'claude-sonnet-5' },
@@ -29,6 +31,7 @@ export const PROMPT_VERSIONS = {
 
 // USD per 1M tokens; kept close to provider price sheets, updated by hand.
 export const PRICING: Record<string, { in: number; out: number }> = {
+  'gpt-5-mini': { in: 0.25, out: 2 },
   'deepseek-chat': { in: 0.27, out: 1.1 },
   'deepseek-reasoner': { in: 0.55, out: 2.19 },
   'claude-sonnet-5': { in: 3, out: 15 },

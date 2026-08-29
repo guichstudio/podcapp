@@ -3,11 +3,12 @@ import { MODELS, PRICING, type Stage } from '../config.js'
 import { logger } from '../log.js'
 import { anthropic } from './anthropic.js'
 import { deepseek } from './deepseek.js'
+import { openai } from './openai.js'
 import type { ChatProvider } from './provider.js'
 
 export { embed } from './embeddings.js'
 
-const providers: Record<string, ChatProvider> = { deepseek, anthropic }
+const providers: Record<string, ChatProvider> = { deepseek, anthropic, openai }
 
 export interface StageCost {
   in: number

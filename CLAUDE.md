@@ -20,7 +20,7 @@ Never trade script quality for speed or cost.
 
 **Now:** Phase 1 (knowledge layer).
 **Next action:** scaffold per ARCHITECTURE.md §3-4, implement `processSource`, build `eval/dataset`, run it, inspect clusters (DoD: 50 sources, dup rate < 10%).
-**Blockers:** need DEEPSEEK_API_KEY, OPENAI_API_KEY (and later DATABASE_URL Neon + TRIGGER_SECRET_KEY) in `.env`.
+**Blockers:** need OPENAI_API_KEY in `.env` (single key for all of Phase 1). DATABASE_URL/TRIGGER_SECRET_KEY only needed from Phase 3-4.
 
 **Phase 0 artifacts** (all in `phase0/`): sources (5 saved items: PDF dossier, 2 video transcripts via ElevenLabs Scribe, Species sources doc, 1 failed extraction), `analysis.md`, `outline.md`, `script_v1_draft.md`, `grounding_report.md` (4 fixes, 0 unsupported sentences shipped), `script_final.md`, `prompts.md` (seeds for `src/prompts/`), `episode_2026-08-28.mp3` (~10 min, voice `jGGIwkfv43kUFffPXEEO`). `ELEVENLABS_API_KEY` lives in `.env` (gitignored).
 
@@ -101,6 +101,9 @@ Session prompt: "Wire `POST /ingest` + Postmark inbound + per-user auth tokens; 
 | 2026-08-28 | ElevenLabs Scribe (STT) added to the toolbox for video sources | Video transcripts unlock X/Facebook videos; same provider as TTS, one API key |
 | 2026-08-28 | Sources without clean extraction are named and discarded in the outro | Trust is a feature; never summarize from memory (FLock X article case) |
 | 2026-08-28 | A no-transcript video may ship on its official sources doc, hedged on air | Species video: claims doc = usable evidence if the script says so (accuracy > breadth) |
+| 2026-08-29 | Phase 1 cheap stages on `gpt-5-mini`: one OpenAI key covers chat + embeddings | Fewer accounts/keys for Louis; DeepSeek stays a config swap for later cost work |
+| 2026-08-29 | LLM stage cache committed in `eval/dataset/llm-cache/` (key: source hash + model + prompt version) | Eval re-runs cost ~0; only changed sources/prompts hit APIs |
+| 2026-08-29 | Local/eval DB = embedded PGlite with pgvector; `DATABASE_URL` switches to Neon | Zero infrastructure for Phase 1; same schema and operators |
 | 2026-08-28 | Phase 0 voice: `Louis – French Documentary Narrator` (`jGGIwkfv43kUFffPXEEO`), single TTS request when script < 10k chars | Stitching only needed beyond one request; keep the pipe simple until Phase 3 |
 
 ---

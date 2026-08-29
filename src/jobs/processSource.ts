@@ -1,5 +1,6 @@
 import { and, eq, ne, sql } from 'drizzle-orm'
 import { MODELS, PROMPT_VERSIONS, SIMILARITY_MERGE, SIMILARITY_REVIEW } from '../config.js'
+import { cacheKey, type StageCache } from '../core/cache.js'
 import { AdjudicationSchema, SourceAnalysisSchema, type Claim, type ExtractResult, type SourceAnalysis } from '../core/types.js'
 import type { Db } from '../db/client.js'
 import { sources, stories } from '../db/schema.js'
@@ -111,7 +112,14 @@ export interface ProcessResult {
 
 // extract -> analyze -> embed -> dedupe/cluster -> ready.
 // Idempotent: every step re-checks state; safe to re-run on any status.
-export async function processSource(db: Db, sourceId: string, ledger: CostLedger = {}): Promise<ProcessResult> {
+// An optional StageCache (keyed on source hash + model + prompt version) makes
+// re-runs free: only changed sources or changed prompts hit the APIs.
+export async function processSource(
+  db: Db,
+  sourceId: string,
+  ledger: CostLedger = {},
+  cache?: StageCache,
+): Promise<ProcessResult> {
   const [row] = await db.select().from(sources).where(eq(sources.id, sourceId))
   if (!row) throw new Error(`source ${sourceId} not found`)
 
@@ -151,27 +159,43 @@ export async function processSource(db: Db, sourceId: string, ledger: CostLedger
     })
     .where(eq(sources.id, row.id))
 
-  // 3. analyze
-  const analysis = await callStructured(
-    'analyze',
-    SourceAnalysisSchema,
-    {
-      system: ANALYZER_V1_SYSTEM,
-      user: analyzerV1User({
-        title: row.title ?? ext.title ?? null,
-        url: row.url,
-        captured_at: row.capturedAt.toISOString(),
-        text: ext.clean_text,
-      }),
-    },
-    ledger,
-  )
+  // 3. analyze (cache key: source content + model + prompt version)
+  const analyzeKey = cacheKey({
+    stage: 'analyze',
+    model: MODELS.analyze.model,
+    prompt: PROMPT_VERSIONS.analyzer,
+    source: hash,
+  })
+  let analysis = cache ? SourceAnalysisSchema.nullable().catch(null).parse(cache.get(analyzeKey)) : null
+  if (!analysis) {
+    analysis = await callStructured(
+      'analyze',
+      SourceAnalysisSchema,
+      {
+        system: ANALYZER_V1_SYSTEM,
+        user: analyzerV1User({
+          title: row.title ?? ext.title ?? null,
+          url: row.url,
+          captured_at: row.capturedAt.toISOString(),
+          text: ext.clean_text,
+        }),
+      },
+      ledger,
+    )
+    cache?.set(analyzeKey, analysis)
+  }
   await db.update(sources).set({ analysis, status: 'analyzed' }).where(eq(sources.id, row.id))
 
   // 4. embed (summary + topics + head of text: what clustering should compare)
   const embedInput = `${analysis.summary}\ntopics: ${analysis.topics.join(', ')}\n${ext.clean_text.slice(0, 4000)}`
-  const { embedding, tokens } = await embed(embedInput)
-  addCost(ledger, 'embed', MODELS.embed.model, tokens, 0)
+  const embedKey = cacheKey({ stage: 'embed', model: MODELS.embed.model, source: hash })
+  let embedded = cache ? (cache.get(embedKey) as { embedding: number[]; tokens: number } | null) : null
+  if (!embedded || !Array.isArray(embedded.embedding)) {
+    embedded = await embed(embedInput)
+    addCost(ledger, 'embed', MODELS.embed.model, embedded.tokens, 0)
+    cache?.set(embedKey, embedded)
+  }
+  const { embedding } = embedded
   await db.update(sources).set({ embedding }).where(eq(sources.id, row.id))
 
   // 5. cluster

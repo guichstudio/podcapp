@@ -3,8 +3,12 @@ import { eq } from 'drizzle-orm'
 import { createDb } from '../src/db/client.js'
 import { migrate } from '../src/db/migrate.js'
 import { sources, stories, users } from '../src/db/schema.js'
+import { FileStageCache } from '../src/core/cache.js'
 import { processSource, type ProcessResult } from '../src/jobs/processSource.js'
 import type { CostLedger } from '../src/llm/index.js'
+
+// Committed LLM cache: re-runs only pay for sources or prompts that changed.
+const llmCache = new FileStageCache('eval/dataset/llm-cache')
 
 // Full processSource pipeline over the committed cache -> fresh embedded DB ->
 // clusters + auto-metrics. Reproducible: network only for LLM/embedding calls.
@@ -64,7 +68,7 @@ for (const entry of entries) {
     .returning({ id: sources.id })
   if (!row) throw new Error('source insert failed')
   try {
-    const r = await processSource(db, row.id, ledger)
+    const r = await processSource(db, row.id, ledger, llmCache)
     results.push({ ...r, evalId: entry.id, ...(entry.group ? { group: entry.group } : {}) })
     console.log(`${entry.id}  ${r.status}  ${r.clustering ?? ''}`)
   } catch (e) {
