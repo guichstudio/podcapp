@@ -14,14 +14,14 @@ Never trade script quality for speed or cost.
 
 - [x] **Phase 0 — Manual golden path** : DONE, validated by Louis 2026-08-29 (episode approved)
 - [x] Phase 1 — Knowledge layer : DONE 2026-08-29 (53/54 sources, dup rate 0%, 0 wrong merges, clusters inspectable via `pnpm inspect stories`)
-- [ ] Phase 2 — Editorial (final script, 0 unsupported claims, rubric ≥ 3.5)
+- [~] Phase 2 — Editorial : pipeline DONE 2026-08-29 (auto-metrics pass), rubric score PENDING
 - [ ] Phase 3 — Audio + private RSS
 - [ ] Phase 4 — Live capture (`/ingest`, email inbound, Apple Shortcut)
 
-**Now:** Phase 1 done, Phase 2 (editorial) next.
-**Next action:** implement `generateEpisode` through the final script (select+outline → write → ground → edit, ARCHITECTURE.md §5.4-5.7), prompts seeded from `phase0/prompts.md`. Needs ANTHROPIC_API_KEY for the writer.
+**Now:** Phase 2, waiting on the human rubric pass.
+**Next action:** Louis reads (or listens to) the latest `eval/out/episode-*/script.md` and scores it with `eval/rubric.md` (gate: avg ≥ 3.5). Iterate on prompts in `src/prompts/` if below. Commands: `pnpm eval:run` (sources → stories), `pnpm eval:episode` (stories → script, ~$0.43, ~8 min).
 **Known polish items (non-blocking):** extraction quality heuristic lets error pages and site landing pages through (AP 'Page Not Found', BBC/Le Monde home feeds became stories); Playwright fallback still unimplemented (not needed on this dataset).
-**Blockers:** ANTHROPIC_API_KEY for Phase 2 writer/edit stages.
+**Blockers:** rubric score from Louis on the generated script.
 
 **Phase 0 artifacts** (all in `phase0/`): sources (5 saved items: PDF dossier, 2 video transcripts via ElevenLabs Scribe, Species sources doc, 1 failed extraction), `analysis.md`, `outline.md`, `script_v1_draft.md`, `grounding_report.md` (4 fixes, 0 unsupported sentences shipped), `script_final.md`, `prompts.md` (seeds for `src/prompts/`), `episode_2026-08-28.mp3` (~10 min, voice `jGGIwkfv43kUFffPXEEO`). `ELEVENLABS_API_KEY` lives in `.env` (gitignored).
 
@@ -105,6 +105,9 @@ Session prompt: "Wire `POST /ingest` + Postmark inbound + per-user auth tokens; 
 | 2026-08-29 | Brain = DeepSeek v4 (`deepseek-v4-flash`/`-pro`, ids verified via /models), embeddings = `jina-embeddings-v5-text-small` 1024 dims | Louis provided DeepSeek key ($50); Jina free tier + same key raises Reader limits |
 | 2026-08-29 | `thinking: disabled` on analyze/adjudicate/ground calls | v4 models are hybrid reasoners: thinking burned the whole token budget and returned empty content on long sources |
 | 2026-08-29 | SIMILARITY_MERGE raised 0.86 → 0.93 for jina-v5 embeddings; adjudicator decides 0.70-0.93 | Eval: true dups sit at 0.90-0.97 but a meta-source absorbed stories at 0.909 |
+| 2026-08-29 | Editorial prompt must hard-discard reference/encyclopedia/listing pages; chapter titles written by the editor, never the source headline | First run aired Wikipedia background as news and used "BBC News - Breaking news..." as a chapter title |
+| 2026-08-29 | Outro names publications (publisher, else domain), never article headlines; no moral-of-the-story editorializing | First run closed on "toutes les sources citées" plus a vigilance homily |
+| 2026-08-29 | `temperature` dropped from Anthropic calls (deprecated on claude-sonnet-5); DeepSeek json_object needs the word "json" in the user prompt | Both were hard 400s on the first Phase 2 run |
 | 2026-08-29 | adjudicate.v2: compare PRIMARY subjects, roundup-cites-event ≠ same story, unsure → false | v1 merged a specific article into a sources-roundup doc whose claims quoted it |
 | 2026-08-29 | LLM stage cache committed in `eval/dataset/llm-cache/` (key: source hash + model + prompt version) | Eval re-runs cost ~0; only changed sources/prompts hit APIs |
 | 2026-08-29 | Local/eval DB = embedded PGlite with pgvector; `DATABASE_URL` switches to Neon | Zero infrastructure for Phase 1; same schema and operators |

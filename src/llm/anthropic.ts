@@ -15,7 +15,9 @@ export const anthropic: ChatProvider = {
         system: req.system,
         messages: [{ role: 'user', content: req.user }],
         max_tokens: req.maxTokens ?? 4096,
-        temperature: req.temperature ?? 0.4,
+        // temperature is deprecated on claude-sonnet-5: only sent when a caller
+        // explicitly asks for one, so older models keep working.
+        ...(req.temperature !== undefined ? { temperature: req.temperature } : {}),
       }),
     })
     if (!res.ok) throw new Error(`anthropic ${res.status}: ${(await res.text()).slice(0, 300)}`)

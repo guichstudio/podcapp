@@ -5,6 +5,9 @@ import type { ChatProvider, ChatRequest, ChatResponse } from './provider.js'
 // (system, then few-shots) so DeepSeek context caching bills repeats at hit rate.
 export const deepseek: ChatProvider = {
   async chat(req: ChatRequest): Promise<ChatResponse> {
+    // json_object mode is rejected unless the word "json" appears in the prompt.
+    const user =
+      req.jsonMode && !/json/i.test(req.user) ? `${req.user}\n\nRespond with JSON only.` : req.user
     const res = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
       headers: {
@@ -15,7 +18,7 @@ export const deepseek: ChatProvider = {
         model: req.model,
         messages: [
           { role: 'system', content: req.system },
-          { role: 'user', content: req.user },
+          { role: 'user', content: user },
         ],
         max_tokens: req.maxTokens ?? 4096,
         temperature: req.temperature ?? 0.2,

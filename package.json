@@ -10,6 +10,7 @@
     "db:migrate": "tsx src/db/migrate.ts",
     "eval:cache": "tsx eval/cache.ts",
     "eval:run": "tsx eval/run.ts",
+    "eval:episode": "tsx eval/episode.ts",
     "inspect": "tsx src/cli.ts",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts"

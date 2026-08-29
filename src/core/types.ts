@@ -31,6 +31,7 @@ export const OutlineSchema = z.object({
   sections: z.array(
     z.object({
       story_id: z.string(),
+      title: z.string(),
       airtime_sec: z.number().int().positive(),
       angle: z.string(),
       why_it_matters: z.string(),
