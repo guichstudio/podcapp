@@ -1,20 +1,22 @@
 // All tunable constants. Swapping a stage's model must never require code changes.
 
-// Cheap stages run on gpt-5-mini so ONE OpenAI key covers all of Phase 1
-// (chat + embeddings). DeepSeek routing stays a config swap when optimizing.
+// Model ids verified against the live DeepSeek /models endpoint on 2026-08-29:
+// deepseek-v4-flash, deepseek-v4-pro. Embeddings run on Jina (free tier), the
+// same account whose key raises Reader rate limits for extraction.
 export const MODELS = {
-  analyze:    { provider: 'openai',    model: 'gpt-5-mini' },
-  adjudicate: { provider: 'openai',    model: 'gpt-5-mini' },
-  editorial:  { provider: 'deepseek',  model: 'deepseek-reasoner' },
-  ground:     { provider: 'deepseek',  model: 'deepseek-chat' },
+  analyze:    { provider: 'deepseek',  model: 'deepseek-v4-flash' },
+  adjudicate: { provider: 'deepseek',  model: 'deepseek-v4-flash' },
+  editorial:  { provider: 'deepseek',  model: 'deepseek-v4-pro' },
+  ground:     { provider: 'deepseek',  model: 'deepseek-v4-flash' },
   write:      { provider: 'anthropic', model: 'claude-sonnet-5' },
   edit:       { provider: 'anthropic', model: 'claude-sonnet-5' },
-  embed:      { provider: 'openai',    model: 'text-embedding-3-small' },
+  embed:      { provider: 'jina',      model: 'jina-embeddings-v3' },
 } as const
 
 export type Stage = keyof typeof MODELS
 
-export const EMBEDDING_DIMS = 1536
+// jina-embeddings-v3 native dimension. Must match the literal in src/db/schema.ts.
+export const EMBEDDING_DIMS = 1024
 
 export const MIN_EXTRACTION_QUALITY = 0.35
 export const SIMILARITY_MERGE = 0.86
@@ -31,11 +33,14 @@ export const PROMPT_VERSIONS = {
 
 // USD per 1M tokens; kept close to provider price sheets, updated by hand.
 export const PRICING: Record<string, { in: number; out: number }> = {
+  // v4 prices assumed at v3 chat/reasoner levels until checked on the price page;
+  // the ledger is an order-of-magnitude guardrail, the balance page is the truth.
+  'deepseek-v4-flash': { in: 0.27, out: 1.1 },
+  'deepseek-v4-pro': { in: 0.55, out: 2.19 },
   'gpt-5-mini': { in: 0.25, out: 2 },
-  'deepseek-chat': { in: 0.27, out: 1.1 },
-  'deepseek-reasoner': { in: 0.55, out: 2.19 },
   'claude-sonnet-5': { in: 3, out: 15 },
   'text-embedding-3-small': { in: 0.02, out: 0 },
+  'jina-embeddings-v3': { in: 0.02, out: 0 },
 }
 
 export const JINA_READER_BASE = 'https://r.jina.ai/'

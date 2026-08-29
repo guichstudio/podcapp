@@ -48,7 +48,7 @@ CREATE TABLE "sources" (
 	"raw" jsonb,
 	"clean_text" text,
 	"analysis" jsonb,
-	"embedding" vector(1536),
+	"embedding" vector(1024),
 	"extraction_quality" real,
 	"status" text DEFAULT 'received' NOT NULL,
 	"error" text,
@@ -62,7 +62,7 @@ CREATE TABLE "stories" (
 	"topic" text,
 	"source_ids" uuid[] NOT NULL,
 	"claims" jsonb DEFAULT '[]'::jsonb NOT NULL,
-	"embedding" vector(1536),
+	"embedding" vector(1024),
 	"first_seen_at" timestamp with time zone NOT NULL,
 	"last_seen_at" timestamp with time zone NOT NULL,
 	"status" text DEFAULT 'open' NOT NULL

@@ -13,7 +13,7 @@ import {
 } from 'drizzle-orm/pg-core'
 // Must match EMBEDDING_DIMS in src/config.ts (kept literal here: drizzle-kit's
 // CJS loader cannot follow the ESM import).
-const EMBEDDING_DIMS = 1536
+const EMBEDDING_DIMS = 1024
 
 const vector = customType<{ data: number[]; driverData: string }>({
   dataType() {
