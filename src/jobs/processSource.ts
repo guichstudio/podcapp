@@ -1,4 +1,4 @@
-import { and, eq, ne, sql } from 'drizzle-orm'
+import { and, eq, inArray, ne, sql } from 'drizzle-orm'
 import { MODELS, PROMPT_VERSIONS, SIMILARITY_MERGE, SIMILARITY_REVIEW } from '../config.js'
 import { cacheKey, type StageCache } from '../core/cache.js'
 import { AdjudicationSchema, SourceAnalysisSchema, type Claim, type ExtractResult, type SourceAnalysis } from '../core/types.js'
@@ -10,7 +10,7 @@ import { extractText } from '../extract/text.js'
 import { extractWeb } from '../extract/web.js'
 import { addCost, callStructured, embed, type CostLedger } from '../llm/index.js'
 import { logger } from '../log.js'
-import { ADJUDICATE_V1_SYSTEM, adjudicateV1User } from '../prompts/adjudicate.v1.js'
+import { ADJUDICATE_V2_SYSTEM, adjudicateV2User } from '../prompts/adjudicate.v2.js'
 import { ANALYZER_V1_SYSTEM, analyzerV1User } from '../prompts/analyzer.v1.js'
 
 type SourceRow = typeof sources.$inferSelect
@@ -69,7 +69,7 @@ async function attachToStory(db: Db, storyId: string, row: SourceRow, analysis: 
   const [story] = await db.select().from(stories).where(eq(stories.id, storyId))
   if (!story) throw new Error(`story ${storyId} disappeared`)
   const memberIds = [...story.sourceIds, row.id]
-  const members = await db.select({ embedding: sources.embedding }).from(sources).where(sql`id = ANY(${memberIds})`)
+  const members = await db.select({ embedding: sources.embedding }).from(sources).where(inArray(sources.id, memberIds))
   const vectors = members.map((m) => m.embedding).filter((v): v is number[] => Array.isArray(v))
   vectors.push(embedding)
   await db
@@ -107,6 +107,7 @@ export interface ProcessResult {
   status: string
   storyId?: string
   clustering?: 'exact_duplicate' | 'merged' | 'adjudicated_merge' | 'adjudicated_new' | 'new'
+  bestSimilarity?: number | undefined
   error?: string
 }
 
@@ -172,6 +173,7 @@ export async function processSource(
       'analyze',
       SourceAnalysisSchema,
       {
+        maxTokens: 8192,
         system: ANALYZER_V1_SYSTEM,
         user: analyzerV1User({
           title: row.title ?? ext.title ?? null,
@@ -214,10 +216,14 @@ export async function processSource(
       'adjudicate',
       AdjudicationSchema,
       {
-        system: ADJUDICATE_V1_SYSTEM,
-        user: adjudicateV1User(
-          { headline: candidate?.headline ?? '', summary: JSON.stringify((candidate?.claims as Claim[]).slice(0, 5).map((c) => c.text)) },
-          { headline: fresh.title ?? '', summary: analysis.summary },
+        system: ADJUDICATE_V2_SYSTEM,
+        user: adjudicateV2User(
+          {
+            headline: candidate?.headline ?? '',
+            topic: candidate?.topic ?? null,
+            sampleClaims: ((candidate?.claims ?? []) as Claim[]).map((c) => c.text),
+          },
+          { title: fresh.title ?? 'untitled', summary: analysis.summary },
         ),
       },
       ledger,
@@ -236,6 +242,9 @@ export async function processSource(
   }
 
   await db.update(sources).set({ status: 'ready' }).where(eq(sources.id, row.id))
-  logger.info({ sourceId, storyId, clustering, quality: ext.quality, prompts: PROMPT_VERSIONS }, 'source ready')
-  return { sourceId, status: 'ready', storyId, clustering }
+  logger.info(
+    { sourceId, storyId, clustering, bestSimilarity: best?.similarity ?? null, quality: ext.quality, prompts: PROMPT_VERSIONS },
+    'source ready',
+  )
+  return { sourceId, status: 'ready', storyId, clustering, bestSimilarity: best?.similarity }
 }

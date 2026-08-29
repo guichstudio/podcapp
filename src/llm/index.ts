@@ -50,11 +50,13 @@ export async function callStructured<T>(
   for (let attempt = 0; attempt < 2; attempt++) {
     const user = attempt === 0 ? input.user : `${input.user}\n\nYour previous output failed validation: ${lastError}\nReturn ONLY corrected JSON.`
     const started = Date.now()
+    const stageConfig = MODELS[stage] as { thinking?: boolean }
     const res = await provider.chat({
       model,
       system: input.system,
       user,
       jsonMode: true,
+      thinking: stageConfig.thinking ?? false,
       ...(input.maxTokens !== undefined ? { maxTokens: input.maxTokens } : {}),
     })
     if (ledger) addCost(ledger, stage, model, res.inputTokens, res.outputTokens)

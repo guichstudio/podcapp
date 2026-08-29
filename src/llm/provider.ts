@@ -5,6 +5,7 @@ export interface ChatRequest {
   maxTokens?: number
   temperature?: number
   jsonMode?: boolean
+  thinking?: boolean
 }
 
 export interface ChatResponse {

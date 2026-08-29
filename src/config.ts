@@ -4,13 +4,13 @@
 // deepseek-v4-flash, deepseek-v4-pro. Embeddings run on Jina (free tier), the
 // same account whose key raises Reader rate limits for extraction.
 export const MODELS = {
-  analyze:    { provider: 'deepseek',  model: 'deepseek-v4-flash' },
-  adjudicate: { provider: 'deepseek',  model: 'deepseek-v4-flash' },
-  editorial:  { provider: 'deepseek',  model: 'deepseek-v4-pro' },
-  ground:     { provider: 'deepseek',  model: 'deepseek-v4-flash' },
+  analyze:    { provider: 'deepseek',  model: 'deepseek-v4-flash', thinking: false },
+  adjudicate: { provider: 'deepseek',  model: 'deepseek-v4-flash', thinking: false },
+  editorial:  { provider: 'deepseek',  model: 'deepseek-v4-pro', thinking: true },
+  ground:     { provider: 'deepseek',  model: 'deepseek-v4-flash', thinking: false },
   write:      { provider: 'anthropic', model: 'claude-sonnet-5' },
   edit:       { provider: 'anthropic', model: 'claude-sonnet-5' },
-  embed:      { provider: 'jina',      model: 'jina-embeddings-v3' },
+  embed:      { provider: 'jina',      model: 'jina-embeddings-v5-text-small' },
 } as const
 
 export type Stage = keyof typeof MODELS
@@ -19,7 +19,10 @@ export type Stage = keyof typeof MODELS
 export const EMBEDDING_DIMS = 1024
 
 export const MIN_EXTRACTION_QUALITY = 0.35
-export const SIMILARITY_MERGE = 0.86
+// Tuned on eval/dataset with jina-embeddings-v5-text-small (2026-08-29): true
+// duplicates land at 0.90-0.97 but a meta-source wrongly absorbed stories at
+// 0.909; blind merge only above 0.93, the 0.70-0.93 band goes to the adjudicator.
+export const SIMILARITY_MERGE = 0.93
 export const SIMILARITY_REVIEW = 0.7
 
 export const DEFAULT_TARGET_MINUTES = 15
@@ -28,7 +31,7 @@ export const INTRO_OUTRO_SEC = 60
 
 export const PROMPT_VERSIONS = {
   analyzer: 'v1',
-  adjudicate: 'v1',
+  adjudicate: 'v2',
 } as const
 
 // USD per 1M tokens; kept close to provider price sheets, updated by hand.
@@ -40,7 +43,7 @@ export const PRICING: Record<string, { in: number; out: number }> = {
   'gpt-5-mini': { in: 0.25, out: 2 },
   'claude-sonnet-5': { in: 3, out: 15 },
   'text-embedding-3-small': { in: 0.02, out: 0 },
-  'jina-embeddings-v3': { in: 0.02, out: 0 },
+  'jina-embeddings-v5-text-small': { in: 0.02, out: 0 },
 }
 
 export const JINA_READER_BASE = 'https://r.jina.ai/'

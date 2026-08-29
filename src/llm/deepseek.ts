@@ -20,6 +20,9 @@ export const deepseek: ChatProvider = {
         max_tokens: req.maxTokens ?? 4096,
         temperature: req.temperature ?? 0.2,
         ...(req.jsonMode ? { response_format: { type: 'json_object' } } : {}),
+        // v4 models are hybrid reasoners: left enabled, long sources can burn the
+        // whole token budget in reasoning_content and return an empty content.
+        thinking: { type: req.thinking ? 'enabled' : 'disabled' },
       }),
     })
     if (!res.ok) throw new Error(`deepseek ${res.status}: ${(await res.text()).slice(0, 300)}`)
