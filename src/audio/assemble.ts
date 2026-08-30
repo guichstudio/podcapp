@@ -2,18 +2,28 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import ffmpegStatic from 'ffmpeg-static'
 import { logger } from '../log.js'
 
 const MPEG1_L3_BITRATES = [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0]
 const MPEG1_RATES = [44100, 48000, 32000, 0]
 
-function hasFfmpeg(): boolean {
-  try {
-    execFileSync('ffmpeg', ['-version'], { stdio: 'ignore' })
-    return true
-  } catch {
-    return false
+// ffmpeg-static ships a prebuilt binary with the package, so no system install
+// (and no Homebrew) is needed. A system ffmpeg on PATH still wins if present.
+function findFfmpeg(): string | null {
+  // ffmpeg-static's default export is the binary path at runtime, but its types
+  // describe the module namespace under NodeNext resolution.
+  const bundled = ffmpegStatic as unknown as string | null
+  for (const candidate of [bundled, 'ffmpeg']) {
+    if (!candidate) continue
+    try {
+      execFileSync(candidate, ['-version'], { stdio: 'ignore' })
+      return candidate
+    } catch {
+      /* try the next candidate */
+    }
   }
+  return null
 }
 
 // ID3v2 sits before the first frame; concatenating it mid-stream confuses players.
@@ -58,10 +68,36 @@ export function mp3DurationSec(buf: Buffer): number {
   return frames > 0 ? Math.round(seconds) : 0
 }
 
+function probeFormat(ffmpeg: string, path: string): { sampleRate: number; layout: string } {
+  let output = ''
+  try {
+    execFileSync(ffmpeg, ['-i', path], { stdio: ['ignore', 'ignore', 'pipe'] })
+  } catch (e) {
+    // ffmpeg exits non-zero when given no output file; the stream info is on stderr.
+    output = String((e as { stderr?: Buffer }).stderr ?? '')
+  }
+  const stream = output.match(/Audio: mp3, (\d+) Hz, (mono|stereo)/)
+  return {
+    sampleRate: Number(stream?.[1] ?? 44100),
+    layout: stream?.[2] ?? 'mono',
+  }
+}
+
 export interface AssembleResult {
   audio: Buffer
   durationSec: number
   method: 'ffmpeg' | 'concat'
+}
+
+// An episode that quietly loses a chapter is worse than one that fails loudly:
+// ffmpeg's concat demuxer drops audio without an error when streams mismatch.
+function assertNoAudioLost(chapters: Buffer[], durationSec: number): void {
+  const expected = chapters.reduce((n, c) => n + mp3DurationSec(c), 0)
+  if (durationSec < expected - 2) {
+    throw new Error(
+      `assemble: output is ${durationSec}s but chapters total ${expected}s: ${expected - durationSec}s of audio was dropped`,
+    )
+  }
 }
 
 // ffmpeg path follows ARCHITECTURE §5.9: 300 ms between chapters, loudnorm to
@@ -70,31 +106,42 @@ export interface AssembleResult {
 export function assemble(chapters: Buffer[]): AssembleResult {
   if (chapters.length === 0) throw new Error('assemble: no chapters')
 
-  if (hasFfmpeg()) {
+  const ffmpeg = findFfmpeg()
+  if (ffmpeg) {
     const dir = mkdtempSync(join(tmpdir(), 'podcapp-'))
-    const silence = join(dir, 'silence.mp3')
-    execFileSync('ffmpeg', [
-      '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=stereo', '-t', '0.3', '-b:a', '128k', '-y', silence,
-    ], { stdio: 'ignore' })
-
     const parts: string[] = []
-    chapters.forEach((audio, i) => {
+    const chapterPaths = chapters.map((audio, i) => {
       const p = join(dir, `chapter-${i}.mp3`)
       writeFileSync(p, audio)
+      return p
+    })
+
+    // The concat demuxer silently drops audio when streams differ, so the silence
+    // must match the chapters' own sample rate and channel layout.
+    const format = probeFormat(ffmpeg, chapterPaths[0] as string)
+    const silence = join(dir, 'silence.mp3')
+    execFileSync(ffmpeg, [
+      '-f', 'lavfi', '-i', `anullsrc=r=${format.sampleRate}:cl=${format.layout}`,
+      '-t', '0.3', '-b:a', '128k', '-y', silence,
+    ], { stdio: 'ignore' })
+
+    chapterPaths.forEach((p, i) => {
       if (i > 0) parts.push(silence)
       parts.push(p)
     })
     const listPath = join(dir, 'list.txt')
     writeFileSync(listPath, parts.map((p) => `file '${p}'`).join('\n'))
     const outPath = join(dir, 'episode.mp3')
-    execFileSync('ffmpeg', [
+    execFileSync(ffmpeg, [
       '-f', 'concat', '-safe', '0', '-i', listPath,
       '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11',
-      '-b:a', '128k', '-y', outPath,
+      '-ar', '44100', '-b:a', '128k', '-y', outPath,
     ], { stdio: 'ignore' })
-    const audio = readFileSync(outPath)
     if (!existsSync(outPath)) throw new Error('assemble: ffmpeg produced no output')
-    return { audio, durationSec: mp3DurationSec(audio), method: 'ffmpeg' }
+    const audio = readFileSync(outPath)
+    const durationSec = mp3DurationSec(audio)
+    assertNoAudioLost(chapters, durationSec)
+    return { audio, durationSec, method: 'ffmpeg' }
   }
 
   logger.warn('ffmpeg not found: concatenating MP3 frames without loudnorm or inter-chapter silence')

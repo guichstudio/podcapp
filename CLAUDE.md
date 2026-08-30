@@ -22,7 +22,7 @@ Never trade script quality for speed or cost.
 **Next action:** Louis reads (or listens to) the latest `eval/out/episode-*/script.md` and scores it with `eval/rubric.md` (gate: avg ≥ 3.5). Iterate on prompts in `src/prompts/` if below. Commands: `pnpm eval:run` (sources → stories), `pnpm eval:episode` (stories → script, ~$0.43, ~8 min).
 **Known polish items (non-blocking):** extraction quality heuristic lets error pages and site landing pages through (AP 'Page Not Found', BBC/Le Monde home feeds became stories); Playwright fallback still unimplemented (not needed on this dataset).
 **Blockers:** rubric score from Louis on `phase2_script_2026-08-29-audio/episode.mp3` (14m03s).
-**ffmpeg is not installed on this machine**: `assemble()` falls back to MP3 frame concatenation (no loudnorm, no 300ms inter-chapter silence). Phase 3 DoD needs ffmpeg: `brew install ffmpeg` (Homebrew is not installed either).
+ffmpeg ships with the repo via the `ffmpeg-static` dev dependency: no Homebrew, no system install. `pnpm reassemble <chapters-dir>` rebuilds episode.mp3 from existing chapters without spending TTS credits.
 
 **Phase 0 artifacts** (all in `phase0/`): sources (5 saved items: PDF dossier, 2 video transcripts via ElevenLabs Scribe, Species sources doc, 1 failed extraction), `analysis.md`, `outline.md`, `script_v1_draft.md`, `grounding_report.md` (4 fixes, 0 unsupported sentences shipped), `script_final.md`, `prompts.md` (seeds for `src/prompts/`), `episode_2026-08-28.mp3` (~10 min, voice `jGGIwkfv43kUFffPXEEO`). `ELEVENLABS_API_KEY` lives in `.env` (gitignored).
 
@@ -106,6 +106,8 @@ Session prompt: "Wire `POST /ingest` + Postmark inbound + per-user auth tokens; 
 | 2026-08-29 | Brain = DeepSeek v4 (`deepseek-v4-flash`/`-pro`, ids verified via /models), embeddings = `jina-embeddings-v5-text-small` 1024 dims | Louis provided DeepSeek key ($50); Jina free tier + same key raises Reader limits |
 | 2026-08-29 | `thinking: disabled` on analyze/adjudicate/ground calls | v4 models are hybrid reasoners: thinking burned the whole token budget and returned empty content on long sources |
 | 2026-08-29 | SIMILARITY_MERGE raised 0.86 → 0.93 for jina-v5 embeddings; adjudicator decides 0.70-0.93 | Eval: true dups sit at 0.90-0.97 but a meta-source absorbed stories at 0.909 |
+| 2026-08-30 | ffmpeg via the `ffmpeg-static` npm package, not a system install | Louis has neither Homebrew nor ffmpeg; the binary now travels with the repo and any machine running `pnpm install` gets it |
+| 2026-08-30 | `assemble()` probes the chapters' sample rate + channel layout and generates matching silence, then asserts output duration >= sum of chapters | The concat demuxer SILENTLY dropped 31s when stereo silence met mono chapters; silent audio loss must fail loudly |
 | 2026-08-30 | Phase 3 TTS started early to hear the Phase 2 script: `src/speech/elevenlabs.ts` (per-chapter + request stitching), `src/audio/assemble.ts`, `pnpm tts <script> --voice <id>` | Louis asked for audio of the generated script; the provider was needed anyway |
 | 2026-08-30 | Voice for this render: `MAZdzkb78f8SA7DNBT41` "Nico - French Ads" (parisian male). Public library voice ids work directly in TTS without adding them to the account | The key lacks `add_voice_from_voice_library`, but the synthesis endpoint accepts the id as-is |
 | 2026-08-30 | WORDS_PER_MINUTE 150 → 140, measured (1973 words / 842.8s of real French TTS) | Duration targeting was systematically short; now calibrated on real audio |
