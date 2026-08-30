@@ -26,7 +26,9 @@ export const SIMILARITY_MERGE = 0.93
 export const SIMILARITY_REVIEW = 0.7
 
 export const DEFAULT_TARGET_MINUTES = 15
-export const WORDS_PER_MINUTE = 150
+// Measured, not assumed: the 2026-08-29 episode ran 1973 words in 842.8s of
+// ElevenLabs multilingual_v2 French speech = 140.4 wpm.
+export const WORDS_PER_MINUTE = 140
 export const INTRO_OUTRO_SEC = 60
 
 export const PROMPT_VERSIONS = {

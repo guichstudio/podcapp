@@ -12,6 +12,7 @@
     "eval:run": "tsx eval/run.ts",
     "eval:episode": "tsx eval/episode.ts",
     "inspect": "tsx src/cli.ts",
+    "tts": "tsx src/tts.ts",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts"
   },
