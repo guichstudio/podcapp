@@ -399,7 +399,10 @@ authed.get('/episodes/:id', async (c) => {
     discarded: z.array(z.object({ story_id: z.string(), reason: z.string() })).default([]),
   })
   const outline = OutlineShape.safeParse(ep.outline)
-  const costs = z.record(z.object({ usd: z.number().optional() })).safeParse(ep.cost)
+  // publishEpisode merges scalar totals (tts_usd, total_usd) into the per-stage
+  // ledger, so the shape is mixed: prefer the total, else sum the stages.
+  const CostShape = z.record(z.union([z.object({ usd: z.number().optional() }).passthrough(), z.number()]))
+  const costs = CostShape.safeParse(ep.cost)
   const entries = report.success ? report.data : []
 
   return c.json({
@@ -417,7 +420,11 @@ authed.get('/episodes/:id', async (c) => {
       corrected: entries.filter((e) => e.action === 'fixed').length,
       dropped: entries.filter((e) => e.action.startsWith('dropped')).length,
     },
-    usd: costs.success ? Object.values(costs.data).reduce((n, v) => n + (v.usd ?? 0), 0) : null,
+    usd: costs.success
+      ? typeof costs.data.total_usd === 'number'
+        ? costs.data.total_usd
+        : Object.values(costs.data).reduce((n, v) => n + (typeof v === 'number' ? 0 : (v.usd ?? 0)), 0)
+      : null,
     promptVersions: ep.promptVersions ?? null,
     audioUrl: readyAudioUrl(base, ep.status, ep.id),
     audioBytes: ep.audioBytes,
