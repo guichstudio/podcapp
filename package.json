@@ -20,7 +20,8 @@
     "reassemble": "tsx src/reassemble.ts",
     "storage:check": "tsx src/storage/check.ts",
     "feed:publish": "tsx src/rss/publish.ts",
-    "console:publish": "tsx src/console/publish.ts"
+    "console:publish": "tsx src/console/publish.ts",
+    "process:pending": "tsx src/jobs/processPending.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.2.17",

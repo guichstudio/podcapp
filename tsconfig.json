@@ -12,5 +12,5 @@
     "outDir": "dist",
     "types": ["node"]
   },
-  "include": ["src", "eval"]
+  "include": ["src", "eval", "api"]
 }

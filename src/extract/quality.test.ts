@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { MIN_EXTRACTION_QUALITY } from '../config.js'
 import { scoreExtraction } from './quality.js'
 
 const SENTENCE = 'la banque centrale a maintenu son taux directeur inchange lors de sa reunion de mars.'
@@ -47,9 +48,12 @@ test('repeated boilerplate lines lower the score', () => {
   const unique = joinLines(40, proseLine)
   const repeated = joinLines(40, () => proseLine(0))
   assert.equal(repeated.length, unique.length, 'both fixtures must have the same length')
+  // The margin was 0.2 when repetition carried a quarter of the score. Prose
+  // density now carries the most weight (it is what separates an article from a
+  // section index), so repetition is a real but smaller signal.
   assert.ok(
-    scoreExtraction(repeated) < scoreExtraction(unique) - 0.2,
-    `repeated ${scoreExtraction(repeated)} should be well below unique ${scoreExtraction(unique)}`,
+    scoreExtraction(repeated) < scoreExtraction(unique) - 0.1,
+    `repeated ${scoreExtraction(repeated)} should be clearly below unique ${scoreExtraction(unique)}`,
   )
 })
 
@@ -68,4 +72,21 @@ test('the score always lands in 0..1', () => {
     const score = scoreExtraction(text)
     assert.ok(score >= 0 && score <= 1, `${label}: ${score} out of range`)
   }
+})
+
+test('a page of short link-only lines scores below the acceptance threshold', () => {
+  // The shape of a section index or a 404 that redirected to one: many unique,
+  // link-heavy lines, no continuous prose. This is what must never become a story.
+  const listing = Array.from(
+    { length: 60 },
+    (_, i) => `* [Titre d'article numéro ${i} sur le sujet du jour](https://example.test/a/${i})`,
+  ).join('\n')
+  assert.ok(scoreExtraction(listing) < MIN_EXTRACTION_QUALITY, `listing scored ${scoreExtraction(listing)}`)
+})
+
+test('a real article of continuous paragraphs stays well above the threshold', () => {
+  const paragraph =
+    "Le marché du crédit privé pèse plus de mille huit cents milliards de dollars, et les premières fissures apparaissent chez les gérants américains. Blue Owl a perdu plus de quarante pour cent depuis janvier, après avoir vendu des actifs à perte et limité les retraits de ses clients."
+  const article = Array.from({ length: 12 }, (_, i) => `${paragraph} Variante ${i}.`).join('\n\n')
+  assert.ok(scoreExtraction(article) > 0.7, `article scored ${scoreExtraction(article)}`)
 })
