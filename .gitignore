@@ -7,3 +7,6 @@ dist/
 eval/out/
 phase2_script_*-audio/
 .vercel
+ios/**/xcuserdata/
+ios/**/*.xcworkspace/xcuserdata/
+ios/build/
