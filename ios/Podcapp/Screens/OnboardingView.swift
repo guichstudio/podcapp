@@ -48,6 +48,11 @@ struct OnboardingView: View {
             }
             .padding(.bottom, 28)
         }
+        // Keyboard avoidance squeezed the whole shell when the token field took
+        // focus: the headline slid under the header, texts truncated, the dots
+        // overlapped the button. The shell keeps its geometry; the connect page
+        // scrolls instead.
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         .onAppear { Config.markOnboardingSeen() }
     }
 
@@ -100,6 +105,16 @@ struct OnboardingView: View {
     // MARK: - Screen 05, Connexion
 
     private var connectPage: some View {
+        ScrollView(showsIndicators: false) {
+            connectContent
+        }
+        .scrollDismissesKeyboard(.interactively)
+        // Centers like the fixed layout while content fits; scrolls only when
+        // the keyboard shortens the visible area.
+        .scrollBounceBehavior(.basedOnSize)
+    }
+
+    private var connectContent: some View {
         VStack(spacing: 0) {
             OnboardingHeadline(
                 first: "On commence ?", second: "2 secondes.",
@@ -119,6 +134,7 @@ struct OnboardingView: View {
                 .fs(12, lh: 1.55)
                 .foregroundStyle(Palette.muted)
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: 230)
                 .padding(.top, 12)
 
