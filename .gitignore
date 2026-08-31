@@ -6,3 +6,4 @@ dist/
 .data/
 eval/out/
 phase2_script_*-audio/
+.vercel

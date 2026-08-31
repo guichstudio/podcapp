@@ -14,12 +14,15 @@ importers:
       '@hono/node-server':
         specifier: ^1.13.7
         version: 1.19.17(hono@4.13.5)
+      '@neondatabase/serverless':
+        specifier: ^1.1.0
+        version: 1.1.0
       aws4fetch:
         specifier: ^1.0.20
         version: 1.0.20
       drizzle-orm:
         specifier: ^0.38.3
-        version: 0.38.4(@electric-sql/pglite@0.2.17)(@types/pg@8.23.1)(pg@8.23.0)
+        version: 0.38.4(@electric-sql/pglite@0.2.17)(@neondatabase/serverless@1.1.0)(@types/pg@8.23.1)(pg@8.23.0)
       hono:
         specifier: ^4.6.15
         version: 4.13.5
@@ -503,6 +506,10 @@ packages:
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
+
+  '@neondatabase/serverless@1.1.0':
+    resolution: {integrity: sha512-r3ZZhRjEcfEdKIZnoB1RusNgvHuaBRqfCzV4Gi+5A9yUX0S4HTws/ASWqt13wL4y4I+0rqsWGdA2w7EQXHi3+Q==}
+    engines: {node: '>=19.0.0'}
 
   '@petamoriken/float16@3.9.3':
     resolution: {integrity: sha512-8awtpHXCx/bNpFt4mt2xdkgtgVvKqty8VbjHI/WWWQuEw+KLzFot3f4+LkQY9YmOtq7A5GdOnqoIC8Pdygjk2g==}
@@ -1106,6 +1113,8 @@ snapshots:
     dependencies:
       hono: 4.13.5
 
+  '@neondatabase/serverless@1.1.0': {}
+
   '@petamoriken/float16@3.9.3': {}
 
   '@pinojs/redact@0.4.0': {}
@@ -1157,9 +1166,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.38.4(@electric-sql/pglite@0.2.17)(@types/pg@8.23.1)(pg@8.23.0):
+  drizzle-orm@0.38.4(@electric-sql/pglite@0.2.17)(@neondatabase/serverless@1.1.0)(@types/pg@8.23.1)(pg@8.23.0):
     optionalDependencies:
       '@electric-sql/pglite': 0.2.17
+      '@neondatabase/serverless': 1.1.0
       '@types/pg': 8.23.1
       pg: 8.23.0
 
