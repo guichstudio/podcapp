@@ -14,12 +14,12 @@ Never trade script quality for speed or cost.
 
 - [x] **Phase 0 — Manual golden path** : DONE, validated by Louis 2026-08-29 (episode approved)
 - [x] Phase 1 — Knowledge layer : DONE 2026-08-29 (53/54 sources, dup rate 0%, 0 wrong merges, clusters inspectable via `pnpm inspect stories`)
-- [~] Phase 2 — Editorial : pipeline DONE 2026-08-29 (auto-metrics pass), rubric score PENDING
+- [x] Phase 2 — Editorial : DONE. Rubric passed 2026-08-31, Louis scored 4/5 average on `phase2_script_2026-08-29-audio/episode.mp3` (gate was 3.5). **Both quality gates of the project are now cleared.**
 - [~] Phase 3 — Audio + private RSS : LIVE on Cloudflare R2 since 2026-08-31. Feed + audio publicly reachable, valid RSS 2.0, range requests OK. Remaining: Louis confirms it plays in his podcast app, and no cover art yet.
 - [x] iOS app (`ios/`, out of the original V1 scope, Louis asked for it 2026-08-31): builds clean against the iOS 17.5 SDK, runs in the simulator, verified end to end in the simulator on 2026-08-31: Briefing appears in Safari's share sheet, and sharing blog.samaltman.com/the-merge landed the source in Neon.
 - [~] Phase 4 — Live capture : `/ingest` LIVE at https://podcapp.vercel.app since 2026-08-31 (Vercel edge + Neon HTTP). Apple Shortcut set up by Louis. Email inbound and the daily cron are not built.
 
-**Now:** capture is live end to end (phone -> /ingest -> `pnpm process:pending` -> stories). Phase 2 rubric still pending.
+**Now:** every phase gate is passed and the whole loop runs: save from the phone, process on the laptop, generate, publish to R2, listen in a podcast app.
 **Next action:** Louis reads (or listens to) the latest `eval/out/episode-*/script.md` and scores it with `eval/rubric.md` (gate: avg ≥ 3.5). Iterate on prompts in `src/prompts/` if below. Commands: `pnpm eval:run` (sources → stories), `pnpm eval:episode` (stories → script, ~$0.43, ~8 min).
 **Known polish items (non-blocking):** the extraction heuristic now weighs prose density (2026-08-31) and rejects the AP 'Page Not Found' case at 0.20 with no regression on the 49 cached web sources (all real articles land >= 0.42). Two section indexes still pass: Le Monde /pixels (0.71) and bbc.com/news (0.72), because Jina extracts their cookie-consent modal as long prose (118 KB of it for Le Monde). Next idea, cheap and precise: compare the requested URL path with the final URL Jina returns, since a dead article link redirecting UP to its section is exactly the failure that matters once capture is live. Playwright fallback still unimplemented (not needed on this dataset).
 
@@ -125,6 +125,7 @@ Session prompt: "Wire `POST /ingest` + Postmark inbound + per-user auth tokens; 
 | 2026-08-29 | Brain = DeepSeek v4 (`deepseek-v4-flash`/`-pro`, ids verified via /models), embeddings = `jina-embeddings-v5-text-small` 1024 dims | Louis provided DeepSeek key ($50); Jina free tier + same key raises Reader limits |
 | 2026-08-29 | `thinking: disabled` on analyze/adjudicate/ground calls | v4 models are hybrid reasoners: thinking burned the whole token budget and returned empty content on long sources |
 | 2026-08-29 | SIMILARITY_MERGE raised 0.86 → 0.93 for jina-v5 embeddings; adjudicator decides 0.70-0.93 | Eval: true dups sit at 0.90-0.97 but a meta-source absorbed stories at 0.909 |
+| 2026-08-31 | Phase 2 rubric passed at 4/5 (gate 3.5), on the 14 min episode of 2026-08-29 | The editorial approach is validated: from here, prompt changes must beat 4/5, not merely produce something |
 | 2026-08-31 | Test console as a static page on R2, not a PWA player or a capture surface | iOS Safari does not implement the Web Share Target API, so a PWA cannot receive a shared link: the Apple Shortcut stays the capture path. As a player it would only lose to Overcast. As an inspection surface it adds what RSS cannot carry: sources per chapter and the accuracy panel |
 | 2026-08-31 | Feed published as a static object on R2, not only served by the API | A public bucket plus a static feed.xml means Louis can subscribe from his phone today, with zero server deployed; the API route stays for later |
 | 2026-08-31 | Storage = Cloudflare R2 (Louis's call over reusing his existing Supabase) | Both free; R2 has zero egress fees, which matters when a podcast client downloads every episode |

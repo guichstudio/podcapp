@@ -19,3 +19,13 @@ Questions ouvertes (obligatoires) :
 - Qu'aurait-il fallu couper ?
 - Que manquait-il ?
 - Qu'est-ce qui a sonné « généré par IA » ?
+
+---
+
+## Résultats
+
+| Date | Épisode | Moyenne | Verdict |
+|---|---|---|---|
+| 2026-08-31 | `phase2_script_2026-08-29-audio/episode.mp3` (14 min 05, 11 chapitres) | **4/5** | Passe (seuil 3,5). Porte de qualité de la phase 2 franchie. |
+
+Toute modification de prompt doit désormais être comparée à ce 4/5, pas jugée dans l'absolu.
