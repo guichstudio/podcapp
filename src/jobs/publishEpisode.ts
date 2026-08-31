@@ -146,6 +146,10 @@ export async function publishEpisode(
       ...previous,
       tts_chars: chars,
       tts_usd: ttsUsd,
+      // Recorded so "which model narrated this?" is answerable from the row,
+      // not from a code archaeology session (ARCHITECTURE 5.8).
+      tts_model: DEFAULT_TTS_MODEL,
+      tts_voice: voiceId,
       total_usd: llmUsd(previous) + ttsUsd,
     }
     await db
