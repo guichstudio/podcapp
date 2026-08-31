@@ -423,7 +423,10 @@ authed.get('/episodes/:id', async (c) => {
     usd: costs.success
       ? typeof costs.data.total_usd === 'number'
         ? costs.data.total_usd
-        : Object.values(costs.data).reduce((n, v) => n + (typeof v === 'number' ? 0 : (v.usd ?? 0)), 0)
+        : Object.values(costs.data).reduce<number>(
+            (n, v) => n + (typeof v === 'number' ? 0 : typeof v.usd === 'number' ? v.usd : 0),
+            0,
+          )
       : null,
     promptVersions: ep.promptVersions ?? null,
     audioUrl: readyAudioUrl(base, ep.status, ep.id),
