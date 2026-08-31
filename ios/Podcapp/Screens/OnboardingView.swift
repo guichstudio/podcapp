@@ -338,13 +338,14 @@ private struct MockCanvas<Content: View>: View {
             ZStack(alignment: .top) {
                 content(CGSize(width: designWidth, height: geo.size.height / scale))
             }
-            // The 6pt inset keeps the bezel's outer rings inside the crop.
-            .padding(.top, 6)
+            // Headroom inside the crop: the bezel's rings and what remains of
+            // its shadow spread fade well before the canvas edge.
+            .padding(.top, 14)
             .frame(width: designWidth, height: geo.size.height / scale, alignment: .top)
             .scaleEffect(scale, anchor: .top)
             .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
         }
-        .mask(Rectangle().padding(.top, -160))
+        .clipped()
     }
 }
 
@@ -381,8 +382,8 @@ private struct PhoneFrame<Screen: View>: View {
                 .padding(.top, 10)
         }
         .compositingGroup()
-        .shadow(color: Color(hex: 0x0A0814, opacity: 0.55), radius: 55, y: 55)
-        .shadow(color: Color(hex: 0x1C1B22, opacity: 0.42), radius: 22, y: 22)
+        .shadow(color: Color(hex: 0x0A0814, opacity: 0.5), radius: 26, y: 58)
+        .shadow(color: Color(hex: 0x1C1B22, opacity: 0.38), radius: 10, y: 24)
     }
 
     private func ring(spread: CGFloat, fill: Color) -> some View {
