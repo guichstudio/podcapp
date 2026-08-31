@@ -5,7 +5,7 @@ import { episodes, users } from '../db/schema.js'
 import { episodeAudioKey } from '../jobs/publishEpisode.js'
 import { logger } from '../log.js'
 import { createStorage } from '../storage/index.js'
-import { buildFeed, COVER_KEYS, type FeedEpisode } from './feed.js'
+import { buildFeed, COVER_KEYS, feedKey, type FeedEpisode } from './feed.js'
 
 // Writes the feed as a static object next to the audio it points at.
 // The API serves the same feed from the database, but this needs no server at
@@ -15,10 +15,6 @@ import { buildFeed, COVER_KEYS, type FeedEpisode } from './feed.js'
 
 const FEED_TITLE = 'Briefing'
 const FEED_DESCRIPTION = 'Personal audio briefing, built from the articles and newsletters you saved.'
-
-export function feedKey(rssToken: string): string {
-  return `feeds/${rssToken}.xml`
-}
 
 const email = process.argv[2]
 if (!email) throw new Error('usage: pnpm feed:publish <email>')

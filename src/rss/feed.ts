@@ -10,6 +10,12 @@ export const COVER_KEYS = [
   { key: 'cover.png', contentType: 'image/png' },
 ] as const
 
+// Where the published feed lives in the bucket. Here rather than in publish.ts
+// because that file is a script: importing it would run it.
+export function feedKey(rssToken: string): string {
+  return `feeds/${rssToken}.xml`
+}
+
 export interface FeedEpisode {
   id: string
   title: string
