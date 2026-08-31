@@ -1,5 +1,5 @@
 import { neon } from '@neondatabase/serverless'
-import { desc, eq, inArray } from 'drizzle-orm'
+import { and, desc, eq, inArray } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { Hono } from 'hono'
 import { handle } from 'hono/vercel'
@@ -10,14 +10,17 @@ import * as schema from '../src/db/schema.js'
 // The endpoints that have to be reachable from a phone: capture, and reading
 // back what capture produced.
 //
-// /ingest deliberately does NOT run processSource. Extraction and analysis take
-// about a minute and belong to the batch run on the laptop, which also keeps this
-// bundle free of ffmpeg (78 MB) and the whole audio pipeline. A saved link must
-// be recorded in a few hundred milliseconds and never lost.
+// /ingest deliberately does NOT run processSource inline. Extraction and
+// analysis take about a minute, and generation takes minutes and shells out to
+// ffmpeg; neither belongs in this bundle (which must stay free of the 78 MB
+// ffmpeg and the whole audio pipeline). A saved link must be recorded in a few
+// hundred milliseconds and never lost.
 //
-// For the same reason there is no generate trigger here: generation spends
-// minutes and shells out to ffmpeg, neither of which a serverless function can
-// do. The read endpoints below are strictly read-only.
+// The durable work is handed to Trigger.dev instead, over its plain HTTP API:
+// the SDK needs Node and this function runs on Edge, but a trigger is one
+// authenticated fetch. Everything is gated on TRIGGER_SECRET_KEY so the
+// laptop-only mode (batch drain on the machine) keeps working unchanged when
+// the cloud is not wired up.
 //
 // Neon over HTTP rather than the node-postgres pool the jobs use: a serverless
 // invocation cannot keep a pool alive between requests, and doing so exhausted
@@ -45,6 +48,54 @@ const IngestSchema = z.union([
   z.object({ text: z.string().min(1) }),
   z.object({ html: z.string().min(1), subject: z.string().optional() }),
 ])
+
+const EpisodeRequestSchema = z.object({
+  target_min: z.number().int().min(1).max(60).optional(),
+})
+
+// Every status generateEpisode moves through before landing on ready or failed.
+// While one of these is live, a second generation would burn real model and TTS
+// money on a briefing nobody asked for twice, so POST /episodes refuses.
+const ACTIVE_EPISODE_STATUSES = [
+  'queued',
+  'selecting',
+  'outlining',
+  'writing',
+  'grounding',
+  'editing',
+  'tts',
+  'assembling',
+]
+
+// Trigger.dev answers a trigger with the run it created; the id is all we keep.
+const TriggerAckSchema = z.object({ id: z.string().min(1) })
+
+// Hands a payload to a deployed Trigger.dev task over the plain HTTP API and
+// returns the run id. Throws with the response text on any failure: callers
+// decide whether that is fatal (/episodes) or merely logged (/ingest).
+async function triggerTask(taskId: string, payload: Record<string, unknown>, idempotencyKey?: string): Promise<string> {
+  const key = process.env.TRIGGER_SECRET_KEY
+  if (!key) throw new Error('Missing env var TRIGGER_SECRET_KEY')
+  const res = await fetch(`https://api.trigger.dev/api/v1/tasks/${taskId}/trigger`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ payload, ...(idempotencyKey ? { options: { idempotencyKey } } : {}) }),
+    // A hung trigger call must fail here, not at the gateway's 25s: past this
+    // point the caller cannot tell whether the run was accepted.
+    signal: AbortSignal.timeout(15_000),
+  })
+  const text = await res.text()
+  if (!res.ok) throw new Error(`trigger of ${taskId} answered ${res.status}: ${text}`)
+  let body: unknown
+  try {
+    body = JSON.parse(text)
+  } catch {
+    throw new Error(`trigger of ${taskId} answered ${res.status} with a non-JSON body: ${text}`)
+  }
+  const ack = TriggerAckSchema.safeParse(body)
+  if (!ack.success) throw new Error(`trigger of ${taskId} answered without a run id: ${text}`)
+  return ack.data.id
+}
 
 function db() {
   const url = process.env.DATABASE_URL
@@ -126,7 +177,105 @@ authed.post('/ingest', async (c) => {
     })
     .returning({ id: sources.id })
   if (!row) return c.json({ error: 'insert failed' }, 500)
-  return c.json({ source_id: row.id, status: 'received' }, 202)
+
+  // Hand extraction to the cloud when it is wired up. A trigger failure is
+  // logged, not returned: the source is already stored as received, which is
+  // exactly what the laptop drain picks up, so nothing is lost. `queued` tells
+  // the app whether the cloud took the job or the next batch run will.
+  let queued = false
+  if (process.env.TRIGGER_SECRET_KEY) {
+    try {
+      await triggerTask('process-source', { sourceId: row.id })
+      queued = true
+    } catch (err) {
+      console.error('process-source trigger failed', row.id, err)
+    }
+  }
+  return c.json({ source_id: row.id, status: 'received', queued }, 202)
+})
+
+authed.post('/episodes', async (c) => {
+  if (!process.env.TRIGGER_SECRET_KEY) {
+    return c.json(
+      { error: 'La génération n’est pas encore reliée au cloud : elle se lance depuis l’ordinateur pour le moment.' },
+      503,
+    )
+  }
+
+  // A missing body means "use my defaults", so it parses as {}.
+  const parsed = EpisodeRequestSchema.safeParse(await c.req.json().catch(() => ({})))
+  if (!parsed.success) return c.json({ error: 'expected { target_min?: 1..60 }' }, 400)
+
+  const conn = c.get('conn')
+  const userId = c.get('userId')
+
+  const [user] = await conn
+    .select({ targetMinutes: users.targetMinutes, outputLanguage: users.outputLanguage })
+    .from(users)
+    .where(eq(users.id, userId))
+  if (!user) return c.json({ error: 'internal error' }, 500)
+
+  // An active row only blocks while its run can still be alive: maxDuration is
+  // 900s, so anything older than 30 minutes died without reaching its catch
+  // (worker crash, misconfigured env). Left alone it would 409 forever.
+  const staleBefore = new Date(Date.now() - 30 * 60 * 1000)
+  const actives = await conn
+    .select({ id: episodes.id, status: episodes.status, createdAt: episodes.createdAt })
+    .from(episodes)
+    .where(and(eq(episodes.userId, userId), inArray(episodes.status, ACTIVE_EPISODE_STATUSES)))
+  const live = actives.find((a) => a.createdAt > staleBefore)
+  if (live) {
+    return c.json(
+      { error: `Un épisode est déjà en préparation (statut : ${live.status}). Attendez qu’il se termine avant d’en lancer un autre.` },
+      409,
+    )
+  }
+  for (const stale of actives) {
+    await conn
+      .update(episodes)
+      .set({ status: 'failed', failedStage: stale.status, error: 'Génération interrompue sans se terminer (délai de 30 minutes dépassé).' })
+      .where(and(eq(episodes.id, stale.id), inArray(episodes.status, ACTIVE_EPISODE_STATUSES)))
+  }
+
+  // users.target_minutes is written outside this route, so it gets the same
+  // bounds as the request body rather than being trusted.
+  const targetMin = Math.min(60, Math.max(1, parsed.data.target_min ?? user.targetMinutes))
+  const targetSec = targetMin * 60
+  const [row] = await conn
+    .insert(episodes)
+    .values({ userId, targetSec, status: 'queued' })
+    .returning({ id: episodes.id })
+  if (!row) return c.json({ error: 'insert failed' }, 500)
+
+  try {
+    await triggerTask(
+      'generate-episode',
+      { episodeId: row.id, userId, targetSec, language: user.outputLanguage },
+      // Keyed on the row: if the ack was lost but the run was accepted, a retry
+      // reuses it instead of paying writer and TTS twice.
+      `episode-${row.id}`,
+    )
+  } catch (err) {
+    // Unlike /ingest, nothing else will ever pick this row up: a queued episode
+    // nobody will run is a lie, so it is marked failed with the reason.
+    console.error('generate-episode trigger failed', row.id, err)
+    const reason = err instanceof Error ? err.message : String(err)
+    try {
+      await conn
+        .update(episodes)
+        .set({ status: 'failed', failedStage: 'trigger', error: `Envoi au cloud impossible : ${reason}` })
+        .where(eq(episodes.id, row.id))
+    } catch (recoveryErr) {
+      // The stale-run cutoff above will reap this row on the next attempt.
+      console.error('could not record the trigger failure', row.id, recoveryErr)
+    }
+    return c.json(
+      { error: 'Impossible de lancer la génération dans le cloud. Réessayez dans quelques minutes.' },
+      503,
+    )
+  }
+
+  return c.json({ episode_id: row.id, status: 'queued' }, 202)
 })
 
 authed.get('/episodes', async (c) => {

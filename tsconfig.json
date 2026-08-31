@@ -10,7 +10,14 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "outDir": "dist",
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
-  "include": ["src", "eval", "api"]
+  "include": [
+    "src",
+    "eval",
+    "api",
+    "trigger.config.ts"
+  ]
 }

@@ -4,9 +4,10 @@ import UIKit
 // The Today tab of ios/design/layout.html: the latest briefing, what is queued
 // for the next one, and the episodes before it.
 //
-// Read only, because the API is (api/index.ts): /ingest writes, everything else
-// reads. Generation spends minutes and shells out to ffmpeg on the laptop, so
-// the Générer control here says that instead of pretending to start anything.
+// One write: Générer posts to /episodes, which queues the generation in the
+// cloud. The server owns every refusal (a briefing already in flight, cloud
+// not wired up) and words it in French, so this screen shows its message
+// verbatim instead of inventing its own diagnosis.
 
 struct TodayView: View {
     @State private var phase: Phase = .loading
@@ -142,7 +143,7 @@ struct TodayView: View {
                     .typo(Typo.heroTitle)
                     .foregroundStyle(Palette.ink)
                     .fixedSize(horizontal: false, vertical: true)
-                Text("La génération tourne sur l’ordinateur. Le premier épisode apparaîtra ici dès qu’il sera prêt.")
+                Text("Partagez quelques liens depuis Safari, puis lancez Générer ci-dessous : le premier épisode apparaîtra ici dès qu’il sera prêt.")
                     .typo(Typo.metaSmall)
                     .foregroundStyle(Palette.accentMuted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -360,7 +361,7 @@ private struct TodayHeroCard: View {
 
     private var statusLine: String {
         episode.status == "failed"
-            ? "La génération s’est arrêtée sur l’ordinateur. Relancez-la là-bas pour obtenir l’audio."
+            ? "La génération s’est arrêtée. Relancez-la avec le bouton Générer ci-dessous."
             : "Statut : \(TodayText.episodeStatusLabel(episode.status).lowercased()). L’audio apparaîtra ici une fois l’assemblage terminé."
     }
 
@@ -466,6 +467,17 @@ private struct TodayGenerateCard: View {
     let readySourceCount: Int
     @Binding var targetMinutes: Int
 
+    @State private var isGenerating = false
+    @State private var outcome: Outcome?
+
+    private enum Outcome {
+        case queued
+        // The server's French message, shown verbatim: it names the refusal
+        // (briefing already in flight, cloud not wired up) better than a
+        // client-side guess would.
+        case failed(String)
+    }
+
     var body: some View {
         PlainCard(cornerRadius: 18, padding: 16) {
             VStack(alignment: .leading, spacing: 12) {
@@ -482,23 +494,55 @@ private struct TodayGenerateCard: View {
                     lengthPicker
                 }
 
-                // Rendered as a label, not a button: nothing here can start a
-                // generation, so nothing here is tappable.
-                Text("Générer")
-                    .typo(Typo.buttonLarge)
-                    .foregroundStyle(Palette.muted2)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 13)
-                    .background(
-                        Palette.neutralChipBg,
-                        in: RoundedRectangle(cornerRadius: 13, style: .continuous)
-                    )
+                Button { Task { await generate() } } label: {
+                    Text(isGenerating ? "Envoi en cours…" : "Générer")
+                        .typo(Typo.buttonLarge)
+                        .foregroundStyle(Palette.onDark)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 13)
+                        .background(
+                            Palette.ink.opacity(isGenerating ? 0.55 : 1),
+                            in: RoundedRectangle(cornerRadius: 13, style: .continuous)
+                        )
+                }
+                .buttonStyle(.plain)
+                .disabled(isGenerating)
 
-                Text("La génération tourne sur l’ordinateur : elle dure plusieurs minutes et n’est pas exposée par l’API. La durée cible choisie ici reste sur cet iPhone.")
-                    .typo(Typo.metaSmall)
-                    .foregroundStyle(Palette.muted2)
-                    .fixedSize(horizontal: false, vertical: true)
+                switch outcome {
+                case .queued:
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Épisode en préparation")
+                            .typo(Typo.rowTitleStrong)
+                            .foregroundStyle(Palette.ink)
+                        Text("Comptez une dizaine de minutes : le briefing apparaîtra dans le flux et en haut de cet écran dès qu’il sera prêt.")
+                            .typo(Typo.metaSmall)
+                            .foregroundStyle(Palette.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                case let .failed(message):
+                    Text(message)
+                        .typo(Typo.metaSmall)
+                        .foregroundStyle(Palette.danger)
+                        .fixedSize(horizontal: false, vertical: true)
+                case nil:
+                    EmptyView()
+                }
             }
+        }
+    }
+
+    @MainActor
+    private func generate() async {
+        isGenerating = true
+        defer { isGenerating = false }
+        do {
+            _ = try await API.shared.generateEpisode(targetMin: targetMinutes)
+            outcome = .queued
+        } catch APIError.http(_, let message) where !message.isEmpty {
+            // 409 and 503 arrive here: the server already worded the refusal.
+            outcome = .failed(message)
+        } catch {
+            outcome = .failed(error.localizedDescription)
         }
     }
 
@@ -743,6 +787,10 @@ private enum TodayText {
     static func episodeStatusLabel(_ status: String) -> String {
         switch status {
         case "queued": return "En file"
+        case "selecting": return "Sélection"
+        case "outlining": return "Plan"
+        case "writing": return "Écriture"
+        case "grounding": return "Vérification"
         case "editing": return "Édition"
         case "tts": return "Narration"
         case "assembling": return "Assemblage"

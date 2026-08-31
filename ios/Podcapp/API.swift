@@ -1,8 +1,10 @@
 import Foundation
 
-// Read side of the same function that receives captures. Property names match
-// the JSON keys exactly, which is why there is not a single CodingKeys table
-// here: the payloads in api/index.ts are camelCase on purpose.
+// Client of the same function that receives captures: reads, plus the one
+// write this app makes (queueing a briefing). Property names match the JSON
+// keys exactly, which is why there is not a single CodingKeys table here: the
+// payloads in api/index.ts are camelCase on purpose, and the write endpoints
+// speak snake_case (source_id, episode_id, target_min) on purpose too.
 
 struct EpisodeSummary: Decodable, Identifiable, Sendable {
     let id: String
@@ -191,17 +193,41 @@ actor API {
         try await get("/sources", as: SourceList.self).sources
     }
 
+    /// Asks the server to queue a briefing. Returns the id of the queued
+    /// episode; a refusal (409 double generation, 503 cloud not wired) arrives
+    /// as APIError.http carrying the server's French message.
+    func generateEpisode(targetMin: Int) async throws -> String {
+        try await post("/episodes", body: GenerateBody(target_min: targetMin), as: GenerateAck.self).episode_id
+    }
+
     private struct EpisodeList: Decodable { let episodes: [EpisodeSummary] }
     private struct SourceList: Decodable { let sources: [SavedSource] }
+    private struct GenerateBody: Encodable { let target_min: Int }
+    private struct GenerateAck: Decodable { let episode_id: String }
 
     private func get<T: Decodable>(_ path: String, as type: T.Type) async throws -> T {
+        try await perform(makeRequest(for: path), as: type)
+    }
+
+    private func post<T: Decodable, Body: Encodable>(_ path: String, body: Body, as type: T.Type) async throws -> T {
+        var request = try makeRequest(for: path)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(body)
+        return try await perform(request, as: type)
+    }
+
+    private func makeRequest(for path: String) throws -> URLRequest {
         guard Config.isConfigured else { throw APIError.notConfigured }
         guard let endpoint = URL(string: Config.baseURL + path) else { throw APIError.badURL }
 
         var request = URLRequest(url: endpoint)
         request.setValue("Bearer \(Config.apiToken)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = 20
+        return request
+    }
 
+    private func perform<T: Decodable>(_ request: URLRequest, as type: T.Type) async throws -> T {
         let data: Data
         let response: URLResponse
         do {
