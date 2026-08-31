@@ -207,6 +207,25 @@ authed.get('/episodes/:id', async (c) => {
     : []
   const byId = new Map(rows.filter((s) => s.userId === c.get('userId')).map((s) => [s.id, s]))
 
+  // The verification report, grouped by the chapter it belongs to. It is served
+  // here, authenticated, and never from the bucket: the bucket is public.
+  const GroundingEntrySchema = z.object({
+    chapter: z.string(),
+    sentence: z.string(),
+    supported: z.boolean(),
+    action: z.string(),
+    fix: z.string().optional(),
+  })
+  const report = z.array(GroundingEntrySchema).safeParse(ep.grounding)
+  const groundingByChapter = new Map<string, z.infer<typeof GroundingEntrySchema>[]>()
+  if (report.success) {
+    for (const entry of report.data) {
+      const list = groundingByChapter.get(entry.chapter) ?? []
+      list.push(entry)
+      groundingByChapter.set(entry.chapter, list)
+    }
+  }
+
   return c.json({
     id: ep.id,
     title: ep.title,
@@ -219,6 +238,14 @@ authed.get('/episodes/:id', async (c) => {
       title: ch.title,
       text: ch.text,
       sourceIds: ch.source_ids,
+      // An intro carries no external claim, so an empty list is the honest answer
+      // rather than a missing field the app would have to guess about.
+      grounding: (groundingByChapter.get(ch.title) ?? []).map((g) => ({
+        sentence: g.sentence,
+        supported: g.supported,
+        action: g.action,
+        ...(g.fix ? { fix: g.fix } : {}),
+      })),
       sources: ch.source_ids.flatMap((sourceId) => {
         const s = byId.get(sourceId)
         return s

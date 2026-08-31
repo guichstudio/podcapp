@@ -679,6 +679,8 @@ async function runEpisode(
         status: 'editing',
         storyIds: sections.map((s) => s.story_id),
         cost: ledger,
+        // On the row, not on the bucket: the bucket is public by necessity.
+        grounding: artifacts.grounding,
         promptVersions: { ...PROMPT_VERSIONS, editorial: 'v1', writer: 'v1', grounding: 'v1', edit: 'v1' },
       })
       .where(eq(episodes.id, opts.episodeId))

@@ -96,6 +96,11 @@ export const episodes = pgTable('episodes', {
   script: jsonb('script'),
   audioUrl: text('audio_url'),
   audioBytes: integer('audio_bytes'),
+  // The per-sentence verification report. It lives here rather than as a run
+  // artifact on the bucket: the bucket is public (podcast clients must fetch
+  // audio anonymously) and an episode id is published in the feed, so anything
+  // stored there is readable by anyone holding the feed URL.
+  grounding: jsonb('grounding'),
   cost: jsonb('cost'),
   promptVersions: jsonb('prompt_versions'),
   failedStage: text('failed_stage'),
