@@ -10,6 +10,22 @@ struct PodcappApp: App {
     }
 
     var body: some Scene {
-        WindowGroup { RootView() }
+        WindowGroup { Entry() }
+    }
+}
+
+// The onboarding runs once, and again whenever there is no token to work with:
+// an app that cannot reach its server has nothing to show, so asking is the only
+// honest first screen.
+private struct Entry: View {
+    @State private var connected = Config.isConfigured && Config.hasSeenOnboarding
+
+    var body: some View {
+        if connected {
+            RootView()
+        } else {
+            OnboardingView(onDone: { connected = true })
+                .transition(.opacity)
+        }
     }
 }

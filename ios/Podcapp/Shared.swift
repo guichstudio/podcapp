@@ -7,19 +7,33 @@ enum Config {
     static let appGroup = "group.com.louisguichard.podcapp"
     static let defaultBaseURL = "https://podcapp.vercel.app"
 
-    private static var store: UserDefaults? { UserDefaults(suiteName: appGroup) }
+    // The App Group container only exists when the build carries its entitlement.
+    // An unsigned simulator build has none, and `UserDefaults(suiteName:)` then
+    // returns nil, which silently swallowed every write: the token looked saved
+    // and the app authenticated with an empty one. Falling back to the app's own
+    // defaults keeps it working; only the share extension truly needs the group.
+    private static var store: UserDefaults { UserDefaults(suiteName: appGroup) ?? .standard }
+
+    /// False when the app and its share extension cannot see the same storage,
+    /// which is the one failure the user has to be told about.
+    static var sharesStorageWithExtension: Bool { UserDefaults(suiteName: appGroup) != nil }
 
     static var baseURL: String {
-        get { store?.string(forKey: "baseURL") ?? defaultBaseURL }
-        set { store?.set(newValue, forKey: "baseURL") }
+        get { store.string(forKey: "baseURL") ?? defaultBaseURL }
+        set { store.set(newValue, forKey: "baseURL") }
     }
 
     static var apiToken: String {
-        get { store?.string(forKey: "apiToken") ?? "" }
-        set { store?.set(newValue, forKey: "apiToken") }
+        get { store.string(forKey: "apiToken") ?? "" }
+        set { store.set(newValue, forKey: "apiToken") }
     }
 
     static var isConfigured: Bool { !apiToken.isEmpty }
+
+    // Shown once. Kept apart from isConfigured so a token cleared later does not
+    // replay the whole story, it only asks for the token again.
+    static var hasSeenOnboarding: Bool { store.bool(forKey: "sawOnboarding") }
+    static func markOnboardingSeen() { store.set(true, forKey: "sawOnboarding") }
 }
 
 enum IngestError: LocalizedError {

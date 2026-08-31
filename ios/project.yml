@@ -37,7 +37,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.louisguichard.podcapp
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
-        INFOPLIST_KEY_CFBundleDisplayName: Briefing
+        INFOPLIST_KEY_CFBundleDisplayName: Podcapp
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         CODE_SIGN_ENTITLEMENTS: Podcapp/Podcapp.entitlements
     dependencies:
@@ -53,7 +54,7 @@ targets:
     info:
       path: ShareExtension/Info.plist
       properties:
-        CFBundleDisplayName: Briefing
+        CFBundleDisplayName: Podcapp
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController

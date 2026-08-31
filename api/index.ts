@@ -175,6 +175,10 @@ authed.get('/episodes/:id', async (c) => {
       audioBytes: episodes.audioBytes,
       script: episodes.script,
       grounding: episodes.grounding,
+      outline: episodes.outline,
+      cost: episodes.cost,
+      promptVersions: episodes.promptVersions,
+      targetSec: episodes.targetSec,
     })
     .from(episodes)
     .where(eq(episodes.id, id))
@@ -227,12 +231,34 @@ authed.get('/episodes/:id', async (c) => {
     }
   }
 
+  // What the editorial stage decided before a word was written, and what the run
+  // cost. The app's backstage view is the debug trail of ARCHITECTURE §9 made
+  // readable, so it needs the plan, not only the result.
+  const OutlineShape = z.object({
+    sections: z.array(z.object({ story_id: z.string(), title: z.string(), airtime_sec: z.number() })).default([]),
+    discarded: z.array(z.object({ story_id: z.string(), reason: z.string() })).default([]),
+  })
+  const outline = OutlineShape.safeParse(ep.outline)
+  const costs = z.record(z.object({ usd: z.number().optional() })).safeParse(ep.cost)
+  const entries = report.success ? report.data : []
+
   return c.json({
     id: ep.id,
     title: ep.title,
     status: ep.status,
     createdAt: ep.createdAt.toISOString(),
     actualSec: ep.actualSec,
+    targetSec: ep.targetSec,
+    // The airtime budget, in the order the outline set it.
+    budget: outline.success ? outline.data.sections.map((s) => ({ title: s.title, airtimeSec: s.airtime_sec })) : [],
+    discarded: outline.success ? outline.data.discarded.map((d) => d.reason) : [],
+    verification: {
+      checked: entries.length,
+      corrected: entries.filter((e) => e.action === 'fixed').length,
+      dropped: entries.filter((e) => e.action.startsWith('dropped')).length,
+    },
+    usd: costs.success ? Object.values(costs.data).reduce((n, v) => n + (v.usd ?? 0), 0) : null,
+    promptVersions: ep.promptVersions ?? null,
     audioUrl: readyAudioUrl(base, ep.status, ep.id),
     audioBytes: ep.audioBytes,
     chapters: chapters.map((ch) => ({
