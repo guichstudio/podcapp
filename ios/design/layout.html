@@ -1,0 +1,414 @@
+
+
+<div style="zoom:{{ deviceScale }}">
+<x-import component-from-global-scope="IOSDevice" from="17ec0bd8-3bb9-4a86-a03f-2eae792540b3#/ios-frame.jsx" hint-size="430px,900px">
+<div style="height:100%;position:relative;display:flex;flex-direction:column;background:linear-gradient(180deg,#E9E5F7 0%,#F6F5F1 34%,#FAFAF8 100%);color:#1C1B22;font-family:'Inter Tight',system-ui,sans-serif;overflow:hidden;padding-top:56px;box-sizing:border-box">
+
+<div style="flex:1;overflow-y:auto;overscroll-behavior:contain">
+
+<sc-if value="{{ tabToday }}" hint-placeholder-val="{{ true }}">
+<div style="padding:10px 20px 24px;position:relative;z-index:1">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0 18px;position:relative;z-index:2">
+    <div style="display:flex;align-items:center;gap:10px">
+      <img src="bcf86073-d4fb-4def-9372-fea2c8cd0e87" alt="Podcapp" style="width:32px;height:32px;border-radius:10px;box-shadow:0 0 0 1px rgba(28,27,34,.12)">
+      <span style="font-size:22px;font-weight:700;letter-spacing:-.02em">Podcapp</span>
+    </div>
+    <span style="font-size:12px;font-weight:500;letter-spacing:.08em;color:#6E6C78">{{ T.date }}</span>
+  </div>
+
+  <div style="background:linear-gradient(140deg,rgba(124,108,220,.30) 0%,rgba(124,108,220,.12) 42%,rgba(255,255,255,.65) 100%);border:1px solid rgba(108,92,200,.28);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:22px;padding:20px 20px 18px;display:flex;flex-direction:column;gap:14px;box-shadow:0 24px 60px rgba(60,50,120,.16)">
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.12em;color:#5B51A8">{{ T.heroOver }}</span>
+      <span style="font-size:11px;font-weight:500;color:#5B51A8">10:05</span>
+    </div>
+    <div style="font-size:24px;line-height:1.16;font-weight:700;letter-spacing:-.02em;text-wrap:pretty">{{ T.heroTitle }}</div>
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <sc-for list="{{ menuChapters }}" as="c" hint-placeholder-count="4">
+        <div style="display:flex;gap:10px;align-items:baseline;font-size:13px">
+          <span style="font-weight:700;width:16px;color:#6F68A8">{{ c.n }}</span>
+          <span style="flex:1;font-weight:400;color:#3F3B58">{{ c.title }}</span>
+          <span style="color:#6F68A8;font-variant-numeric:tabular-nums">{{ c.durLabel }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;padding-top:4px">
+      <button sc-camel-on-click="{{ playLatest }}" style="display:flex;align-items:center;gap:9px;background:#1C1B22;color:#FFFFFF;border:none;border-radius:100px;padding:12px 22px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 8px 24px rgba(28,27,34,.22)">
+        <span style="font-size:12px">{{ heroPlayIcon }}</span>{{ heroPlayLabel }}
+      </button>
+      <button sc-camel-on-click="{{ openBackstage }}" style="background:none;border:none;color:#5B51A8;font-family:inherit;font-size:12.5px;font-weight:500;cursor:pointer;padding:10px 0;text-decoration:underline;text-underline-offset:3px">{{ T.howMade }}</button>
+    </div>
+    <div style="font-size:11.5px;font-weight:400;color:#6F6A96;border-top:1px solid rgba(28,27,34,.1);padding-top:11px">{{ T.heroMeta }}</div>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin:26px 0 12px;position:relative;z-index:2">
+    <span style="font-size:19px;font-weight:700;letter-spacing:-.01em">{{ T.tomorrow }}</span>
+    <span style="font-size:12px;color:#6E6C78">{{ T.newToday }}</span>
+  </div>
+  <div style="display:flex;gap:10px;overflow-x:auto;margin:0 -20px;padding:0 20px 4px">
+    <sc-for list="{{ focusCards }}" as="f" hint-placeholder-count="3">
+      <div sc-camel-on-click="{{ f.onOpen }}" style="flex:none;width:200px;background:rgba(255,255,255,.66);border:1px solid rgba(28,27,34,.08);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px;cursor:pointer">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:10.5px;font-weight:700;letter-spacing:.08em;color:{{ f.tagColor }}">{{ f.tag }}</span>
+          <button sc-camel-on-click="{{ f.onToggle }}" style="border:1px solid rgba(28,27,34,.16);background:{{ f.pillBg }};color:{{ f.pillFg }};border-radius:100px;padding:4px 10px;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer">{{ f.pillLabel }}</button>
+        </div>
+        <div style="font-size:16px;line-height:1.25;font-weight:700;letter-spacing:-.01em;text-wrap:pretty">{{ f.headline }}</div>
+        <div style="font-size:11.5px;color:#6E6C78;line-height:1.4">{{ f.note }}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="margin-top:18px;background:rgba(255,255,255,.66);border:1px solid rgba(28,27,34,.08);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700">{{ T.mondayBrief }}</div>
+        <div style="font-size:12px;color:#6E6C78;margin-top:2px">{{ genHint }}</div>
+      </div>
+      <div style="display:flex;flex:none;border:1px solid rgba(28,27,34,.14);border-radius:100px;overflow:hidden">
+        <sc-for list="{{ lenOpts }}" as="o" hint-placeholder-count="3">
+          <button sc-camel-on-click="{{ o.onPick }}" style="border:none;background:{{ o.bg }};color:{{ o.fg }};padding:7px 9px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">{{ o.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+    <button sc-camel-on-click="{{ startGen }}" style="background:linear-gradient(135deg,#7C6CDC,#5B4DBE);color:#FFFFFF;border:none;border-radius:13px;padding:13px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 10px 26px rgba(107,91,204,.35)">{{ T.generate }}</button>
+  </div>
+
+  <div style="font-size:19px;font-weight:700;letter-spacing:-.01em;margin:26px 0 6px;position:relative;z-index:2">{{ T.earlier }}</div>
+  <sc-for list="{{ pastEpisodes }}" as="e" hint-placeholder-count="2">
+    <div style="display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid rgba(28,27,34,.07);position:relative;z-index:2">
+      <img src="bcf86073-d4fb-4def-9372-fea2c8cd0e87" alt="" style="width:40px;height:40px;border-radius:10px;box-shadow:0 0 0 1px rgba(28,27,34,.1)">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700">{{ e.title }}</div>
+        <div style="font-size:12px;color:#6E6C78;margin-top:2px">{{ e.meta }}</div>
+      </div>
+      <span style="font-size:12px;color:#6E6C78;font-variant-numeric:tabular-nums">{{ e.dur }}</span>
+      <span style="font-size:15px;color:#B0ADB6">{{ e.dl }}</span>
+    </div>
+  </sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ tabRead }}" hint-placeholder-val="{{ false }}">
+<div style="padding:10px 20px 24px;position:relative;z-index:1">
+  <sc-if value="{{ readList }}" hint-placeholder-val="{{ true }}">
+    <div style="font-size:26px;font-weight:700;letter-spacing:-.02em;padding:6px 0 2px;position:relative;z-index:2">{{ T.readTitle }}</div>
+    <div style="font-size:12.5px;color:#6E6C78;padding:0 0 14px;position:relative;z-index:2">{{ T.readSub }}</div>
+    <sc-for list="{{ readRows }}" as="re" hint-placeholder-count="3">
+      <div sc-camel-on-click="{{ re.onOpen }}" style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgba(28,27,34,.07);cursor:{{ re.cursor }};opacity:{{ re.op }};position:relative;z-index:2">
+        <img src="bcf86073-d4fb-4def-9372-fea2c8cd0e87" alt="" style="width:40px;height:40px;border-radius:10px;box-shadow:0 0 0 1px rgba(28,27,34,.1)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14.5px;font-weight:700">{{ re.title }}</div>
+          <div style="font-size:12px;color:#6E6C78;margin-top:2px">{{ re.meta }}</div>
+        </div>
+        <span style="flex:none;font-size:10px;font-weight:700;letter-spacing:.05em;color:{{ re.badgeFg }};background:{{ re.badgeBg }};border-radius:100px;padding:4px 9px">{{ re.badge }}</span>
+      </div>
+    </sc-for>
+  </sc-if>
+  <sc-if value="{{ readArticle }}" hint-placeholder-val="{{ false }}">
+    <button sc-camel-on-click="{{ backRead }}" style="background:none;border:none;color:#5B51A8;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;padding:8px 0;display:flex;align-items:center;gap:6px;position:relative;z-index:2">‹ {{ T.allEpisodes }}</button>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.12em;color:#6F6A96;margin-top:8px;position:relative;z-index:2">{{ T.articleOver }}</div>
+    <div style="font-size:27px;line-height:1.15;font-weight:700;letter-spacing:-.02em;margin:8px 0 6px;text-wrap:pretty;position:relative;z-index:2">{{ T.heroTitle }}</div>
+    <div style="font-size:12px;color:#6E6C78;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.1);position:relative;z-index:2">{{ T.articleMeta }}</div>
+    <sc-for list="{{ articleChapters }}" as="ac" hint-placeholder-count="6">
+      <div style="padding:22px 0 6px;position:relative;z-index:2">
+        <div style="display:flex;align-items:baseline;gap:10px">
+          <span style="font-size:12px;font-weight:700;color:#6F68A8;font-variant-numeric:tabular-nums">{{ ac.n }}</span>
+          <span style="flex:1;font-size:18px;font-weight:700;letter-spacing:-.01em;line-height:1.25;text-wrap:pretty">{{ ac.title }}</span>
+          <span style="font-size:11px;color:#6E6C78;font-variant-numeric:tabular-nums">{{ ac.durLabel }}</span>
+        </div>
+        <sc-for list="{{ ac.paras }}" as="para" hint-placeholder-count="2">
+          <p style="font-size:15px;font-weight:300;line-height:1.7;color:#2E2C36;margin:12px 0 0;text-wrap:pretty">{{ para.txt }}</p>
+        </sc-for>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap">
+          <button sc-camel-on-click="{{ ac.onListen }}" style="border:1px solid rgba(28,27,34,.14);background:rgba(28,27,34,.04);border-radius:100px;padding:7px 13px;font-family:inherit;font-size:11.5px;font-weight:700;color:#1C1B22;cursor:pointer;white-space:nowrap">▶ {{ T.listenHere }}</button>
+          <sc-if value="{{ ac.srcLine }}" hint-placeholder-val="{{ false }}">
+            <button sc-camel-on-click="{{ ac.onSrc }}" style="background:none;border:none;font-family:inherit;font-size:11.5px;font-weight:500;color:#5B51A8;cursor:pointer;padding:7px 0;text-decoration:underline;text-underline-offset:3px">{{ ac.srcLine }}</button>
+          </sc-if>
+        </div>
+      </div>
+    </sc-for>
+    <button sc-camel-on-click="{{ openBackstage }}" style="margin-top:18px;width:100%;background:none;border:1px dashed rgba(28,27,34,.22);border-radius:13px;padding:12px;font-family:inherit;font-size:12.5px;font-weight:700;color:#4A4854;cursor:pointer;position:relative;z-index:2">{{ T.howEpMade }} →</button>
+  </sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ tabLibrary }}" hint-placeholder-val="{{ false }}">
+<div style="padding:10px 20px 24px;position:relative;z-index:1">
+  <div style="font-size:26px;font-weight:700;letter-spacing:-.02em;padding:6px 0 14px">Sources</div>
+  <div style="display:flex;gap:8px;margin-bottom:6px">
+    <input placeholder="{{ T.paste }}" style="flex:1;border:1px solid rgba(28,27,34,.1);background:rgba(255,255,255,.8);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:12px;padding:11px 13px;font-family:inherit;font-size:13px;outline:none;color:#1C1B22">
+    <button sc-camel-on-click="{{ noop }}" style="background:#1C1B22;color:#FFFFFF;border:none;border-radius:12px;padding:0 16px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">{{ T.add }}</button>
+  </div>
+  <div style="font-size:11.5px;color:#6E6C78;margin-bottom:14px">✉ <span style="font-weight:700;color:#4A4854">ingest+louis@podcapp.app</span></div>
+  <div style="display:flex;gap:6px;margin-bottom:6px">
+    <sc-for list="{{ libFilters }}" as="lf" hint-placeholder-count="3">
+      <button sc-camel-on-click="{{ lf.onPick }}" style="border:1px solid rgba(28,27,34,.12);background:{{ lf.bg }};color:{{ lf.fg }};border-radius:100px;padding:7px 14px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">{{ lf.label }}</button>
+    </sc-for>
+  </div>
+  <sc-for list="{{ libSections }}" as="sec" hint-placeholder-count="2">
+    <div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:#77747E;margin:20px 0 4px">{{ sec.label }}</div>
+      <sc-if value="{{ sec.storyNote }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:8px;align-items:center;background:rgba(124,108,220,.12);border:1px solid rgba(124,108,220,.24);border-radius:11px;padding:9px 12px;margin:6px 0 2px;font-size:11.5px;color:#5B51A8"><span style="font-weight:700">⧉</span>{{ sec.storyNote }}</div>
+      </sc-if>
+      <sc-for list="{{ sec.rows }}" as="r" hint-placeholder-count="3">
+        <div style="border-bottom:1px solid rgba(28,27,34,.07);padding:13px 0">
+          <div sc-camel-on-click="{{ r.onExpand }}" style="display:flex;gap:12px;align-items:flex-start;cursor:pointer">
+            <div style="width:36px;height:36px;flex:none;border-radius:10px;background:rgba(28,27,34,.05);display:flex;align-items:center;justify-content:center;font-size:13px;color:#4A4854">{{ r.icon }}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:#77747E">{{ r.pub }}</div>
+              <div style="font-size:13.5px;font-weight:500;line-height:1.35;margin-top:2px;text-wrap:pretty">{{ r.title }}</div>
+              <div style="font-size:11.5px;color:#77747E;margin-top:3px">{{ r.meta }}</div>
+            </div>
+            <span style="flex:none;font-size:10.5px;font-weight:700;letter-spacing:.04em;color:{{ r.chipFg }};background:{{ r.chipBg }};border-radius:100px;padding:4px 9px;margin-top:2px;animation:{{ r.chipAnim }}">{{ r.chip }}</span>
+          </div>
+          <sc-if value="{{ r.open }}" hint-placeholder-val="{{ false }}">
+            <div style="margin:10px 0 0 48px;background:rgba(255,255,255,.7);border:1px solid rgba(28,27,34,.09);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:13px;padding:12px;display:flex;flex-direction:column;gap:10px">
+              <div style="font-size:12.5px;line-height:1.45;color:#4A4854">{{ r.detail }}</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <sc-for list="{{ r.actions }}" as="a" hint-placeholder-count="2">
+                  <button sc-camel-on-click="{{ a.onTap }}" style="border:1px solid rgba(28,27,34,.16);background:{{ a.bg }};color:{{ a.fg }};border-radius:10px;padding:8px 13px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">{{ a.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ tabSettings }}" hint-placeholder-val="{{ false }}">
+<div style="padding:10px 20px 24px;position:relative;z-index:1">
+  <div style="font-size:26px;font-weight:700;letter-spacing:-.02em;padding:6px 0 16px;position:relative;z-index:2">{{ T.settingsTitle }}</div>
+  <div style="background:rgba(255,255,255,.66);border:1px solid rgba(28,27,34,.08);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-radius:16px;padding:15px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13.5px;font-weight:500">{{ T.appLang }}</div>
+      <div style="font-size:11.5px;color:#77747E;margin-top:2px">{{ T.appLangSub }}</div>
+    </div>
+    <div style="display:flex;flex:none;border:1px solid rgba(28,27,34,.14);border-radius:100px;overflow:hidden">
+      <sc-for list="{{ langOpts }}" as="lo" hint-placeholder-count="2">
+        <button sc-camel-on-click="{{ lo.onPick }}" style="border:none;background:{{ lo.bg }};color:{{ lo.fg }};padding:7px 14px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">{{ lo.label }}</button>
+      </sc-for>
+    </div>
+  </div>
+  <div style="background:rgba(255,255,255,.66);border:1px solid rgba(28,27,34,.08);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-radius:16px;overflow:hidden">
+    <sc-for list="{{ settingsRows }}" as="s" hint-placeholder-count="6">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:15px 16px;border-bottom:1px solid rgba(28,27,34,.07)">
+        <div>
+          <div style="font-size:13.5px;font-weight:500">{{ s.label }}</div>
+          <div style="font-size:11.5px;color:#77747E;margin-top:2px">{{ s.sub }}</div>
+        </div>
+        <span style="font-size:12.5px;font-weight:700;color:#4A4854">{{ s.value }}</span>
+      </div>
+    </sc-for>
+  </div>
+  <div style="font-size:11.5px;color:#77747E;line-height:1.5;margin-top:14px;padding:0 4px;position:relative;z-index:2">{{ T.rssNote }}</div>
+</div>
+</sc-if>
+</div>
+
+<sc-if value="{{ showMini }}" hint-placeholder-val="{{ false }}">
+<div sc-camel-on-click="{{ openPlayer }}" style="margin:0 10px 6px;background:linear-gradient(135deg,rgba(91,77,190,.95),rgba(58,48,135,.95));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.22);border-radius:15px;padding:10px 12px;color:#FFFFFF;display:flex;align-items:center;gap:11px;cursor:pointer;position:relative;overflow:hidden;box-shadow:0 12px 30px rgba(50,42,110,.3)">
+  <div style="position:absolute;left:0;bottom:0;height:2px;background:#FFFFFF;width:{{ progressPct }}"></div>
+  <img src="bcf86073-d4fb-4def-9372-fea2c8cd0e87" alt="" style="width:34px;height:34px;border-radius:9px;position:relative">
+  <div style="flex:1;min-width:0;position:relative">
+    <div style="font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ curTitle }}</div>
+    <div style="font-size:10.5px;color:rgba(255,255,255,.65)">{{ curTimeLabel }}</div>
+  </div>
+  <button sc-camel-on-click="{{ togglePlayStop }}" style="position:relative;background:none;border:none;color:#FFFFFF;font-size:17px;cursor:pointer;padding:8px 10px">{{ playIcon }}</button>
+</div>
+</sc-if>
+
+<div style="flex:none;display:flex;border-top:1px solid rgba(28,27,34,.08);background:rgba(250,250,248,.82);backdrop-filter:blur(26px);-webkit-backdrop-filter:blur(26px);padding:6px 8px 24px">
+  <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="3">
+    <button sc-camel-on-click="{{ tb.onPick }}" style="flex:1;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;color:{{ tb.color }};font-family:inherit">
+      <span style="font-size:17px;line-height:1">{{ tb.icon }}</span>
+      <span style="font-size:10px;font-weight:700;letter-spacing:.04em">{{ tb.label }}</span>
+    </button>
+  </sc-for>
+</div>
+
+<sc-if value="{{ playerOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;background:linear-gradient(180deg,#E4DFF5 0%,#F4F3EF 46%,#FAFAF8 100%);z-index:30;display:flex;flex-direction:column;animation:pcUp .28s ease">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:60px 16px 0;position:relative;z-index:1">
+    <button sc-camel-on-click="{{ closePlayer }}" style="background:none;border:none;font-size:18px;color:#4A4854;cursor:pointer;padding:8px">⌄</button>
+    <span style="font-size:11px;font-weight:700;letter-spacing:.12em;color:#6F6A96">{{ T.playerOver }}</span>
+    <button sc-camel-on-click="{{ openBackstage }}" style="background:none;border:none;font-size:16px;color:#4A4854;cursor:pointer;padding:8px">⋯</button>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 28px;gap:18px;min-height:0;position:relative;z-index:1">
+    <div style="position:relative">
+      <img src="bcf86073-d4fb-4def-9372-fea2c8cd0e87" alt="" style="width:122px;height:122px;border-radius:28px;box-shadow:0 24px 60px rgba(50,42,110,.22),0 0 0 1px rgba(28,27,34,.08)">
+      <sc-if value="{{ playing }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;right:-6px;bottom:-6px;background:rgba(28,27,34,.92);border-radius:100px;padding:6px 8px;display:flex;gap:2.5px;align-items:flex-end;box-shadow:0 2px 8px rgba(28,27,34,.25)">
+          <span style="width:3px;height:11px;background:#FFFFFF;animation:pcBar .9s ease-in-out infinite;transform-origin:bottom"></span>
+          <span style="width:3px;height:11px;background:#FFFFFF;animation:pcBar .9s ease-in-out .25s infinite;transform-origin:bottom"></span>
+          <span style="width:3px;height:11px;background:#FFFFFF;animation:pcBar .9s ease-in-out .5s infinite;transform-origin:bottom"></span>
+        </div>
+      </sc-if>
+    </div>
+    <div style="text-align:center;display:flex;flex-direction:column;gap:7px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.13em;color:#6F6A96">{{ curOverline }}</span>
+      <span style="font-size:23px;line-height:1.18;font-weight:700;letter-spacing:-.02em;text-wrap:pretty">{{ curTitle }}</span>
+    </div>
+    <div style="width:100%;max-width:340px">
+      <div sc-camel-on-click="{{ seekBar }}" style="position:relative;height:26px;display:flex;align-items:center;cursor:pointer">
+        <div style="position:absolute;left:0;right:0;height:4px;border-radius:4px;background:rgba(28,27,34,.14)"></div>
+        <div style="position:absolute;left:0;height:4px;border-radius:4px;background:#1C1B22;width:{{ progressPct }}"></div>
+        <sc-for list="{{ ticks }}" as="tk" hint-placeholder-count="5">
+          <div style="position:absolute;left:{{ tk.left }};width:2px;height:8px;background:#E9E5F5;border-radius:2px"></div>
+        </sc-for>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#6F6A96;font-variant-numeric:tabular-nums"><span>{{ tCur }}</span><span>−{{ tLeft }}</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button sc-camel-on-click="{{ prevChap }}" style="background:none;border:none;font-size:19px;cursor:pointer;color:#1C1B22;padding:12px" title="Previous chapter">⏮</button>
+      <button sc-camel-on-click="{{ back15 }}" style="background:rgba(28,27,34,.05);border:1px solid rgba(28,27,34,.14);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:100px;width:46px;height:46px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;color:#1C1B22">−15</button>
+      <button sc-camel-on-click="{{ togglePlay }}" style="background:#1C1B22;color:#FFFFFF;border:none;border-radius:100px;width:68px;height:68px;font-size:22px;cursor:pointer;box-shadow:0 14px 34px rgba(28,27,34,.28)">{{ playIcon }}</button>
+      <button sc-camel-on-click="{{ fwd15 }}" style="background:rgba(28,27,34,.05);border:1px solid rgba(28,27,34,.14);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:100px;width:46px;height:46px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;color:#1C1B22">+15</button>
+      <button sc-camel-on-click="{{ nextChap }}" style="background:none;border:none;font-size:19px;cursor:pointer;color:#1C1B22;padding:12px" title="Next chapter">⏭</button>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button sc-camel-on-click="{{ cycleSpeed }}" style="border:1px solid rgba(28,27,34,.12);background:rgba(28,27,34,.04);border-radius:100px;padding:9px 15px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;color:#1C1B22">{{ speedLabel }}</button>
+      <button sc-camel-on-click="{{ openChapters }}" style="border:1px solid rgba(28,27,34,.12);background:rgba(28,27,34,.04);border-radius:100px;padding:9px 15px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;color:#1C1B22">{{ T.chapters }}</button>
+      <button sc-camel-on-click="{{ openTranscript }}" style="border:1px solid rgba(28,27,34,.12);background:rgba(28,27,34,.04);border-radius:100px;padding:9px 15px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;color:#1C1B22">{{ T.transcript }}</button>
+    </div>
+  </div>
+  <button sc-camel-on-click="{{ openSources }}" style="margin:0 16px 14px;background:rgba(255,255,255,.8);border:1px solid rgba(28,27,34,.09);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:15px;padding:13px 15px;display:flex;align-items:center;gap:11px;cursor:pointer;font-family:inherit;text-align:left">
+    <span style="font-size:10px;font-weight:700;letter-spacing:.1em;color:#6F6A96;flex:none">{{ T.from }}</span>
+    <span style="flex:1;font-size:12.5px;font-weight:500;color:#1C1B22;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ curSourceLine }}</span>
+    <span style="font-size:13px;color:#77747E">↗</span>
+  </button>
+</div>
+</sc-if>
+
+<sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;justify-content:flex-end">
+  <div sc-camel-on-click="{{ closeSheet }}" style="position:absolute;inset:0;background:rgba(20,18,30,.35)"></div>
+  <div style="position:relative;background:rgba(252,252,250,.92);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);border-top:1px solid rgba(28,27,34,.1);border-radius:24px 24px 0 0;max-height:76%;display:flex;flex-direction:column;animation:pcUp .25s ease">
+    <div style="flex:none;display:flex;justify-content:center;padding:9px 0 0"><div style="width:36px;height:4px;border-radius:4px;background:rgba(28,27,34,.2)"></div></div>
+    <div style="flex:none;display:flex;justify-content:space-between;align-items:baseline;padding:12px 20px 10px;border-bottom:1px solid rgba(255,255,255,.08)">
+      <span style="font-size:19px;font-weight:700;letter-spacing:-.01em">{{ sheetTitle }}</span>
+      <button sc-camel-on-click="{{ closeSheet }}" style="background:none;border:none;font-size:13px;font-weight:700;color:#6E6C78;cursor:pointer;font-family:inherit;padding:6px">{{ T.close }}</button>
+    </div>
+    <div style="overflow-y:auto;padding:14px 20px 30px">
+
+    <sc-if value="{{ sheetIsChapters }}" hint-placeholder-val="{{ false }}">
+      <sc-for list="{{ chapterRows }}" as="c" hint-placeholder-count="6">
+        <div sc-camel-on-click="{{ c.onJump }}" style="display:flex;gap:13px;align-items:baseline;padding:13px 10px;border-bottom:1px solid rgba(28,27,34,.07);cursor:pointer;background:{{ c.bg }};border-radius:12px">
+          <span style="font-size:12px;font-weight:700;color:{{ c.numColor }};width:20px;font-variant-numeric:tabular-nums">{{ c.n }}</span>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:{{ c.weight }}">{{ c.title }}</div>
+            <div style="font-size:11.5px;color:#6E6C78;margin-top:2px">{{ c.sub }}</div>
+          </div>
+          <span style="font-size:12px;color:#6E6C78;font-variant-numeric:tabular-nums">{{ c.durLabel }}</span>
+        </div>
+      </sc-for>
+    </sc-if>
+
+    <sc-if value="{{ sheetIsSources }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <sc-if value="{{ noSources }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:13px;color:#6E6C78;line-height:1.5">{{ T.noClaims }}</div>
+        </sc-if>
+        <sc-for list="{{ curSources }}" as="s" hint-placeholder-count="1">
+          <div style="background:rgba(255,255,255,.7);border:1px solid rgba(28,27,34,.09);border-radius:15px;padding:14px;display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:11px;font-weight:700;letter-spacing:.07em;color:#4A4854">{{ s.pub }}</span>
+              <span style="font-size:11px;color:#77747E">{{ s.kind }}</span>
+            </div>
+            <div style="font-size:14px;font-weight:500;line-height:1.35;text-wrap:pretty">{{ s.title }}</div>
+            <div style="font-size:11.5px;color:#77747E">{{ s.meta }}</div>
+          </div>
+        </sc-for>
+        <sc-if value="{{ hasClaims }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:#77747E;margin-top:8px">{{ T.verifiedOnAir }}</div>
+          <sc-for list="{{ curClaims }}" as="cl" hint-placeholder-count="3">
+            <div style="display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid rgba(28,27,34,.07)">
+              <span style="flex:none;font-size:10px;font-weight:700;letter-spacing:.04em;color:{{ cl.fg }};background:{{ cl.bg }};border-radius:100px;padding:3px 8px;margin-top:1px">{{ cl.v }}</span>
+              <span style="font-size:12.5px;line-height:1.45;color:#3B3945">{{ cl.t }}</span>
+            </div>
+          </sc-for>
+        </sc-if>
+        <button sc-camel-on-click="{{ openBackstage }}" style="margin-top:10px;background:none;border:1px dashed rgba(28,27,34,.22);border-radius:13px;padding:12px;font-family:inherit;font-size:12.5px;font-weight:700;color:#4A4854;cursor:pointer">{{ T.howEpMade }} →</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ sheetIsTranscript }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:#77747E">{{ curOverline }} · {{ T.synced }}</div>
+        <div style="font-size:15.5px;font-weight:300;line-height:1.7;color:#2E2C36;text-wrap:pretty">{{ curExcerpt }}</div>
+        <div style="font-size:11.5px;color:#77747E;line-height:1.5;border-top:1px solid rgba(28,27,34,.08);padding-top:10px">{{ T.groundNote }}</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ sheetIsBackstage }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div style="font-size:12.5px;color:#4A4854;line-height:1.5">{{ T.builtNot }}</div>
+        <div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:#77747E;margin-bottom:8px">{{ T.budgetHead }}</div>
+          <sc-for list="{{ budgetRows }}" as="b" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 0">
+              <span style="flex:1;font-size:12.5px;font-weight:500">{{ b.title }}</span>
+              <div style="width:90px;height:5px;border-radius:4px;background:rgba(28,27,34,.1);overflow:hidden"><div style="height:100%;background:linear-gradient(90deg,#7C6CDC,#A99CF0);width:{{ b.w }}"></div></div>
+              <span style="width:36px;text-align:right;font-size:11.5px;color:#6E6C78;font-variant-numeric:tabular-nums">{{ b.sec }}</span>
+            </div>
+          </sc-for>
+          <div style="display:flex;gap:10px;align-items:flex-start;margin-top:8px;background:rgba(181,67,52,.08);border:1px solid rgba(181,67,52,.2);border-radius:12px;padding:11px 13px">
+            <span style="flex:none;font-size:10px;font-weight:700;letter-spacing:.04em;color:#B54334;background:rgba(181,67,52,.14);border-radius:100px;padding:3px 8px">{{ T.discardedLbl }}</span>
+            <span style="font-size:12px;line-height:1.45;color:#3B3945">{{ T.discardedTxt }}</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:#77747E;margin-bottom:8px">{{ T.groundHead }}</div>
+          <div style="background:rgba(255,255,255,.7);border:1px solid rgba(28,27,34,.09);border-radius:14px;padding:13px;display:flex;gap:8px;text-align:center">
+            <div style="flex:1"><div style="font-size:22px;font-weight:700">42</div><div style="font-size:10.5px;color:#6E6C78">{{ T.stat1 }}</div></div>
+            <div style="flex:1;border-left:1px solid rgba(28,27,34,.08)"><div style="font-size:22px;font-weight:700">4</div><div style="font-size:10.5px;color:#6E6C78">{{ T.stat2 }}</div></div>
+            <div style="flex:1;border-left:1px solid rgba(28,27,34,.08)"><div style="font-size:22px;font-weight:700">0</div><div style="font-size:10.5px;color:#6E6C78">{{ T.stat3 }}</div></div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:#77747E;margin-bottom:8px">PIPELINE</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <sc-for list="{{ pipelineDone }}" as="p" hint-placeholder-count="9">
+              <span style="font-size:11px;font-weight:700;color:#3B3945;background:rgba(28,27,34,.05);border-radius:100px;padding:5px 10px">✓ {{ p }}</span>
+            </sc-for>
+          </div>
+          <div style="font-size:11.5px;color:#77747E;margin-top:10px">6 min 12 s · $0.87 · prompts v1</div>
+        </div>
+      </div>
+    </sc-if>
+
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ genOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;background:linear-gradient(180deg,#E9E5F7 0%,#FAFAF8 52%);z-index:50;display:flex;flex-direction:column;padding:62px 24px 22px;animation:pcUp .3s ease">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <span style="font-size:11px;font-weight:700;letter-spacing:.13em;color:#6F6A96">{{ genHeader }}</span>
+    <button sc-camel-on-click="{{ closeGen }}" style="background:none;border:none;color:#6E6C78;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;padding:8px">{{ genCloseLabel }}</button>
+  </div>
+  <div style="font-size:24px;font-weight:700;line-height:1.2;letter-spacing:-.02em;margin:18px 0 6px;text-wrap:pretty">{{ genTitle }}</div>
+  <div style="font-size:12.5px;color:#6E6C78;line-height:1.5;margin-bottom:22px">{{ genSub }}</div>
+  <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px">
+    <sc-for list="{{ genStages }}" as="g" hint-placeholder-count="9">
+      <div style="display:flex;gap:14px;align-items:flex-start;padding:9px 0;opacity:{{ g.op }}">
+        <div style="flex:none;width:22px;height:22px;border-radius:100px;border:1.5px solid {{ g.ring }};background:{{ g.fill }};color:{{ g.mark }};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-top:1px;animation:{{ g.anim }}">{{ g.glyph }}</div>
+        <div style="flex:1">
+          <div style="font-size:13.5px;font-weight:700">{{ g.label }}</div>
+          <div style="font-size:11.5px;color:#6E6C78;line-height:1.45;margin-top:2px">{{ g.caption }}</div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  <sc-if value="{{ genDone }}" hint-placeholder-val="{{ false }}">
+    <button sc-camel-on-click="{{ closeGen }}" style="flex:none;background:linear-gradient(135deg,#7C6CDC,#5B4DBE);color:#FFFFFF;border:none;border-radius:14px;padding:15px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;margin-top:12px;box-shadow:0 10px 26px rgba(107,91,204,.35)">{{ T.epReady }}</button>
+  </sc-if>
+</div>
+</sc-if>
+
+</div>
+</x-import>
+</div>

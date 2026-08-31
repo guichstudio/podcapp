@@ -1,0 +1,848 @@
+import SwiftUI
+import UIKit
+
+// The Today tab of ios/design/layout.html: the latest briefing, what is queued
+// for the next one, and the episodes before it.
+//
+// Read only, because the API is (api/index.ts): /ingest writes, everything else
+// reads. Generation spends minutes and shells out to ffmpeg on the laptop, so
+// the Générer control here says that instead of pretending to start anything.
+
+struct TodayView: View {
+    @State private var phase: Phase = .loading
+    @State private var backstage: EpisodeDetail?
+    @State private var targetMinutes = 15
+    // Local only: no endpoint carries an include flag, so a tap never leaves the
+    // phone. The line under the row says so.
+    @State private var includeOverrides: [String: Bool] = [:]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                header
+
+                switch phase {
+                case .loading:
+                    loadingState
+                case let .failed(message):
+                    errorState(message)
+                case let .loaded(data):
+                    content(data)
+                }
+            }
+            .padding(.top, 10)
+            .padding(.bottom, 24)
+        }
+        .background(ScreenBackground())
+        .refreshable { await load(reset: false) }
+        .task { await load() }
+        .sheet(item: $backstage) { TodayBackstageSheet(detail: $0) }
+    }
+
+    // MARK: - Header
+
+    private var header: some View {
+        HStack(spacing: 10) {
+            TodayLogo(size: 32)
+            Text("Podcapp")
+                .typo(Typo.wordmark)
+                .foregroundStyle(Palette.ink)
+            Spacer(minLength: 8)
+            Text(TodayText.weekdayDayMonth(Date()))
+                .textCase(.uppercase)
+                .typo(Typo.dateLabel)
+                .foregroundStyle(Palette.muted)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 6)
+        .padding(.bottom, 18)
+    }
+
+    // MARK: - States
+
+    private var loadingState: some View {
+        VStack(spacing: 12) {
+            ProgressView()
+            Text("Chargement de vos briefings…")
+                .typo(Typo.meta)
+                .foregroundStyle(Palette.muted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 80)
+    }
+
+    private func errorState(_ message: String) -> some View {
+        PlainCard(cornerRadius: 18, padding: 16) {
+            VStack(alignment: .leading, spacing: 10) {
+                Overline(text: "Chargement impossible", color: Palette.danger)
+                Text(message)
+                    .typo(Typo.detail)
+                    .foregroundStyle(Palette.body)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button { Task { await load() } } label: {
+                    Text("Réessayer")
+                        .typo(Typo.buttonMedium)
+                        .foregroundStyle(Palette.onDark)
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 18)
+                        .background(Palette.ink, in: Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 10)
+    }
+
+    // MARK: - Content
+
+    @ViewBuilder
+    private func content(_ data: TodayData) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Group {
+                if let featured = data.featured {
+                    TodayHeroCard(
+                        episode: featured.episode,
+                        detail: featured.detail,
+                        onBackstage: { backstage = featured.detail }
+                    )
+                } else {
+                    noEpisodeCard
+                }
+            }
+            .padding(.horizontal, 20)
+
+            focusSection(data)
+
+            TodayGenerateCard(readySourceCount: data.readyCount, targetMinutes: $targetMinutes)
+                .padding(.horizontal, 20)
+                .padding(.top, 18)
+
+            if !data.past.isEmpty {
+                Text("Précédents")
+                    .typo(Typo.sectionTitle)
+                    .foregroundStyle(Palette.ink)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 26)
+                    .padding(.bottom, 6)
+                ForEach(data.past) { episode in
+                    TodayPastRow(episode: episode)
+                        .padding(.horizontal, 20)
+                }
+            }
+        }
+    }
+
+    private var noEpisodeCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Overline(text: "Aucun briefing", color: Palette.accentDeep)
+                Text("Rien à écouter pour l’instant.")
+                    .typo(Typo.heroTitle)
+                    .foregroundStyle(Palette.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("La génération tourne sur l’ordinateur. Le premier épisode apparaîtra ici dès qu’il sera prêt.")
+                    .typo(Typo.metaSmall)
+                    .foregroundStyle(Palette.accentMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func focusSection(_ data: TodayData) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text("Demain")
+                .typo(Typo.sectionTitle)
+                .foregroundStyle(Palette.ink)
+            Spacer(minLength: 8)
+            Text(TodayText.newTodayLabel(data.newTodayCount))
+                .typo(Typo.meta)
+                .foregroundStyle(Palette.muted)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 26)
+        .padding(.bottom, 12)
+
+        if data.focus.isEmpty {
+            PlainCard {
+                Text("Rien de neuf depuis le dernier briefing. Partagez un lien vers Briefing, depuis Safari ou n’importe quelle app, pour nourrir le prochain épisode.")
+                    .typo(Typo.detail)
+                    .foregroundStyle(Palette.body)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, 20)
+        } else {
+            // Full-bleed row: the design lets the cards run under both edges.
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: 10) {
+                    ForEach(data.focus) { source in
+                        TodayFocusCard(
+                            source: source,
+                            isIncluded: isIncluded(source),
+                            onToggle: { includeOverrides[source.id] = !isIncluded(source) }
+                        )
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 4)
+            }
+
+            Text("Inclus ou exclu reste sur cet iPhone : la sélection n’est pas encore envoyée au serveur.")
+                .typo(Typo.metaSmall)
+                .foregroundStyle(Palette.muted2)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+        }
+    }
+
+    private func isIncluded(_ source: SavedSource) -> Bool {
+        includeOverrides[source.id] ?? TodayText.canAir(source.status)
+    }
+
+    // MARK: - Loading
+
+    @MainActor
+    private func load(reset: Bool = true) async {
+        if reset { phase = .loading }
+        do {
+            async let episodesCall = API.shared.episodes()
+            async let sourcesCall = API.shared.sources()
+            let episodes = try await episodesCall
+            let sources = try await sourcesCall
+
+            // /episodes comes back newest first, so the first ready row is the
+            // hero. A user whose only episode is still being made still gets a
+            // hero, showing that status rather than an empty screen.
+            let newest = episodes.first { $0.status == "ready" } ?? episodes.first
+            var featured: TodayData.Featured?
+            if let newest {
+                featured = TodayData.Featured(
+                    episode: newest,
+                    // The list endpoint carries no source ids; the detail is the
+                    // only way to know what already aired and what it cited.
+                    detail: try await API.shared.episode(id: newest.id)
+                )
+            }
+
+            let aired: Set<String> = {
+                guard let featured, featured.episode.status == "ready" else { return [] }
+                return Set(featured.detail.chapters.flatMap(\.sourceIds))
+            }()
+            let focus = sources.filter { !aired.contains($0.id) }
+
+            phase = .loaded(
+                TodayData(
+                    featured: featured,
+                    past: episodes.filter { $0.id != featured?.episode.id },
+                    focus: focus,
+                    readyCount: focus.filter { $0.status == "ready" }.count,
+                    newTodayCount: focus.filter { Calendar.current.isDateInToday($0.capturedAt) }.count
+                )
+            )
+        } catch {
+            phase = .failed(error.localizedDescription)
+        }
+    }
+
+    // MARK: - Model
+
+    private enum Phase {
+        case loading
+        case failed(String)
+        case loaded(TodayData)
+    }
+
+    private struct TodayData {
+        struct Featured {
+            let episode: EpisodeSummary
+            let detail: EpisodeDetail
+        }
+
+        let featured: Featured?
+        let past: [EpisodeSummary]
+        let focus: [SavedSource]
+        let readyCount: Int
+        let newTodayCount: Int
+    }
+}
+
+// MARK: - Hero
+
+private struct TodayHeroCard: View {
+    let episode: EpisodeSummary
+    let detail: EpisodeDetail
+    let onBackstage: () -> Void
+
+    var body: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .firstTextBaseline) {
+                    Overline(text: overline, color: Palette.accentDeep)
+                    Spacer(minLength: 8)
+                    if let seconds = episode.actualSec {
+                        Text(TodayText.clock(seconds))
+                            .typo(Typo.metaTiny)
+                            .foregroundStyle(Palette.accentDeep)
+                            .tabularNumerals()
+                    }
+                }
+
+                Text(TodayText.title(episode.title, createdAt: episode.createdAt))
+                    .typo(Typo.heroTitle)
+                    .foregroundStyle(Palette.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                chapterMenu
+
+                if episode.status != "ready" {
+                    Text(statusLine)
+                        .typo(Typo.metaSmall)
+                        .foregroundStyle(Palette.accentMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                actions
+
+                Text(footnote)
+                    .typo(Typo.metaSmall)
+                    .foregroundStyle(Palette.accentMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 11)
+                    .overlay(alignment: .top) { Rectangle().fill(Palette.hairline).frame(height: 1) }
+            }
+        }
+    }
+
+    private var overline: String {
+        let date = TodayText.weekdayDayMonth(episode.createdAt)
+        switch episode.status {
+        case "ready": return "Dernier briefing · \(date)"
+        case "failed": return "Briefing en échec · \(date)"
+        default: return "Briefing en cours · \(date)"
+        }
+    }
+
+    // The API exposes no per-chapter timing (only the episode's actualSec), so
+    // the column the design fills with a duration carries the cited source count
+    // rather than a number nobody measured.
+    @ViewBuilder
+    private var chapterMenu: some View {
+        if !detail.chapters.isEmpty {
+            VStack(alignment: .leading, spacing: 7) {
+                ForEach(Array(detail.chapters.enumerated()), id: \.offset) { index, chapter in
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Text(String(format: "%02d", index + 1))
+                            .typo(Typo.navButton)
+                            .foregroundStyle(Palette.accentMid)
+                            .tabularNumerals()
+                            .lineLimit(1)
+                            // Two Inter Tight digits need 20, not the design's 16:
+                            // at 16 the number wraps to a second line.
+                            .frame(width: 20, alignment: .leading)
+                        Text(chapter.title)
+                            .typo(Typo.listTitle)
+                            .foregroundStyle(Palette.accentDark)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Text(TodayText.sourceCount(chapter.sourceIds.count))
+                            .typo(Typo.listTitle)
+                            .foregroundStyle(Palette.accentMid)
+                            .tabularNumerals()
+                    }
+                }
+            }
+        }
+    }
+
+    private var statusLine: String {
+        episode.status == "failed"
+            ? "La génération s’est arrêtée sur l’ordinateur. Relancez-la là-bas pour obtenir l’audio."
+            : "Statut : \(TodayText.episodeStatusLabel(episode.status).lowercased()). L’audio apparaîtra ici une fois l’assemblage terminé."
+    }
+
+    @ViewBuilder
+    private var actions: some View {
+        HStack(spacing: 14) {
+            // The mini bar and the full player read one shared EpisodePlayer,
+            // so opening it here is what makes the bar appear over the tab bar.
+            if detail.audioURL != nil {
+                Button { EpisodePlayer.shared.open(detail) } label: {
+                    HStack(spacing: 9) {
+                        Text("▶").typo(Typo.buttonSmall)
+                        Text("Écouter").typo(Typo.buttonLarge)
+                    }
+                    .foregroundStyle(Palette.onDark)
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 22)
+                    .background(Palette.ink, in: Capsule())
+                    .shadow(color: Palette.ink.opacity(0.22), radius: 12, y: 8)
+                }
+                .buttonStyle(.plain)
+            }
+
+            Button(action: onBackstage) {
+                Text("Comment c’est fabriqué")
+                    .typo(Typo.link)
+                    .foregroundStyle(Palette.accentDeep)
+                    .underline()
+                    .padding(.vertical, 10)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.top, 4)
+    }
+
+    // The design shows a verified-sentence count; the API publishes no grounding
+    // report, so this line states only what the response proves.
+    private var footnote: String {
+        guard !detail.chapters.isEmpty else {
+            return "Script pas encore écrit."
+        }
+        let cited = Set(detail.chapters.flatMap(\.sourceIds))
+        let resolved = Set(detail.chapters.flatMap { $0.sources.map(\.id) })
+        let missing = cited.count - resolved.count
+        var line = TodayText.plural(detail.chapters.count, "chapitre", "chapitres")
+            + " · " + TodayText.plural(cited.count, "source citée", "sources citées")
+        if missing > 0 {
+            line += " · " + TodayText.plural(missing, "source introuvable", "sources introuvables")
+        }
+        return line
+    }
+}
+
+// MARK: - Focus card
+
+private struct TodayFocusCard: View {
+    let source: SavedSource
+    let isIncluded: Bool
+    let onToggle: () -> Void
+
+    var body: some View {
+        PlainCard(cornerRadius: 16, padding: 14) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Text(TodayText.sourceStatusLabel(source.status))
+                        .textCase(.uppercase)
+                        .typo(Typo.cardTag)
+                        .foregroundStyle(TodayText.isFailure(source.status) ? Palette.danger : Palette.muted)
+                        .lineLimit(1)
+                    Spacer(minLength: 4)
+                    Button(action: onToggle) {
+                        Text(isIncluded ? "Inclus" : "Exclu")
+                            .typo(Typo.chip)
+                            .foregroundStyle(isIncluded ? Palette.onDark : Palette.muted)
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 10)
+                            .background(isIncluded ? Palette.ink : Color.clear, in: Capsule())
+                            .overlay(Capsule().strokeBorder(Palette.cardBorder, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Text(TodayText.headline(for: source))
+                    .typo(Typo.cardTitle)
+                    .foregroundStyle(Palette.ink)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(TodayText.note(for: source))
+                    .typo(Typo.metaSmall)
+                    .foregroundStyle(Palette.muted)
+                    .lineLimit(4)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(width: 172, alignment: .leading)
+        }
+    }
+}
+
+// MARK: - Generate card
+
+private struct TodayGenerateCard: View {
+    let readySourceCount: Int
+    @Binding var targetMinutes: Int
+
+    var body: some View {
+        PlainCard(cornerRadius: 18, padding: 16) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .center, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Prochain briefing")
+                            .typo(Typo.rowTitleStrong)
+                            .foregroundStyle(Palette.ink)
+                        Text("\(TodayText.plural(readySourceCount, "source prête", "sources prêtes")) · cible \(targetMinutes) min")
+                            .typo(Typo.meta)
+                            .foregroundStyle(Palette.muted)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    lengthPicker
+                }
+
+                // Rendered as a label, not a button: nothing here can start a
+                // generation, so nothing here is tappable.
+                Text("Générer")
+                    .typo(Typo.buttonLarge)
+                    .foregroundStyle(Palette.muted2)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(
+                        Palette.neutralChipBg,
+                        in: RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    )
+
+                Text("La génération tourne sur l’ordinateur : elle dure plusieurs minutes et n’est pas exposée par l’API. La durée cible choisie ici reste sur cet iPhone.")
+                    .typo(Typo.metaSmall)
+                    .foregroundStyle(Palette.muted2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private var lengthPicker: some View {
+        HStack(spacing: 0) {
+            ForEach([10, 15, 20], id: \.self) { minutes in
+                Button { targetMinutes = minutes } label: {
+                    Text("\(minutes)′")
+                        .typo(Typo.buttonSmall)
+                        .foregroundStyle(minutes == targetMinutes ? Palette.onDark : Palette.body)
+                        .tabularNumerals()
+                        .padding(.vertical, 7)
+                        .padding(.horizontal, 9)
+                        .background(minutes == targetMinutes ? Palette.ink : Color.clear)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .clipShape(Capsule())
+        .overlay(Capsule().strokeBorder(Palette.cardBorder, lineWidth: 1))
+    }
+}
+
+// MARK: - Past episodes
+
+private struct TodayPastRow: View {
+    let episode: EpisodeSummary
+
+    var body: some View {
+        HStack(spacing: 12) {
+            TodayLogo(size: 40)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(TodayText.title(episode.title, createdAt: episode.createdAt))
+                    .typo(Typo.rowTitleStrong)
+                    .foregroundStyle(Palette.ink)
+                    .lineLimit(2)
+                Text(meta)
+                    .typo(Typo.meta)
+                    .foregroundStyle(Palette.muted)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if episode.status == "ready", let seconds = episode.actualSec {
+                Text(TodayText.clock(seconds))
+                    .typo(Typo.meta)
+                    .foregroundStyle(Palette.muted)
+                    .tabularNumerals()
+            } else {
+                StatusChip(
+                    label: TodayText.episodeStatusLabel(episode.status),
+                    kind: TodayText.episodeChipKind(episode.status)
+                )
+            }
+        }
+        .padding(.vertical, 13)
+        .overlay(alignment: .bottom) { Rectangle().fill(Palette.hairline).frame(height: 1) }
+    }
+
+    private var meta: String {
+        let date = TodayText.dayMonth(episode.createdAt)
+        guard !episode.chapters.isEmpty else { return date }
+        return date + " · " + TodayText.plural(episode.chapters.count, "chapitre", "chapitres")
+    }
+}
+
+// MARK: - Backstage
+
+private struct TodayBackstageSheet: View {
+    let detail: EpisodeDetail
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .firstTextBaseline) {
+                    Overline(text: "Comment c’est fabriqué", color: Palette.accentDeep)
+                    Spacer(minLength: 8)
+                    Button("Fermer") { dismiss() }
+                        .typo(Typo.navButton)
+                        .foregroundStyle(Palette.accentDeep)
+                }
+                .padding(.bottom, 12)
+
+                Text(TodayText.title(detail.title, createdAt: detail.createdAt))
+                    .typo(Typo.playerTitle)
+                    .foregroundStyle(Palette.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(header)
+                    .typo(Typo.metaSmall)
+                    .foregroundStyle(Palette.muted)
+                    .padding(.top, 6)
+
+                if detail.chapters.isEmpty {
+                    Text("Le script de cet épisode n’est pas encore écrit : il n’y a rien à montrer.")
+                        .typo(Typo.detail)
+                        .foregroundStyle(Palette.body)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 18)
+                } else {
+                    ForEach(Array(detail.chapters.enumerated()), id: \.offset) { index, chapter in
+                        chapterBlock(index: index, chapter: chapter)
+                    }
+                }
+
+                Text("La passe de vérification tourne sur l’ordinateur et l’API ne publie pas son rapport : cette page montre les sources que le script cite réellement, rien de plus.")
+                    .typo(Typo.metaSmall)
+                    .foregroundStyle(Palette.muted2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 18)
+            }
+            .padding(20)
+        }
+        .background(ScreenBackground())
+        .presentationDragIndicator(.visible)
+    }
+
+    private var header: String {
+        var parts = [TodayText.weekdayDayMonth(detail.createdAt)]
+        if let seconds = detail.actualSec { parts.append(TodayText.clock(seconds)) }
+        parts.append(TodayText.plural(detail.chapters.count, "chapitre", "chapitres"))
+        return parts.joined(separator: " · ")
+    }
+
+    private func chapterBlock(index: Int, chapter: EpisodeChapter) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text(String(format: "%02d", index + 1))
+                    .typo(Typo.navButton)
+                    .foregroundStyle(Palette.accentMid)
+                    .tabularNumerals()
+                Text(chapter.title)
+                    .typo(Typo.chapterTitle)
+                    .foregroundStyle(Palette.ink)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if chapter.sourceIds.isEmpty {
+                Text("Intro ou outro : aucun fait externe.")
+                    .typo(Typo.detail)
+                    .foregroundStyle(Palette.muted)
+            } else {
+                ForEach(chapter.sources) { source in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(source.publisher ?? "Éditeur inconnu")
+                            .textCase(.uppercase)
+                            .typo(Typo.sourcePub)
+                            .foregroundStyle(Palette.muted2)
+                        Text(TodayText.sourceTitle(source))
+                            .typo(Typo.listTitle)
+                            .foregroundStyle(Palette.ink2)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(TodayText.sourceMeta(source))
+                            .typo(Typo.metaTiny)
+                            .foregroundStyle(Palette.muted)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                if chapter.sources.count < chapter.sourceIds.count {
+                    Text(TodayText.plural(
+                        chapter.sourceIds.count - chapter.sources.count,
+                        "source citée n’est plus dans la bibliothèque",
+                        "sources citées ne sont plus dans la bibliothèque"
+                    ))
+                    .typo(Typo.metaTiny)
+                    .foregroundStyle(Palette.danger)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 16)
+        .overlay(alignment: .bottom) { Rectangle().fill(Palette.hairline).frame(height: 1) }
+    }
+}
+
+// MARK: - Logo
+
+private struct TodayLogo: View {
+    var size: CGFloat
+    var radius: CGFloat = 10
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+        return Group {
+            if let image = UIImage(named: "logo") {
+                Image(uiImage: image).resizable().scaledToFill()
+            } else {
+                Palette.accent.opacity(0.25)
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(shape)
+        .overlay(shape.strokeBorder(Palette.cardBorder, lineWidth: 1))
+    }
+}
+
+// MARK: - Copy and formatting
+
+private enum TodayText {
+    private static let french = Locale(identifier: "fr_FR")
+
+    private static let dayMonthFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = french
+        formatter.dateFormat = "d MMMM"
+        return formatter
+    }()
+
+    private static let weekdayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = french
+        formatter.dateFormat = "EEE d MMMM"
+        return formatter
+    }()
+
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = french
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
+
+    static func dayMonth(_ date: Date) -> String { dayMonthFormatter.string(from: date) }
+
+    static func weekdayDayMonth(_ date: Date) -> String { weekdayFormatter.string(from: date) }
+
+    /// Time of day for something captured today, its date otherwise.
+    static func stamp(_ date: Date) -> String {
+        Calendar.current.isDateInToday(date) ? timeFormatter.string(from: date) : dayMonth(date)
+    }
+
+    static func clock(_ seconds: Int) -> String {
+        let total = max(0, seconds)
+        return "\(total / 60):" + String(format: "%02d", total % 60)
+    }
+
+    static func plural(_ count: Int, _ singular: String, _ plural: String) -> String {
+        "\(count) " + (count <= 1 ? singular : plural)
+    }
+
+    static func sourceCount(_ count: Int) -> String {
+        count == 0 ? "" : plural(count, "source", "sources")
+    }
+
+    static func title(_ title: String?, createdAt: Date) -> String {
+        if let title, !title.isEmpty { return title }
+        return "Briefing du " + dayMonth(createdAt)
+    }
+
+    static func newTodayLabel(_ count: Int) -> String {
+        switch count {
+        case 0: return "rien de nouveau aujourd’hui"
+        case 1: return "1 nouveau aujourd’hui"
+        default: return "\(count) nouveaux aujourd’hui"
+        }
+    }
+
+    static func headline(for source: SavedSource) -> String {
+        if let title = source.title, !title.isEmpty { return title }
+        if let host = source.link?.host { return host }
+        return "Sans titre"
+    }
+
+    /// The note under a focus card: the failure reason when there is one, since a
+    /// source that cannot air has to say why on screen.
+    static func note(for source: SavedSource) -> String {
+        if let error = source.error, !error.isEmpty { return error }
+        var parts: [String] = []
+        if let publisher = source.publisher, !publisher.isEmpty { parts.append(publisher) }
+        parts.append(source.inStory ? "rattaché à un sujet" : "pas encore rattaché")
+        parts.append(stamp(source.capturedAt))
+        return parts.joined(separator: " · ")
+    }
+
+    static func sourceTitle(_ source: ChapterSource) -> String {
+        if let title = source.title, !title.isEmpty { return title }
+        if let host = source.link?.host { return host }
+        return "Sans titre"
+    }
+
+    static func sourceMeta(_ source: ChapterSource) -> String {
+        var parts: [String] = []
+        if let lang = source.lang, !lang.isEmpty { parts.append(lang.uppercased()) }
+        if let quality = source.extractionQuality {
+            parts.append("qualité " + String(format: "%.2f", quality).replacingOccurrences(of: ".", with: ","))
+        }
+        return parts.isEmpty ? "Aucune métadonnée d’extraction" : parts.joined(separator: " · ")
+    }
+
+    // src/core/types.ts SourceStatus. An unknown value is printed raw rather than
+    // hidden: a status this app has never heard of is still information.
+    static func sourceStatusLabel(_ status: String) -> String {
+        switch status {
+        case "received": return "Reçu"
+        case "extracting": return "Extraction"
+        case "analyzed": return "Analysé"
+        case "ready": return "Prêt"
+        case "extraction_failed": return "Échec"
+        case "low_quality": return "Qualité faible"
+        case "unsupported": return "Non pris en charge"
+        case "duplicate": return "Doublon"
+        default: return status
+        }
+    }
+
+    /// Red is for a source that broke, not for one that simply repeats another.
+    static func isFailure(_ status: String) -> Bool {
+        ["extraction_failed", "low_quality", "unsupported"].contains(status)
+    }
+
+    /// Drives the default side of the Inclus/Exclu pill: a failed or duplicated
+    /// source will not air whatever the pill says.
+    static func canAir(_ status: String) -> Bool {
+        !isFailure(status) && status != "duplicate"
+    }
+
+    // Episode statuses written by src/jobs/generateEpisode.ts and publishEpisode.ts.
+    static func episodeStatusLabel(_ status: String) -> String {
+        switch status {
+        case "queued": return "En file"
+        case "editing": return "Édition"
+        case "tts": return "Narration"
+        case "assembling": return "Assemblage"
+        case "ready": return "Prêt"
+        case "failed": return "Échec"
+        default: return status
+        }
+    }
+
+    static func episodeChipKind(_ status: String) -> StatusChip.Kind {
+        switch status {
+        case "ready": return .success
+        case "failed": return .danger
+        default: return .neutral
+        }
+    }
+}
+
+// MARK: - Previews
+
+#Preview("Today") {
+    TodayView()
+}

@@ -23,6 +23,16 @@ targets:
     platform: iOS
     sources:
       - path: Podcapp
+    # UIAppFonts is an array, and INFOPLIST_KEY_* build settings only carry
+    # scalars, so the app target needs a real plist. Xcode still merges the
+    # generated keys below into it.
+    info:
+      path: Podcapp/Info.plist
+      properties:
+        UIAppFonts:
+          - InterTight-Light.ttf
+          - InterTight-Regular.ttf
+          - InterTight-SemiBold.ttf
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.louisguichard.podcapp
