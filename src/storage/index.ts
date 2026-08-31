@@ -1,9 +1,11 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
+import { assertSafeKey } from './key.js'
+import { R2Storage } from './r2.js'
 
-// Audio and run artifacts behind three methods. Only the local driver exists:
-// it runs the whole pipeline with zero credentials. The R2 driver (§2) plugs in
-// here once the bucket exists, and nothing outside this file has to change.
+// Audio and run artifacts behind three methods. R2 when the bucket is
+// configured, otherwise the local filesystem, so the whole pipeline still runs
+// with zero credentials. Nothing outside this file knows which one it got.
 export interface Storage {
   put(key: string, body: Buffer, contentType: string): Promise<void>
   get(key: string): Promise<Buffer | null>
@@ -12,14 +14,6 @@ export interface Storage {
 
 const DEFAULT_ROOT = '.data/storage'
 const DEFAULT_BASE_URL = 'http://localhost:8787'
-
-// Keys are assembled from episode ids and fixed file names, so a key that could
-// escape the root is an upstream bug: fail loudly instead of silently rewriting it.
-function assertSafeKey(key: string): void {
-  if (key.length === 0) throw new Error('Storage key must not be empty')
-  if (key.startsWith('/')) throw new Error(`Storage key must be relative: ${key}`)
-  if (key.includes('..')) throw new Error(`Storage key must not contain "..": ${key}`)
-}
 
 class LocalStorage implements Storage {
   constructor(
@@ -52,8 +46,26 @@ class LocalStorage implements Storage {
   }
 }
 
-export function createStorage(opts: { root?: string; baseUrl?: string } = {}): Storage {
+// R2 is used only when every part of its configuration is present: a half
+// configured bucket must not silently fall back to writing episodes on a laptop
+// that nothing will ever serve them from.
+export function createStorage(opts: { root?: string; baseUrl?: string; forceLocal?: boolean } = {}): Storage {
   const baseUrl = opts.baseUrl ?? process.env.PUBLIC_BASE_URL ?? DEFAULT_BASE_URL
+  const r2 = {
+    accountId: process.env.R2_ACCOUNT_ID,
+    accessKeyId: process.env.R2_ACCESS_KEY_ID,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+    bucket: process.env.R2_BUCKET,
+    publicBaseUrl: process.env.R2_PUBLIC_BASE_URL,
+  }
+  const configured = Object.entries(r2).filter(([, v]) => v)
+  if (!opts.forceLocal && configured.length > 0) {
+    if (configured.length !== Object.keys(r2).length) {
+      const missing = Object.entries(r2).filter(([, v]) => !v).map(([k]) => k.replace(/([A-Z])/g, '_$1').toUpperCase())
+      throw new Error(`R2 is partially configured: missing ${missing.join(', ')}`)
+    }
+    return new R2Storage(r2 as { accountId: string; accessKeyId: string; secretAccessKey: string; bucket: string; publicBaseUrl: string })
+  }
   return new LocalStorage(opts.root ?? DEFAULT_ROOT, baseUrl.replace(/\/+$/, ''))
 }
 
