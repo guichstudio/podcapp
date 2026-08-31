@@ -76,7 +76,8 @@ struct OnboardingView: View {
                     .animation(.snappy(duration: 0.25), value: page)
             }
         }
-        .padding(.bottom, 22)
+        .padding(.top, 10)
+        .padding(.bottom, 16)
     }
 
     @ViewBuilder private var footer: some View {
@@ -313,11 +314,14 @@ private struct OnboardingHeadline: View {
 /// positioned against the top with offsets; the closure receives the zone size
 /// so the phone can be drawn tall enough to bleed past the bottom edge.
 private struct MockCanvas<Content: View>: View {
-    // The mocks are laid out on a fixed design canvas (the source design is a
-    // 380pt frame) and the WHOLE canvas scales down to whatever is available,
-    // exactly like the design bundle's own zoom. Absolute offsets against the
-    // live geometry cropped on smaller logical screens (display zoom, SE).
-    private let design = CGSize(width: 380, height: 560)
+    // The mocks are laid out at the design's 380pt width and the whole canvas
+    // scales to the screen width, like the design bundle's own zoom: absolute
+    // x offsets always land where the design put them, on any device. Height is
+    // handed to the content in design points so the phone bezel can overshoot
+    // the bottom edge and get cropped by the page, exactly like the design's
+    // 800pt frames crop their phones. The crop mask reaches ABOVE the canvas so
+    // the bezel's soft shadow never ends in a hard horizontal seam.
+    private let designWidth: CGFloat = 380
     private let content: (CGSize) -> Content
 
     init(@ViewBuilder content: @escaping (CGSize) -> Content) {
@@ -326,17 +330,17 @@ private struct MockCanvas<Content: View>: View {
 
     var body: some View {
         GeometryReader { geo in
-            let scale = min(1, geo.size.width / design.width, geo.size.height / design.height)
+            let scale = geo.size.width / designWidth
             ZStack(alignment: .top) {
-                content(design)
+                content(CGSize(width: designWidth, height: geo.size.height / scale))
             }
-            // The 6pt inset keeps the bezel's outer rings inside the clip.
+            // The 6pt inset keeps the bezel's outer rings inside the crop.
             .padding(.top, 6)
-            .frame(width: design.width, height: design.height, alignment: .top)
+            .frame(width: designWidth, height: geo.size.height / scale, alignment: .top)
             .scaleEffect(scale, anchor: .top)
             .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
         }
-        .clipped()
+        .mask(Rectangle().padding(.top, -160))
     }
 }
 
