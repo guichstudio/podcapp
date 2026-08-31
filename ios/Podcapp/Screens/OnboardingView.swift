@@ -109,6 +109,15 @@ struct OnboardingView: View {
             connectContent
         }
         .scrollDismissesKeyboard(.interactively)
+        // When the content fits, nothing scrolls, so the drag gesture cannot
+        // dismiss the keyboard: give it an explicit way down.
+        .onTapGesture { tokenFocused = false }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("OK") { tokenFocused = false }
+            }
+        }
         // Centers like the fixed layout while content fits; scrolls only when
         // the keyboard shortens the visible area.
         .scrollBounceBehavior(.basedOnSize)
@@ -144,6 +153,8 @@ struct OnboardingView: View {
                 SecureField("Jeton d’API", text: $token)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    .submitLabel(.go)
+                    .onSubmit { Task { await connect() } }
                     .focused($tokenFocused)
                     .fs(13.5)
                     .multilineTextAlignment(.center)
@@ -302,6 +313,11 @@ private struct OnboardingHeadline: View {
 /// positioned against the top with offsets; the closure receives the zone size
 /// so the phone can be drawn tall enough to bleed past the bottom edge.
 private struct MockCanvas<Content: View>: View {
+    // The mocks are laid out on a fixed design canvas (the source design is a
+    // 380pt frame) and the WHOLE canvas scales down to whatever is available,
+    // exactly like the design bundle's own zoom. Absolute offsets against the
+    // live geometry cropped on smaller logical screens (display zoom, SE).
+    private let design = CGSize(width: 380, height: 560)
     private let content: (CGSize) -> Content
 
     init(@ViewBuilder content: @escaping (CGSize) -> Content) {
@@ -310,11 +326,14 @@ private struct MockCanvas<Content: View>: View {
 
     var body: some View {
         GeometryReader { geo in
+            let scale = min(1, geo.size.width / design.width, geo.size.height / design.height)
             ZStack(alignment: .top) {
-                content(geo.size)
+                content(design)
             }
             // The 6pt inset keeps the bezel's outer rings inside the clip.
             .padding(.top, 6)
+            .frame(width: design.width, height: design.height, alignment: .top)
+            .scaleEffect(scale, anchor: .top)
             .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
         }
         .clipped()
