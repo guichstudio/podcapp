@@ -16,15 +16,19 @@ Never trade script quality for speed or cost.
 - [x] Phase 1 — Knowledge layer : DONE 2026-08-29 (53/54 sources, dup rate 0%, 0 wrong merges, clusters inspectable via `pnpm inspect stories`)
 - [~] Phase 2 — Editorial : pipeline DONE 2026-08-29 (auto-metrics pass), rubric score PENDING
 - [~] Phase 3 — Audio + private RSS : LIVE on Cloudflare R2 since 2026-08-31. Feed + audio publicly reachable, valid RSS 2.0, range requests OK. Remaining: Louis confirms it plays in his podcast app, and no cover art yet.
-- [ ] Phase 4 — Live capture (`/ingest`, email inbound, Apple Shortcut)
+- [~] Phase 4 — Live capture : `/ingest` LIVE at https://podcapp.vercel.app since 2026-08-31 (Vercel edge + Neon HTTP). Apple Shortcut set up by Louis. Email inbound and the daily cron are not built.
 
-**Now:** Phase 3 delivery is live. Phase 2 rubric still pending.
+**Now:** capture is live end to end (phone -> /ingest -> `pnpm process:pending` -> stories). Phase 2 rubric still pending.
 **Next action:** Louis reads (or listens to) the latest `eval/out/episode-*/script.md` and scores it with `eval/rubric.md` (gate: avg ≥ 3.5). Iterate on prompts in `src/prompts/` if below. Commands: `pnpm eval:run` (sources → stories), `pnpm eval:episode` (stories → script, ~$0.43, ~8 min).
 **Known polish items (non-blocking):** the extraction heuristic now weighs prose density (2026-08-31) and rejects the AP 'Page Not Found' case at 0.20 with no regression on the 49 cached web sources (all real articles land >= 0.42). Two section indexes still pass: Le Monde /pixels (0.71) and bbc.com/news (0.72), because Jina extracts their cookie-consent modal as long prose (118 KB of it for Le Monde). Next idea, cheap and precise: compare the requested URL path with the final URL Jina returns, since a dead article link redirecting UP to its section is exactly the failure that matters once capture is live. Playwright fallback still unimplemented (not needed on this dataset).
 
 **Deferred to Phase 4 on purpose (do not hack around them earlier):** the synchronous ffmpeg assembly runs inside the API process and blocks the event loop for the whole encode; an episode stranded in a non-terminal status (queued/editing/tts/assembling) by a restart has no recovery sweep. Both are what the Trigger.dev job runner exists to solve.
 **Blockers:** rubric score from Louis on `phase2_script_2026-08-29-audio/episode.mp3` (14m03s).
 ffmpeg ships with the repo via the `ffmpeg-static` dev dependency: no Homebrew, no system install. `pnpm reassemble <chapters-dir>` rebuilds episode.mp3 from existing chapters without spending TTS credits.
+
+**Capture loop (2026-08-31):** `POST https://podcapp.vercel.app/ingest` with `Authorization: Bearer <api_token>` and `{url}` | `{text}` | `{html,subject}` records a source in about 200 ms and returns 202. It does NOT process: `pnpm process:pending [email]` drains the queue on the laptop (extract, analyse, embed, cluster), about a minute and $0.0015 per source. Deploy with `vercel deploy --prod --yes`; Vercel builds from the linked GitHub repo, so commit and push BEFORE deploying or you ship the previous code (this cost one debugging cycle).
+
+**Three production-only failures worth remembering** (none reproduce locally): the node-postgres pool exhausts its connections in a serverless invocation; under the Node adapter every request that reads its body hangs to the gateway timeout because Vercel has already consumed the raw stream, so the function runs on the edge runtime; and `@neondatabase/serverless` v1 removed the call form drizzle 0.38's neon-http session uses, so it is pinned to 0.10.
 
 **Test console (2026-08-31):** `pnpm console:publish <email>` writes a static page at `console/<rss_token>.html` (plus a webmanifest, so it installs to the home screen). It renders each episode with a player, the accuracy panel from the run metrics, and every chapter with its sources: the debug trail of ARCHITECTURE section 9, readable from a phone with no server. Same rss_token as the feed, since the bucket is public.
 
