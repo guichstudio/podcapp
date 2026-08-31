@@ -95,9 +95,11 @@ export const episodes = pgTable('episodes', {
   outline: jsonb('outline'),
   script: jsonb('script'),
   audioUrl: text('audio_url'),
+  audioBytes: integer('audio_bytes'),
   cost: jsonb('cost'),
   promptVersions: jsonb('prompt_versions'),
   failedStage: text('failed_stage'),
+  error: text('error'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 

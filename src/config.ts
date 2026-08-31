@@ -48,6 +48,16 @@ export const PRICING: Record<string, { in: number; out: number }> = {
   'jina-embeddings-v5-text-small': { in: 0.02, out: 0 },
 }
 
+// ElevenLabs multilingual_v2 list price. TTS dominates the cost of an episode
+// (§6), so its characters and dollars are recorded next to the LLM breakdown.
+export const TTS_USD_PER_1K_CHARS = 0.15
+
+// Absolute origin the API is reachable at. Podcast clients fetch the feed and
+// the audio from outside the process, so enclosure URLs can never be relative.
+// Set it to the public hostname in production; the storage layer builds its
+// public URLs from the same variable.
+export const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL ?? 'http://localhost:8787').replace(/\/+$/, '')
+
 export const JINA_READER_BASE = 'https://r.jina.ai/'
 
 export function env(name: string): string {

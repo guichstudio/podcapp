@@ -22,25 +22,38 @@ SCRIPT:
 ${JSON.stringify(input.chapters, null, 1)}`
 }
 
-// EN + FR. Deterministic, free, and run before the model pass so the editor
-// never has to spend attention on them.
-export const BLOCKLIST: RegExp[] = [
+// EN + FR, two groups with different powers.
+
+// Whole filler clauses, deleted in code before the model pass: they carry no
+// meaning, so the editor can smooth what is left without knowing what was cut.
+export const BLOCKLIST_STRIP: RegExp[] = [
   /let'?s dive in/gi,
   /it'?s important to note/gi,
   /in today'?s fast-paced world/gi,
   /here'?s the thing/gi,
-  /game-changer/gi,
-  /fascinating/gi,
   /buckle up/gi,
-  /plongeons/gi,
   /il est important de noter/gi,
   /dans un monde en constante évolution/gi,
   /force est de constater/gi,
-  /véritable révolution/gi,
   /sans plus attendre/gi,
+]
+
+// Counted but never deleted: these are single words (or a content-bearing noun
+// phrase) sitting inside a clause, so excising them leaves a sentence the model
+// cannot repair, since it only ever sees the mutilated version. Rewriting them
+// is the model editor's job; here they only feed the metric.
+export const BLOCKLIST_FLAG: RegExp[] = [
+  /game-changer/gi,
+  /fascinating/gi,
+  /plongeons/gi,
+  /véritable révolution/gi,
   /accrochez-vous/gi,
   /décryptage/gi,
 ]
+
+// Every banned formula, stripped or not: the metric stays honest about what
+// actually survived into the script.
+export const BLOCKLIST: RegExp[] = [...BLOCKLIST_STRIP, ...BLOCKLIST_FLAG]
 
 export function blocklistHits(text: string): string[] {
   const hits: string[] = []

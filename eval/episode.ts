@@ -31,10 +31,16 @@ writeFileSync(
 
 const m = artifacts.metrics
 const drift = Math.round(((m.estimated_sec - m.target_sec) / m.target_sec) * 100)
+// Sentences the grounding model never judged, dropped rather than shipped blind:
+// a non-zero count means the ground stage is returning partial verdicts. They are
+// a subset of unsupported_found, so they are printed inside it, never next to it.
+const noVerdict = artifacts.grounding.filter((g) => g.action === 'dropped_no_verdict').length
 console.log(`
-duration      ${m.estimated_sec}s vs ${m.target_sec}s target (${drift > 0 ? '+' : ''}${drift}%)  ${Math.abs(drift) <= 15 ? 'OK' : 'OUT OF RANGE'}
+duration      ${m.estimated_sec}s estimated vs ${m.target_sec}s target (${drift > 0 ? '+' : ''}${drift}%)  ${Math.abs(drift) <= 15 ? 'OK' : 'OUT OF RANGE'}
 words         ${m.words}
-grounding     ${m.sentences_checked} checked, ${m.unsupported_found} unsupported found and fixed/dropped, ${m.unsupported_shipped} shipped  ${m.unsupported_shipped === 0 ? 'OK' : 'FAIL'}
+grounding     ${m.sentences_checked} checked, ${m.unsupported_found} unsupported and fixed or dropped (${noVerdict} of them never judged)
+shipped       ${m.unsupported_shipped} checkable sentences spoken without a supported verdict  ${m.unsupported_shipped === 0 ? 'OK' : 'FAIL'}
+edit guard    ${m.edits_rejected} chapter edits rejected for changing a fact
 blocklist     ${m.blocklist_hits.length} hits ${m.blocklist_hits.length === 0 ? 'OK' : m.blocklist_hits.join(', ')}
 cost          $${Object.values(ledger).reduce((n, c) => n + c.usd, 0).toFixed(4)}
 elapsed       ${Math.round((Date.now() - started) / 1000)}s

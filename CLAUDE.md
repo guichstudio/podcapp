@@ -15,14 +15,18 @@ Never trade script quality for speed or cost.
 - [x] **Phase 0 — Manual golden path** : DONE, validated by Louis 2026-08-29 (episode approved)
 - [x] Phase 1 — Knowledge layer : DONE 2026-08-29 (53/54 sources, dup rate 0%, 0 wrong merges, clusters inspectable via `pnpm inspect stories`)
 - [~] Phase 2 — Editorial : pipeline DONE 2026-08-29 (auto-metrics pass), rubric score PENDING
-- [ ] Phase 3 — Audio + private RSS
+- [~] Phase 3 — Audio + private RSS : code DONE 2026-08-31 (TTS, ffmpeg assembly, storage, RSS feed, API). Not yet proven in a real podcast app, and not deployed.
 - [ ] Phase 4 — Live capture (`/ingest`, email inbound, Apple Shortcut)
 
-**Now:** Phase 2, waiting on the human rubric pass.
+**Now:** Phase 2 rubric still pending; Phase 3 code complete and hardened.
 **Next action:** Louis reads (or listens to) the latest `eval/out/episode-*/script.md` and scores it with `eval/rubric.md` (gate: avg ≥ 3.5). Iterate on prompts in `src/prompts/` if below. Commands: `pnpm eval:run` (sources → stories), `pnpm eval:episode` (stories → script, ~$0.43, ~8 min).
 **Known polish items (non-blocking):** extraction quality heuristic lets error pages and site landing pages through (AP 'Page Not Found', BBC/Le Monde home feeds became stories); Playwright fallback still unimplemented (not needed on this dataset).
+
+**Deferred to Phase 4 on purpose (do not hack around them earlier):** the synchronous ffmpeg assembly runs inside the API process and blocks the event loop for the whole encode; an episode stranded in a non-terminal status (queued/editing/tts/assembling) by a restart has no recovery sweep. Both are what the Trigger.dev job runner exists to solve.
 **Blockers:** rubric score from Louis on `phase2_script_2026-08-29-audio/episode.mp3` (14m03s).
 ffmpeg ships with the repo via the `ffmpeg-static` dev dependency: no Homebrew, no system install. `pnpm reassemble <chapters-dir>` rebuilds episode.mp3 from existing chapters without spending TTS credits.
+
+**Phase 3 surface** (all local, no external account yet): `pnpm inspect create-user <email>` mints api/rss tokens and prints the feed URL; `pnpm inspect cover <file.jpg>` sets the podcast artwork; `pnpm dev` serves `POST /ingest`, `POST /episodes`, `GET /episodes/:id`, `GET /admin/runs/:episodeId[/:name]`, `GET /rss/:token[.xml]` (public by token) and `GET /media/episodes/<uuid>/episode.mp3` (public, Range-capable, allowlisted to that one key shape plus the cover). Audio and run artifacts live in `.data/storage` behind the `Storage` interface in `src/storage/`; the R2 driver is the only thing that changes when credentials arrive.
 
 **Phase 0 artifacts** (all in `phase0/`): sources (5 saved items: PDF dossier, 2 video transcripts via ElevenLabs Scribe, Species sources doc, 1 failed extraction), `analysis.md`, `outline.md`, `script_v1_draft.md`, `grounding_report.md` (4 fixes, 0 unsupported sentences shipped), `script_final.md`, `prompts.md` (seeds for `src/prompts/`), `episode_2026-08-28.mp3` (~10 min, voice `jGGIwkfv43kUFffPXEEO`). `ELEVENLABS_API_KEY` lives in `.env` (gitignored).
 
@@ -106,6 +110,13 @@ Session prompt: "Wire `POST /ingest` + Postmark inbound + per-user auth tokens; 
 | 2026-08-29 | Brain = DeepSeek v4 (`deepseek-v4-flash`/`-pro`, ids verified via /models), embeddings = `jina-embeddings-v5-text-small` 1024 dims | Louis provided DeepSeek key ($50); Jina free tier + same key raises Reader limits |
 | 2026-08-29 | `thinking: disabled` on analyze/adjudicate/ground calls | v4 models are hybrid reasoners: thinking burned the whole token budget and returned empty content on long sources |
 | 2026-08-29 | SIMILARITY_MERGE raised 0.86 → 0.93 for jina-v5 embeddings; adjudicator decides 0.70-0.93 | Eval: true dups sit at 0.90-0.97 but a meta-source absorbed stories at 0.909 |
+| 2026-08-31 | Public `/media/*` allowlisted to `episodes/<uuid>/episode.mp3` plus the cover key | It served the whole storage namespace: the episode uuid is published in the feed, so anyone with a feed URL could read run artifacts (script, grounding, costs) and chapters. Verified closed against 33 evasion shapes |
+| 2026-08-31 | Grounding treats a missing verdict as unsupported (retry once, then drop and report) | The grounder could return fewer verdicts than sentences sent; those shipped unverified, were absent from the report, and still counted as checked |
+| 2026-08-31 | `isCheckable` sends any capitalized entity to the grounder, whether or not the evidence mentions it | It was inverted: a name absent from the evidence (the most dangerous hallucination) counted as nothing to check. Measured cost: 2 of 8 sentences of ordinary FR prose are now checked |
+| 2026-08-31 | Deterministic `editDrift` guard: an edited chapter is rejected when the edit adds a number, quote or name, or drops a hedge | Grounding ran before the edit pass and the editor's output shipped unverified: "environ 100 millions" could become "100 millions". Cheaper and more predictable than re-grounding edited prose |
+| 2026-08-31 | Intro and outro are grounded against the aired stories' claims | They were written after the grounding loop and shipped unchecked, which is exactly where a framing number gets invented |
+| 2026-08-31 | `publishEpisode` alone writes 'ready', actualSec, audioBytes and flips stories to 'aired' | Stories were aired by generateEpisode before any audio existed, so a TTS failure permanently consumed saved content |
+| 2026-08-31 | Enclosure size read from `episodes.audio_bytes`, never by re-reading the mp3 | A feed poll pulled the whole catalogue into memory: measured 105 MB per poll at 21 episodes, 1.43 GB RSS under 30 concurrent polls |
 | 2026-08-30 | ffmpeg via the `ffmpeg-static` npm package, not a system install | Louis has neither Homebrew nor ffmpeg; the binary now travels with the repo and any machine running `pnpm install` gets it |
 | 2026-08-30 | `assemble()` probes the chapters' sample rate + channel layout and generates matching silence, then asserts output duration >= sum of chapters | The concat demuxer SILENTLY dropped 31s when stereo silence met mono chapters; silent audio loss must fail loudly |
 | 2026-08-30 | Phase 3 TTS started early to hear the Phase 2 script: `src/speech/elevenlabs.ts` (per-chapter + request stitching), `src/audio/assemble.ts`, `pnpm tts <script> --voice <id>` | Louis asked for audio of the generated script; the provider was needed anyway |

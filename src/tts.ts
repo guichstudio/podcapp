@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 import { assemble } from './audio/assemble.js'
+import { TTS_USD_PER_1K_CHARS } from './config.js'
 import { logger } from './log.js'
 import { DEFAULT_TTS_MODEL, elevenlabs } from './speech/elevenlabs.js'
 import type { SpeechChapter } from './speech/provider.js'
@@ -66,7 +67,7 @@ writeFileSync(episodePath, audio)
 const minutes = Math.floor(durationSec / 60)
 console.log(`
 chapters   ${rendered.length}
-characters ${totalChars} (~$${((totalChars / 1000) * 0.15).toFixed(2)} at multilingual_v2 rates)
+characters ${totalChars} (~$${((totalChars / 1000) * TTS_USD_PER_1K_CHARS).toFixed(2)} at multilingual_v2 rates)
 duration   ${minutes}m${String(durationSec % 60).padStart(2, '0')}s
 assembly   ${method}${method === 'concat' ? ' (no ffmpeg: no loudnorm, tight chapter joins)' : ''}
 output     ${episodePath}

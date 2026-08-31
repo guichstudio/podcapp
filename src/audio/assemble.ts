@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import ffmpegStatic from 'ffmpeg-static'
@@ -109,39 +109,45 @@ export function assemble(chapters: Buffer[]): AssembleResult {
   const ffmpeg = findFfmpeg()
   if (ffmpeg) {
     const dir = mkdtempSync(join(tmpdir(), 'podcapp-'))
-    const parts: string[] = []
-    const chapterPaths = chapters.map((audio, i) => {
-      const p = join(dir, `chapter-${i}.mp3`)
-      writeFileSync(p, audio)
-      return p
-    })
+    try {
+      const parts: string[] = []
+      const chapterPaths = chapters.map((audio, i) => {
+        const p = join(dir, `chapter-${i}.mp3`)
+        writeFileSync(p, audio)
+        return p
+      })
 
-    // The concat demuxer silently drops audio when streams differ, so the silence
-    // must match the chapters' own sample rate and channel layout.
-    const format = probeFormat(ffmpeg, chapterPaths[0] as string)
-    const silence = join(dir, 'silence.mp3')
-    execFileSync(ffmpeg, [
-      '-f', 'lavfi', '-i', `anullsrc=r=${format.sampleRate}:cl=${format.layout}`,
-      '-t', '0.3', '-b:a', '128k', '-y', silence,
-    ], { stdio: 'ignore' })
+      // The concat demuxer silently drops audio when streams differ, so the silence
+      // must match the chapters' own sample rate and channel layout.
+      const format = probeFormat(ffmpeg, chapterPaths[0] as string)
+      const silence = join(dir, 'silence.mp3')
+      execFileSync(ffmpeg, [
+        '-f', 'lavfi', '-i', `anullsrc=r=${format.sampleRate}:cl=${format.layout}`,
+        '-t', '0.3', '-b:a', '128k', '-y', silence,
+      ], { stdio: 'ignore' })
 
-    chapterPaths.forEach((p, i) => {
-      if (i > 0) parts.push(silence)
-      parts.push(p)
-    })
-    const listPath = join(dir, 'list.txt')
-    writeFileSync(listPath, parts.map((p) => `file '${p}'`).join('\n'))
-    const outPath = join(dir, 'episode.mp3')
-    execFileSync(ffmpeg, [
-      '-f', 'concat', '-safe', '0', '-i', listPath,
-      '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11',
-      '-ar', '44100', '-b:a', '128k', '-y', outPath,
-    ], { stdio: 'ignore' })
-    if (!existsSync(outPath)) throw new Error('assemble: ffmpeg produced no output')
-    const audio = readFileSync(outPath)
-    const durationSec = mp3DurationSec(audio)
-    assertNoAudioLost(chapters, durationSec)
-    return { audio, durationSec, method: 'ffmpeg' }
+      chapterPaths.forEach((p, i) => {
+        if (i > 0) parts.push(silence)
+        parts.push(p)
+      })
+      const listPath = join(dir, 'list.txt')
+      writeFileSync(listPath, parts.map((p) => `file '${p}'`).join('\n'))
+      const outPath = join(dir, 'episode.mp3')
+      execFileSync(ffmpeg, [
+        '-f', 'concat', '-safe', '0', '-i', listPath,
+        '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11',
+        '-ar', '44100', '-b:a', '128k', '-y', outPath,
+      ], { stdio: 'ignore' })
+      if (!existsSync(outPath)) throw new Error('assemble: ffmpeg produced no output')
+      const audio = readFileSync(outPath)
+      const durationSec = mp3DurationSec(audio)
+      assertNoAudioLost(chapters, durationSec)
+      return { audio, durationSec, method: 'ffmpeg' }
+    } finally {
+      // Roughly twice the episode size per run, so it is removed on both paths.
+      // Safe here: the audio is already in memory.
+      rmSync(dir, { recursive: true, force: true })
+    }
   }
 
   logger.warn('ffmpeg not found: concatenating MP3 frames without loudnorm or inter-chapter silence')
