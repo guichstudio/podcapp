@@ -1,8 +1,8 @@
-import { handle } from '@hono/node-server/vercel'
 import { neon } from '@neondatabase/serverless'
 import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { Hono } from 'hono'
+import { handle } from 'hono/vercel'
 import { z } from 'zod'
 import * as schema from '../src/db/schema.js'
 
@@ -16,6 +16,13 @@ import * as schema from '../src/db/schema.js'
 // Neon over HTTP rather than the node-postgres pool the jobs use: a serverless
 // invocation cannot keep a pool alive between requests, and doing so exhausted
 // the connection limit and timed the function out in production.
+//
+// Edge runtime, not Node: under the Node adapter every request that read its
+// body hung until the 25s gateway timeout, because Vercel has already consumed
+// the raw stream by the time Hono rebuilds a Request from it. On Edge, Hono gets
+// the platform Request directly and the Neon HTTP driver works unchanged.
+
+export const config = { runtime: 'edge' }
 
 const { sources, users } = schema
 
