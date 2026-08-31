@@ -174,6 +174,7 @@ authed.get('/episodes/:id', async (c) => {
       actualSec: episodes.actualSec,
       audioBytes: episodes.audioBytes,
       script: episodes.script,
+      grounding: episodes.grounding,
     })
     .from(episodes)
     .where(eq(episodes.id, id))
