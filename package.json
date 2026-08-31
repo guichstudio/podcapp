@@ -18,7 +18,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts",
     "reassemble": "tsx src/reassemble.ts",
-    "storage:check": "tsx src/storage/check.ts"
+    "storage:check": "tsx src/storage/check.ts",
+    "feed:publish": "tsx src/rss/publish.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.2.17",
