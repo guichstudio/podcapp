@@ -44,6 +44,23 @@ struct EpisodeChapter: Decodable, Sendable {
     // no longer exists is dropped rather than faked.
     let sourceIds: [String]
     let sources: [ChapterSource]
+    // Every checkable sentence of this chapter, with the verdict it got before
+    // the episode aired. An intro carries no external claim, so empty is normal.
+    let grounding: [GroundingEntry]
+
+    var correctedCount: Int { grounding.filter { $0.action == "fixed" }.count }
+}
+
+struct GroundingEntry: Decodable, Sendable, Identifiable {
+    let sentence: String
+    let supported: Bool
+    let action: String
+    let fix: String?
+
+    var id: String { sentence }
+    // 'kept' means the grounder supported the sentence as written; 'fixed' means
+    // it rewrote it to match the evidence. Anything else was cut before air.
+    var wasCorrected: Bool { action == "fixed" }
 }
 
 struct ChapterSource: Decodable, Identifiable, Sendable {

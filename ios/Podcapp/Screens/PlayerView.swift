@@ -18,10 +18,12 @@ struct PlayerChapter: Identifiable {
     /// Ids the chapter cites. Larger than `sources` when a cited source has been
     /// deleted since: the gap is shown rather than hidden.
     let citedCount: Int
+    let grounding: [GroundingEntry]
     let start: Double
     let duration: Double
 
     var end: Double { start + duration }
+    var correctedCount: Int { grounding.filter { $0.wasCorrected }.count }
 }
 
 enum PlayerSheet: String, Identifiable {
@@ -305,6 +307,7 @@ final class EpisodePlayer: ObservableObject {
                 text: chapter.text,
                 sources: chapter.sources,
                 citedCount: chapter.sourceIds.count,
+                grounding: chapter.grounding,
                 start: start,
                 duration: span
             )
@@ -780,6 +783,15 @@ private struct PlayerChaptersSheet: View {
 private struct PlayerSourcesSheet: View {
     @ObservedObject private var player = EpisodePlayer.shared
 
+    static func verdictLine(_ chapter: PlayerChapter) -> String {
+        let n = chapter.grounding.count
+        let fixed = chapter.correctedCount
+        let phrases = n == 1 ? "1 phrase a été confrontée" : "\(n) phrases ont été confrontées"
+        if fixed == 0 { return "\(phrases) à ces sources avant diffusion. Aucune n’a dû être corrigée." }
+        let corrected = fixed == 1 ? "1 a été réécrite" : "\(fixed) ont été réécrites"
+        return "\(phrases) à ces sources avant diffusion. \(corrected) pour coller à la preuve."
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             if let chapter = player.currentChapter {
@@ -805,10 +817,23 @@ private struct PlayerSourcesSheet: View {
                     )
                 }
 
-                if !chapter.sources.isEmpty {
+                if !chapter.grounding.isEmpty {
                     Overline(text: "Vérifié à l’antenne")
                         .padding(.top, 8)
-                    Text("Chaque phrase de ce chapitre a été confrontée à ces sources avant diffusion. Le détail phrase par phrase n’est pas encore transmis par l’API : il vit dans le rapport de vérification de l’épisode.")
+                    Text(Self.verdictLine(chapter))
+                        .typo(Typo.metaSmall)
+                        .foregroundStyle(Palette.muted2)
+                        .lineSpacing(3)
+
+                    ForEach(chapter.grounding) { entry in
+                        GroundedSentenceRow(entry: entry)
+                    }
+                } else if !chapter.sources.isEmpty {
+                    // No entry at all means nothing in the chapter was checkable,
+                    // which is not the same as nothing having been checked.
+                    Overline(text: "Vérifié à l’antenne")
+                        .padding(.top, 8)
+                    Text("Aucune phrase de ce chapitre ne portait de chiffre, de citation ni de nom à vérifier.")
                         .typo(Typo.metaSmall)
                         .foregroundStyle(Palette.muted2)
                         .lineSpacing(3)
@@ -1335,4 +1360,46 @@ private enum PlayerPalette {
 
     /// Chapter marks on the seek bar, light enough to read over the dark fill.
     static let tick = Color(hex: 0xE9E5F5)
+}
+
+
+// One checked sentence and its verdict. A correction shows both versions: the
+// point of the report is that the listener can see what the evidence changed.
+private struct GroundedSentenceRow: View {
+    let entry: GroundingEntry
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top, spacing: 8) {
+                StatusChip(
+                    label: entry.wasCorrected ? "Corrigé" : "Vérifié",
+                    kind: entry.wasCorrected ? .warning : .success
+                )
+                Spacer(minLength: 0)
+            }
+            if entry.wasCorrected, let fix = entry.fix {
+                Text(fix)
+                    .typo(TypoStyle(size: 13, weight: .regular, lineHeight: 1.5))
+                    .foregroundStyle(Palette.prose)
+                Text(entry.sentence)
+                    .typo(TypoStyle(size: 12, weight: .light, lineHeight: 1.45))
+                    .foregroundStyle(Palette.muted2)
+                    .strikethrough(true, color: Palette.muted2.opacity(0.6))
+            } else {
+                Text(entry.sentence)
+                    .typo(TypoStyle(size: 13, weight: .regular, lineHeight: 1.5))
+                    .foregroundStyle(Palette.prose)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.white.opacity(0.55))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color(hex: 0x1C1B22, opacity: 0.07))
+        )
+    }
 }
