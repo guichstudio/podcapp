@@ -86,6 +86,10 @@ struct OnboardingView: View {
                 Button("Passer") { page = Self.pageCount }
                     .typo(Typo.buttonMedium)
                     .foregroundStyle(Palette.muted)
+                // Settles "which build am I looking at" without a debugger.
+                Text("b" + (Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"))
+                    .typo(Typo.metaTiny)
+                    .foregroundStyle(Palette.ink.opacity(0.25))
                 Spacer()
                 Button {
                     withAnimation(.snappy(duration: 0.3)) { page += 1 }
