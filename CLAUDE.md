@@ -125,6 +125,7 @@ Session prompt: "Wire `POST /ingest` + Postmark inbound + per-user auth tokens; 
 | 2026-08-29 | Brain = DeepSeek v4 (`deepseek-v4-flash`/`-pro`, ids verified via /models), embeddings = `jina-embeddings-v5-text-small` 1024 dims | Louis provided DeepSeek key ($50); Jina free tier + same key raises Reader limits |
 | 2026-08-29 | `thinking: disabled` on analyze/adjudicate/ground calls | v4 models are hybrid reasoners: thinking burned the whole token budget and returned empty content on long sources |
 | 2026-08-29 | SIMILARITY_MERGE raised 0.86 → 0.93 for jina-v5 embeddings; adjudicator decides 0.70-0.93 | Eval: true dups sit at 0.90-0.97 but a meta-source absorbed stories at 0.909 |
+| 2026-08-31 | TTS stays on `eleven_multilingual_v2`, Louis chose it after hearing the same chapter on all three models | Resolves ARCHITECTURE §13 on evidence rather than on a price sheet. Measured cost per episode: $1.93 of TTS (12,861 chars) plus $0.43 of LLM, not the $2-4 the guardrail assumed. Flash would cost $0.64 and turbo $0.96; quality outranks cost in the hierarchy |
 | 2026-08-31 | Phase 2 rubric passed at 4/5 (gate 3.5), on the 14 min episode of 2026-08-29 | The editorial approach is validated: from here, prompt changes must beat 4/5, not merely produce something |
 | 2026-08-31 | Test console as a static page on R2, not a PWA player or a capture surface | iOS Safari does not implement the Web Share Target API, so a PWA cannot receive a shared link: the Apple Shortcut stays the capture path. As a player it would only lose to Overcast. As an inspection surface it adds what RSS cannot carry: sources per chapter and the accuracy panel |
 | 2026-08-31 | Feed published as a static object on R2, not only served by the API | A public bucket plus a static feed.xml means Louis can subscribe from his phone today, with zero server deployed; the API route stays for later |
@@ -155,7 +156,6 @@ Session prompt: "Wire `POST /ingest` + Postmark inbound + per-user auth tokens; 
 
 - Writer model: `claude-sonnet-5` vs `claude-opus-5`
 - TTS voice: replace Phase 0 voice with a smoother, Jarvis-like one (Louis's feedback 2026-08-29); browse ElevenLabs library, pick on listening test
-- TTS tier: `eleven_multilingual_v2` vs Flash
 - Similarity thresholds (0.86 merge / 0.70 review) tuning
 - First beta: daily cron vs on-demand only
 
