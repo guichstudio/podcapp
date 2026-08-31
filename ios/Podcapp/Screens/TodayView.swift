@@ -587,94 +587,14 @@ private struct TodayBackstageSheet: View {
                     .typo(Typo.playerTitle)
                     .foregroundStyle(Palette.ink)
                     .fixedSize(horizontal: false, vertical: true)
+                    .padding(.bottom, 16)
 
-                Text(header)
-                    .typo(Typo.metaSmall)
-                    .foregroundStyle(Palette.muted)
-                    .padding(.top, 6)
-
-                if detail.chapters.isEmpty {
-                    Text("Le script de cet épisode n’est pas encore écrit : il n’y a rien à montrer.")
-                        .typo(Typo.detail)
-                        .foregroundStyle(Palette.body)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, 18)
-                } else {
-                    ForEach(Array(detail.chapters.enumerated()), id: \.offset) { index, chapter in
-                        chapterBlock(index: index, chapter: chapter)
-                    }
-                }
-
-                Text("La passe de vérification tourne sur l’ordinateur et l’API ne publie pas son rapport : cette page montre les sources que le script cite réellement, rien de plus.")
-                    .typo(Typo.metaSmall)
-                    .foregroundStyle(Palette.muted2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 18)
+                EpisodeBackstage(detail: detail)
             }
             .padding(20)
         }
         .background(ScreenBackground())
         .presentationDragIndicator(.visible)
-    }
-
-    private var header: String {
-        var parts = [TodayText.weekdayDayMonth(detail.createdAt)]
-        if let seconds = detail.actualSec { parts.append(TodayText.clock(seconds)) }
-        parts.append(TodayText.plural(detail.chapters.count, "chapitre", "chapitres"))
-        return parts.joined(separator: " · ")
-    }
-
-    private func chapterBlock(index: Int, chapter: EpisodeChapter) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Text(String(format: "%02d", index + 1))
-                    .typo(Typo.navButton)
-                    .foregroundStyle(Palette.accentMid)
-                    .tabularNumerals()
-                Text(chapter.title)
-                    .typo(Typo.chapterTitle)
-                    .foregroundStyle(Palette.ink)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            if chapter.sourceIds.isEmpty {
-                Text("Intro ou outro : aucun fait externe.")
-                    .typo(Typo.detail)
-                    .foregroundStyle(Palette.muted)
-            } else {
-                ForEach(chapter.sources) { source in
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(source.publisher ?? "Éditeur inconnu")
-                            .textCase(.uppercase)
-                            .typo(Typo.sourcePub)
-                            .foregroundStyle(Palette.muted2)
-                        Text(TodayText.sourceTitle(source))
-                            .typo(Typo.listTitle)
-                            .foregroundStyle(Palette.ink2)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text(TodayText.sourceMeta(source))
-                            .typo(Typo.metaTiny)
-                            .foregroundStyle(Palette.muted)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                if chapter.sources.count < chapter.sourceIds.count {
-                    Text(TodayText.plural(
-                        chapter.sourceIds.count - chapter.sources.count,
-                        "source citée n’est plus dans la bibliothèque",
-                        "sources citées ne sont plus dans la bibliothèque"
-                    ))
-                    .typo(Typo.metaTiny)
-                    .foregroundStyle(Palette.danger)
-                    .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 16)
-        .overlay(alignment: .bottom) { Rectangle().fill(Palette.hairline).frame(height: 1) }
     }
 }
 

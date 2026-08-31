@@ -52,6 +52,17 @@ function db() {
   return drizzle(neon(url), { schema })
 }
 
+// The analyzer rarely fills `publisher`; the domain is what a reader recognizes.
+function publisherOf(publisher: string | null, url: string | null): string | null {
+  if (publisher) return publisher
+  if (!url) return null
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return null
+  }
+}
+
 function isUuid(value: string): boolean {
   return UUID_RE.test(value)
 }
@@ -279,7 +290,7 @@ authed.get('/episodes/:id', async (c) => {
           ? [
               {
                 id: s.id,
-                publisher: s.publisher,
+                publisher: publisherOf(s.publisher, s.url),
                 title: s.title,
                 url: s.url,
                 lang: s.lang,
@@ -327,7 +338,7 @@ authed.get('/sources', async (c) => {
       id: s.id,
       title: s.title,
       url: s.url,
-      publisher: s.publisher,
+      publisher: publisherOf(s.publisher, s.url),
       type: s.type,
       lang: s.lang,
       status: s.status,

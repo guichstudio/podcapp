@@ -30,8 +30,15 @@ struct EpisodeDetail: Decodable, Identifiable, Sendable {
     let status: String
     let createdAt: Date
     let actualSec: Int?
+    let targetSec: Int?
     let audioBytes: Int?
     let chapters: [EpisodeChapter]
+
+    // The plan, not the result: what the outline budgeted and what it refused.
+    let budget: [BudgetLine]
+    let discarded: [String]
+    let verification: Verification?
+    let usd: Double?
 
     let audioUrl: String?
     var audioURL: URL? { audioUrl.flatMap(URL.init(string:)) }
@@ -49,6 +56,20 @@ struct EpisodeChapter: Decodable, Sendable {
     let grounding: [GroundingEntry]
 
     var correctedCount: Int { grounding.filter { $0.action == "fixed" }.count }
+}
+
+// What the editorial stage decided before writing, and what the run cost. The
+// backstage view is the debug trail of ARCHITECTURE section 9 made readable.
+struct BudgetLine: Decodable, Sendable, Identifiable {
+    let title: String
+    let airtimeSec: Int
+    var id: String { title }
+}
+
+struct Verification: Decodable, Sendable {
+    let checked: Int
+    let corrected: Int
+    let dropped: Int
 }
 
 struct GroundingEntry: Decodable, Sendable, Identifiable {

@@ -928,143 +928,16 @@ private struct PlayerTranscriptSheet: View {
 private struct PlayerBackstageSheet: View {
     @ObservedObject private var player = EpisodePlayer.shared
 
-    /// The nine editorial steps of the pipeline, in the order it runs them.
-    private static let stages: [(String, String)] = [
-        ("En file", "Cible fixée avant l’écriture"),
-        ("Sélection", "Classé par importance × nouveauté"),
-        ("Plan", "150 s ici, 90 s là : coupes nommées"),
-        ("Écriture", "≈1 500 mots, registre documentaire"),
-        ("Vérification", "Chaque phrase face à sa source"),
-        ("Édition", "Blocklist : zéro tic à l’antenne"),
-        ("Narration", "Voix documentaire française"),
-        ("Assemblage", "Chapitres assemblés, niveau réglé"),
-        ("Prêt", "Retenus + écartés, avec raisons"),
-    ]
-
     var body: some View {
         if let episode = player.episode {
-            VStack(alignment: .leading, spacing: 18) {
-                Text("Construit, pas lu à voix haute.")
-                    .typo(Typo.detail)
-                    .foregroundStyle(Palette.body)
-
-                budget
-                stats(episode)
-                pipeline(episode)
-            }
+            EpisodeBackstage(detail: episode)
         } else {
             PlayerEmptyLine(text: "Aucun épisode en lecture.")
         }
     }
-
-    private var budget: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Overline(text: "Budget d’antenne, fixé avant l’écriture")
-            if player.duration <= 0 {
-                Text("Durée inconnue tant que l’audio n’est pas chargé.")
-                    .typo(Typo.metaSmall)
-                    .foregroundStyle(Palette.muted2)
-            } else {
-                let longest = player.chapters.map(\.duration).max() ?? 1
-                ForEach(player.chapters) { chapter in
-                    HStack(spacing: 10) {
-                        Text(chapter.title)
-                            .typo(Typo.detail)
-                            .foregroundStyle(Palette.ink)
-                            .lineLimit(1)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        GeometryReader { geo in
-                            ZStack(alignment: .leading) {
-                                Capsule().fill(Palette.ink.opacity(0.1))
-                                Capsule()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [Palette.accent, Color(hex: 0xA99CF0)],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .frame(width: geo.size.width * (longest > 0 ? chapter.duration / longest : 0))
-                            }
-                            .frame(height: 5)
-                            .frame(maxHeight: .infinity)
-                        }
-                        .frame(width: 90, height: 5)
-                        Text("\(Int(chapter.duration.rounded())) s")
-                            .typo(Typo.metaSmall.tabular)
-                            .foregroundStyle(Palette.muted)
-                            .frame(width: 44, alignment: .trailing)
-                    }
-                    .padding(.vertical, 7)
-                }
-            }
-        }
-    }
-
-    private func stats(_ episode: EpisodeDetail) -> some View {
-        let cited = Set(episode.chapters.flatMap(\.sourceIds))
-        let resolved = Set(episode.chapters.flatMap { $0.sources.map(\.id) })
-        let sourced = episode.chapters.filter { !$0.sources.isEmpty }.count
-        return VStack(alignment: .leading, spacing: 8) {
-            Overline(text: "Traçabilité")
-            HStack(spacing: 8) {
-                PlayerStat(value: resolved.count, label: "sources citées")
-                Divider().frame(height: 40).overlay(Palette.cardBorder)
-                PlayerStat(value: sourced, label: "chapitres sourcés")
-                Divider().frame(height: 40).overlay(Palette.cardBorder)
-                PlayerStat(value: cited.count - resolved.count, label: "sources introuvables")
-            }
-            .padding(13)
-            .frame(maxWidth: .infinity)
-            .background(Color.white.opacity(0.7), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(Color(hex: 0x1C1B22, opacity: 0.09), lineWidth: 1)
-            )
-            if cited.count > resolved.count {
-                PlayerFlag(
-                    label: "Écarté",
-                    text: "Une source citée par le script a disparu de la bibliothèque : elle est nommée ici, jamais résumée de mémoire."
-                )
-            }
-        }
-    }
-
-    private func pipeline(_ episode: EpisodeDetail) -> some View {
-        // Only a published episode has actually walked all nine stages; ticking
-        // them on a queued one would be a claim the status contradicts.
-        let done = episode.status == "ready"
-        return VStack(alignment: .leading, spacing: 8) {
-            Overline(text: "Pipeline")
-            PlayerFlowLayout(spacing: 6) {
-                ForEach(Self.stages, id: \.0) { stage in
-                    Text((done ? "✓ " : "") + stage.0)
-                        .typo(Typo.metaTiny)
-                        .foregroundStyle(Palette.ink2)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Palette.neutralChipBg, in: Capsule())
-                        .opacity(done ? 1 : 0.45)
-                }
-            }
-            Text(footer(episode))
-                .typo(Typo.metaSmall)
-                .foregroundStyle(Palette.muted2)
-                .padding(.top, 4)
-        }
-    }
-
-    private func footer(_ episode: EpisodeDetail) -> String {
-        var parts = ["Statut : " + EpisodePlayer.frenchStatus(episode.status)]
-        if player.duration > 0 { parts.append(PlayerFormat.time(player.duration)) }
-        parts.append("\(episode.chapters.count) chapitres")
-        return parts.joined(separator: " · ")
-    }
 }
 
-// MARK: - Small pieces
-
-private struct PlayerStat: View {
+struct PlayerStat: View {
     let value: Int
     let label: String
 
@@ -1082,7 +955,7 @@ private struct PlayerStat: View {
     }
 }
 
-private struct PlayerFlag: View {
+struct PlayerFlag: View {
     let label: String
     let text: String
 
@@ -1224,7 +1097,7 @@ private struct PlayingBars: View {
 
 /// The pipeline chips wrap; SwiftUI has no flow container before iOS 16's Layout,
 /// which this uses rather than guessing at row breaks.
-private struct PlayerFlowLayout: Layout {
+struct PlayerFlowLayout: Layout {
     let spacing: CGFloat
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {

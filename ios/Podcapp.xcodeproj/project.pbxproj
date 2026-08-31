@@ -12,6 +12,7 @@
 		3979AB7B5DC17C2FE7A14476 /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 05A68A6D722F833D01F68802 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4B3036BE5A7935620318E99A /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AFDF1E24FDE6FF5F01BC746 /* RootView.swift */; };
 		58C55423A5FE070A35EEFB1D /* ReadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5B10F89582D157DC00C82C6 /* ReadView.swift */; };
+		63486EC1686F2F38EAB55CD6 /* BackstageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CFA123C7B199A3D28FEB731 /* BackstageView.swift */; };
 		73F0A4FE46CA3E985AECE1A2 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35A0CE9D3F7061749EEB3BF8 /* Components.swift */; };
 		740B9F13AACFF3F7160D21A5 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C97A129DAF5BADA4DAB4E3C3 /* LibraryView.swift */; };
 		8C79E8214168ED3F85783FF2 /* logo.png in Resources */ = {isa = PBXBuildFile; fileRef = D74E7507AFB0D36E708C55A9 /* logo.png */; };
@@ -60,6 +61,7 @@
 		119E53FD38F4BC6164F2565D /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		1D885E0D8C9C3F07766E1EB5 /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>"; };
 		35A0CE9D3F7061749EEB3BF8 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		3CFA123C7B199A3D28FEB731 /* BackstageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackstageView.swift; sourceTree = "<group>"; };
 		3F3F449A6094783C3D025948 /* PodcappApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PodcappApp.swift; sourceTree = "<group>"; };
 		402BB8486D430BDB64C0F3BE /* API.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = API.swift; sourceTree = "<group>"; };
 		5147EECD51307B9F660358C7 /* InterTight-Light.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "InterTight-Light.ttf"; sourceTree = "<group>"; };
@@ -112,6 +114,7 @@
 		7AF29BB081B5BAE8263B980D /* Screens */ = {
 			isa = PBXGroup;
 			children = (
+				3CFA123C7B199A3D28FEB731 /* BackstageView.swift */,
 				C97A129DAF5BADA4DAB4E3C3 /* LibraryView.swift */,
 				824C33DFB6EF3496881C22ED /* OnboardingView.swift */,
 				1D885E0D8C9C3F07766E1EB5 /* PlayerView.swift */,
@@ -268,6 +271,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E441AC6760F8DBC7B2BCC4A4 /* API.swift in Sources */,
+				63486EC1686F2F38EAB55CD6 /* BackstageView.swift in Sources */,
 				73F0A4FE46CA3E985AECE1A2 /* Components.swift in Sources */,
 				740B9F13AACFF3F7160D21A5 /* LibraryView.swift in Sources */,
 				9D730A4B97D9E0080ECC3626 /* OnboardingView.swift in Sources */,
