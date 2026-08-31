@@ -38,7 +38,7 @@ const IngestSchema = z.union([
 ])
 
 const CreateEpisodeSchema = z.object({
-  target_min: z.number().int().min(1).max(60).optional(),
+  target_min: z.number().int().min(1).max(10).optional(),
 })
 
 function isUuid(value: string): boolean {
@@ -309,7 +309,7 @@ authed.post('/episodes', async (c) => {
   const userId = c.get('userId')
   const parsed = CreateEpisodeSchema.safeParse((await c.req.json().catch(() => null)) ?? {})
   if (!parsed.success) {
-    return c.json({ error: 'target_min must be a whole number of minutes between 1 and 60' }, 400)
+    return c.json({ error: 'target_min must be a whole number of minutes between 1 and 10' }, 400)
   }
   const [user] = await db
     .select({ targetMinutes: users.targetMinutes, outputLanguage: users.outputLanguage })
@@ -319,8 +319,8 @@ authed.post('/episodes', async (c) => {
   const targetMin = parsed.data.target_min ?? user.targetMinutes
   // users.target_minutes is written outside this route, so it gets the same bound:
   // an out-of-range value would overflow the target_sec integer column.
-  if (!Number.isInteger(targetMin) || targetMin < 1 || targetMin > 60) {
-    return c.json({ error: 'target minutes must be a whole number between 1 and 60' }, 400)
+  if (!Number.isInteger(targetMin) || targetMin < 1 || targetMin > 10) {
+    return c.json({ error: 'target minutes must be a whole number between 1 and 10' }, 400)
   }
   const targetSec = targetMin * 60
   const [row] = await db

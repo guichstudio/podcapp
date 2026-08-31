@@ -12,7 +12,7 @@ const db = await createDb({ pglitePath: process.env.EVAL_DB ?? '.data/eval' })
 const [user] = await db.select().from(users).where(eq(users.email, 'eval@podcapp.local'))
 if (!user) throw new Error('no eval user: run `pnpm eval:run` first')
 
-const targetSec = Number(process.env.TARGET_SEC ?? 900)
+const targetSec = Number(process.env.TARGET_SEC ?? 600)
 const ledger: CostLedger = {}
 const started = Date.now()
 const artifacts = await generateEpisode(db, { userId: user.id, targetSec, language: 'fr' }, ledger)

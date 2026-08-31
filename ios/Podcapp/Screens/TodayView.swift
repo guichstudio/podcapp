@@ -12,7 +12,7 @@ import UIKit
 struct TodayView: View {
     @State private var phase: Phase = .loading
     @State private var backstage: EpisodeDetail?
-    @State private var targetMinutes = 15
+    @State private var targetMinutes = 10
     // Local only: no endpoint carries an include flag, so a tap never leaves the
     // phone. The line under the row says so.
     @State private var includeOverrides: [String: Bool] = [:]
@@ -548,7 +548,7 @@ private struct TodayGenerateCard: View {
 
     private var lengthPicker: some View {
         HStack(spacing: 0) {
-            ForEach([10, 15, 20], id: \.self) { minutes in
+            ForEach([5, 8, 10], id: \.self) { minutes in
                 Button { targetMinutes = minutes } label: {
                     Text("\(minutes)′")
                         .typo(Typo.buttonSmall)

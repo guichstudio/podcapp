@@ -50,7 +50,7 @@ const IngestSchema = z.union([
 ])
 
 const EpisodeRequestSchema = z.object({
-  target_min: z.number().int().min(1).max(60).optional(),
+  target_min: z.number().int().min(1).max(10).optional(),
 })
 
 // Every status generateEpisode moves through before landing on ready or failed.
@@ -204,7 +204,7 @@ authed.post('/episodes', async (c) => {
 
   // A missing body means "use my defaults", so it parses as {}.
   const parsed = EpisodeRequestSchema.safeParse(await c.req.json().catch(() => ({})))
-  if (!parsed.success) return c.json({ error: 'expected { target_min?: 1..60 }' }, 400)
+  if (!parsed.success) return c.json({ error: 'expected { target_min?: 1..10 }' }, 400)
 
   const conn = c.get('conn')
   const userId = c.get('userId')
@@ -239,7 +239,7 @@ authed.post('/episodes', async (c) => {
 
   // users.target_minutes is written outside this route, so it gets the same
   // bounds as the request body rather than being trusted.
-  const targetMin = Math.min(60, Math.max(1, parsed.data.target_min ?? user.targetMinutes))
+  const targetMin = Math.min(10, Math.max(1, parsed.data.target_min ?? user.targetMinutes))
   const targetSec = targetMin * 60
   const [row] = await conn
     .insert(episodes)

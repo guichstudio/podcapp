@@ -25,7 +25,10 @@ export const MIN_EXTRACTION_QUALITY = 0.35
 export const SIMILARITY_MERGE = 0.93
 export const SIMILARITY_REVIEW = 0.7
 
-export const DEFAULT_TARGET_MINUTES = 15
+export const DEFAULT_TARGET_MINUTES = 10
+// Hard ceiling (Louis, 2026-08-31): TTS is the cost driver, and a briefing
+// should be dense rather than long.
+export const MAX_TARGET_MINUTES = 10
 // Measured, not assumed: the 2026-08-29 episode ran 1973 words in 842.8s of
 // ElevenLabs multilingual_v2 French speech = 140.4 wpm.
 export const WORDS_PER_MINUTE = 140

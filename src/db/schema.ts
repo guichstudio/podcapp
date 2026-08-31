@@ -34,7 +34,7 @@ export const users = pgTable('users', {
   rssToken: text('rss_token').unique().notNull(),
   outputLanguage: text('output_language').notNull().default('fr'),
   voiceId: text('voice_id'),
-  targetMinutes: integer('target_minutes').notNull().default(15),
+  targetMinutes: integer('target_minutes').notNull().default(10),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
