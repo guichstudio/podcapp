@@ -85,6 +85,10 @@ class ShareViewController: UIViewController {
 }
 
 extension NSItemProvider {
+    // Pinned to the main actor: NSItemProvider is not Sendable, and the callers
+    // are all main-actor bound, so nothing hands it across a boundary. Resuming
+    // the continuation from the provider's own queue is safe.
+    @MainActor
     func loadItem(forTypeIdentifier identifier: String) async throws -> NSSecureCoding? {
         try await withCheckedThrowingContinuation { continuation in
             loadItem(forTypeIdentifier: identifier, options: nil) { item, error in
