@@ -137,7 +137,7 @@ struct LibraryView: View {
             if sources.isEmpty {
                 message(
                     title: "Aucune source enregistrée.",
-                    detail: "Partagez un lien depuis Safari avec Briefing, ou collez-le ci-dessus.",
+                    detail: "Partagez un lien depuis Safari avec Podcapp, ou collez-le ci-dessus.",
                     showsSpinner: false
                 )
             } else if sections.isEmpty {

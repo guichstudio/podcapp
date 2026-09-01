@@ -168,7 +168,7 @@ struct TodayView: View {
 
         if data.focus.isEmpty {
             PlainCard {
-                Text("Rien de neuf depuis le dernier briefing. Partagez un lien vers Briefing, depuis Safari ou n’importe quelle app, pour nourrir le prochain épisode.")
+                Text("Rien de neuf depuis le dernier briefing. Partagez un lien vers Podcapp, depuis Safari ou n’importe quelle app, pour nourrir le prochain épisode.")
                     .typo(Typo.detail)
                     .foregroundStyle(Palette.body)
                     .fixedSize(horizontal: false, vertical: true)

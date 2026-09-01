@@ -52,7 +52,7 @@ enum IngestError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notConfigured:
-            return "Ajoutez votre jeton dans l'app Briefing avant de partager."
+            return "Ajoutez votre jeton dans l’app Podcapp avant de partager."
         case .badURL:
             return "Adresse du serveur invalide."
         case let .http(code, body):

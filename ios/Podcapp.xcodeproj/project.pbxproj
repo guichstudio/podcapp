@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		03D2487F6AED0E91E4BEE204 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 14F37A9F90E96EC2331497B8 /* PrivacyInfo.xcprivacy */; };
 		1DEA6A4ABF394DBB90188B85 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = E34423AD0E18C5FBB1040750 /* Theme.swift */; };
 		204CB6C256E7FA1106CECF30 /* PodcappApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F3F449A6094783C3D025948 /* PodcappApp.swift */; };
 		3979AB7B5DC17C2FE7A14476 /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 05A68A6D722F833D01F68802 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -24,6 +25,7 @@
 		B3AEB9487C4C5D12B13A0C6A /* PlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D885E0D8C9C3F07766E1EB5 /* PlayerView.swift */; };
 		C2BA776F95E3B2976D92A981 /* InterTight-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B59114DC54FBF540B63EDB75 /* InterTight-SemiBold.ttf */; };
 		C571BF583123249A967E886D /* InterTight-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5147EECD51307B9F660358C7 /* InterTight-Light.ttf */; };
+		C7B119EE52E1AFBCEAD3F854 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 0153F4FF999BA88957A15742 /* PrivacyInfo.xcprivacy */; };
 		D0881AE1AE2BE33B9473BE5E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0C6096E6E9F25B67F0F90338 /* Assets.xcassets */; };
 		DCFDF2D480C725F5B3419D0A /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7DA3CCA9121028ACF9C1792 /* ShareViewController.swift */; };
 		E441AC6760F8DBC7B2BCC4A4 /* API.swift in Sources */ = {isa = PBXBuildFile; fileRef = 402BB8486D430BDB64C0F3BE /* API.swift */; };
@@ -55,10 +57,12 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0153F4FF999BA88957A15742 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		05A68A6D722F833D01F68802 /* ShareExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		09295238AFFDEE3FB0D35FCE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		0C6096E6E9F25B67F0F90338 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		119E53FD38F4BC6164F2565D /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
+		14F37A9F90E96EC2331497B8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		1D885E0D8C9C3F07766E1EB5 /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>"; };
 		35A0CE9D3F7061749EEB3BF8 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		3CFA123C7B199A3D28FEB731 /* BackstageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackstageView.swift; sourceTree = "<group>"; };
@@ -102,6 +106,7 @@
 				09295238AFFDEE3FB0D35FCE /* Info.plist */,
 				FD5761D4ADCBA8E5525D7001 /* Podcapp.entitlements */,
 				3F3F449A6094783C3D025948 /* PodcappApp.swift */,
+				14F37A9F90E96EC2331497B8 /* PrivacyInfo.xcprivacy */,
 				9AFDF1E24FDE6FF5F01BC746 /* RootView.swift */,
 				61ADA2F70DC8C174D6BC7FED /* Shared.swift */,
 				E0244ACABB756E074B4C3F77 /* Design */,
@@ -129,6 +134,7 @@
 			isa = PBXGroup;
 			children = (
 				77A64524B30546B71184AEB0 /* Info.plist */,
+				0153F4FF999BA88957A15742 /* PrivacyInfo.xcprivacy */,
 				77042EAE0F300E9B1F29AA2E /* ShareExtension.entitlements */,
 				A7DA3CCA9121028ACF9C1792 /* ShareViewController.swift */,
 			);
@@ -179,8 +185,6 @@
 				75D49CE941CB2A4980E01DDB /* PBXTargetDependency */,
 			);
 			name = Podcapp;
-			packageProductDependencies = (
-			);
 			productName = Podcapp;
 			productReference = 86E4A5996FA6350FC608E2E1 /* Podcapp.app */;
 			productType = "com.apple.product-type.application";
@@ -190,14 +194,13 @@
 			buildConfigurationList = 1FA0839F4777517B28C1FE99 /* Build configuration list for PBXNativeTarget "ShareExtension" */;
 			buildPhases = (
 				95C7A63C4C37E8D2B0403BE7 /* Sources */,
+				3805809896FC17F364F8ECCA /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			name = ShareExtension;
-			packageProductDependencies = (
-			);
 			productName = ShareExtension;
 			productReference = 05A68A6D722F833D01F68802 /* ShareExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -230,8 +233,6 @@
 				en,
 			);
 			mainGroup = AE4A590A0A54F76A19A1E50E;
-			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 54;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -242,6 +243,14 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		3805809896FC17F364F8ECCA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C7B119EE52E1AFBCEAD3F854 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		97790E2196E93198FB0FADD6 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -250,6 +259,7 @@
 				C571BF583123249A967E886D /* InterTight-Light.ttf in Resources */,
 				9EF1A99FA8A006665138D5B0 /* InterTight-Regular.ttf in Resources */,
 				C2BA776F95E3B2976D92A981 /* InterTight-SemiBold.ttf in Resources */,
+				03D2487F6AED0E91E4BEE204 /* PrivacyInfo.xcprivacy in Resources */,
 				8C79E8214168ED3F85783FF2 /* logo.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

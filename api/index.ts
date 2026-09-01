@@ -5,6 +5,7 @@ import { Hono } from 'hono'
 import { handle } from 'hono/vercel'
 import { z } from 'zod'
 import { ScriptSchema, type Script } from '../src/core/types.js'
+import { PRIVACY_HTML } from '../src/legal/privacy.js'
 import * as schema from '../src/db/schema.js'
 
 // The endpoints that have to be reachable from a phone: capture, and reading
@@ -138,6 +139,12 @@ function chaptersOf(script: unknown): Script['chapters'] {
 const app = new Hono<Env>()
 
 app.get('/health', (c) => c.json({ ok: true }))
+
+// Public and unauthenticated on purpose: App Store Connect asks for this URL and
+// Beta App Review opens it without any credential.
+app.get('/privacy', (c) =>
+  c.html(PRIVACY_HTML, 200, { 'Cache-Control': 'public, max-age=3600' }),
+)
 
 // Postmark's inbound payload, reduced to what routing and extraction need.
 // Everything else Postmark sends is ignored by safeParse.

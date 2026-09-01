@@ -138,8 +138,17 @@ modèle rédacteur).
    `https://podcapp.vercel.app/ingest/email?token=<POSTMARK_INBOUND_TOKEN du .env>`,
    puis noter l'adresse `...@inbound.postmarkapp.com`. C'est l'adresse à
    laquelle transférer les newsletters.
-2. **Apple Developer Program** (99 $/an) pour TestFlight et les vrais beta
-   testeurs (aujourd'hui : un seul utilisateur en base, jetons émis à la main).
+2. **TestFlight** (action Louis, dans cet ordre — le code est prêt, voir
+   [ios/README.md](ios/README.md)) : macOS 15.6 minimum, puis Xcode 26 minimum
+   (depuis le 28 avril 2026, App Store Connect refuse tout binaire construit
+   avec un SDK plus ancien ; ce Mac est en macOS 14.4 / Xcode 15.4), puis
+   l'**Apple Developer Program** (99 $/an), puis le nouvel identifiant d'équipe
+   à reporter dans `ios/project.yml` — celui qui y figure est l'équipe
+   personnelle gratuite. L'upload lui-même est `ios/testflight.sh`. Pour des
+   testeurs externes, la revue Apple demandera en plus un jeton de
+   démonstration (l'app ne montre rien sans jeton). La politique de
+   confidentialité existe : `GET /privacy` sur l'API, liée depuis l'écran
+   Réglages de l'app — elle part en ligne au prochain déploiement.
 3. **Voix** : remplacer la voix Phase 0 par une voix plus fluide, type Jarvis
    (choix sur test d'écoute).
 4. Cosmétique et robustesse listées dans CLAUDE.md (heuristique d'extraction

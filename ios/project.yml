@@ -1,3 +1,7 @@
+# Generated project: edit this file, then `xcodegen generate --spec project.yml`.
+# Generate with XcodeGen 2.42.x. From 2.44 it writes project format 77, which
+# only Xcode 16+ can open, and this Mac still runs Xcode 15.4. Once it runs
+# Xcode 26 (required for any TestFlight upload), any version will do.
 name: Podcapp
 options:
   bundleIdPrefix: com.louisguichard
@@ -33,6 +37,14 @@ targets:
           - InterTight-Light.ttf
           - InterTight-Regular.ttf
           - InterTight-SemiBold.ttf
+        # XcodeGen would otherwise hardcode 1.0 (1) here and only the build
+        # settings would carry the truth. TestFlight refuses a build number it
+        # has already seen, so the two must not be able to drift.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # HTTPS only, which is exempt: answering here means App Store Connect
+        # never stops an upload to ask the export-compliance question.
+        ITSAppUsesNonExemptEncryption: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.louisguichard.podcapp
@@ -55,6 +67,8 @@ targets:
       path: ShareExtension/Info.plist
       properties:
         CFBundleDisplayName: Podcapp
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController

@@ -58,6 +58,10 @@ struct SettingsView: View {
                     .foregroundStyle(Palette.muted2)
                     .padding(.top, 6)
                     .padding(.horizontal, 4)
+
+                privacyLink
+                    .padding(.top, 20)
+                    .padding(.horizontal, 4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 20)
@@ -66,6 +70,26 @@ struct SettingsView: View {
         }
         .background(ScreenBackground())
         .scrollDismissesKeyboard(.interactively)
+    }
+
+    // App Review 5.1.1 wants the privacy policy reachable from inside the app,
+    // not only from the App Store listing. It follows the server field, so a build
+    // pointed elsewhere reads that server's policy rather than a hardcoded one.
+    @ViewBuilder
+    private var privacyLink: some View {
+        let base = server.trimmingCharacters(in: .whitespacesAndNewlines)
+        let origin = base.hasSuffix("/") ? String(base.dropLast()) : base
+        if let url = URL(string: origin + "/privacy"), url.scheme?.hasPrefix("http") == true {
+            // The underline goes on the Text, not on the Link: on the Link the
+            // modifier compiles and does nothing, and a caption-coloured line of
+            // text with no affordance does not read as tappable.
+            Link(destination: url) {
+                Text("Politique de confidentialité")
+                    .typo(Typo.metaSmall)
+                    .underline()
+            }
+            .foregroundStyle(Palette.muted2)
+        }
     }
 
     // MARK: - Connexion
@@ -193,7 +217,7 @@ struct SettingsView: View {
         connection = .checking
 
         do {
-            try await Ingest.save(url: nil, text: "Test de connexion depuis l’app Briefing.")
+            try await Ingest.save(url: nil, text: "Test de connexion depuis l’app Podcapp.")
             connection = .ok("Connecté. Le partage est prêt.")
         } catch {
             connection = .failed(error.localizedDescription)
@@ -262,7 +286,7 @@ struct SettingsView: View {
             // refused, and only the test above knows whether the server takes it.
             GenerationRow(
                 label: "Extension de partage",
-                sub: "Partagez un lien depuis Safari, puis choisissez Briefing",
+                sub: "Partagez un lien depuis Safari, puis choisissez Podcapp",
                 value: isConfigured ? "Jeton enregistré" : "Jeton requis"
             ),
             GenerationRow(label: "Flux RSS privé", sub: "Apple Podcasts, Overcast", value: "Non affiché"),

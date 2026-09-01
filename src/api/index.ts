@@ -10,6 +10,7 @@ import { generateEpisode } from '../jobs/generateEpisode.js'
 import { processSource } from '../jobs/processSource.js'
 import { chapterKey, episodeAudioKey, publishEpisode } from '../jobs/publishEpisode.js'
 import { RUN_ARTIFACTS, runArtifactKey } from '../jobs/runArtifacts.js'
+import { PRIVACY_HTML } from '../legal/privacy.js'
 import { logger } from '../log.js'
 import { buildFeed, COVER_KEYS, type FeedEpisode } from '../rss/feed.js'
 import { createStorage } from '../storage/index.js'
@@ -115,6 +116,12 @@ app.onError((err, c) => {
 // added afterwards. A podcast client cannot send a bearer token, which is exactly
 // why the feed URL carries an unguessable rss_token instead.
 app.get('/health', (c) => c.json({ ok: true }))
+
+// Public and unauthenticated on purpose: App Store Connect asks for this URL and
+// Beta App Review opens it without any credential.
+app.get('/privacy', (c) =>
+  c.html(PRIVACY_HTML, 200, { 'Cache-Control': 'public, max-age=3600' }),
+)
 
 app.get('/rss/:token', async (c) => {
   const token = c.req.param('token').replace(/\.xml$/, '')
