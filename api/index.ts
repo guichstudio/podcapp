@@ -5,7 +5,8 @@ import { Hono } from 'hono'
 import { handle } from 'hono/vercel'
 import { z } from 'zod'
 import { ScriptSchema, type Script } from '../src/core/types.js'
-import { MAX_TARGET_MINUTES, MIN_SOURCES_PER_EPISODE } from '../src/config.js'
+import { MAX_TARGET_MINUTES, MIN_SOURCES_PER_EPISODE, VOICE_OPTIONS, voiceFor } from '../src/config.js'
+import { feedKey } from '../src/rss/feed.js'
 import { countAvailableSources, hasEnoughSources, shortageMessage } from '../src/jobs/material.js'
 import { privacyHtml } from '../src/legal/privacy.js'
 import * as schema from '../src/db/schema.js'
@@ -298,6 +299,74 @@ authed.post('/ingest', async (c) => {
 // writes and speaks in it from the next episode on. Persisted rather than
 // passed per request: the 06:00 cron generates with no app in the loop.
 const LanguageSchema = z.object({ language: z.string().trim().min(2).max(8) })
+
+
+// The account as the app shows it: what the pipeline will do next, and the
+// few knobs a user may turn. One shape for GET and PUT so the app has one model.
+const MeUpdateSchema = z.object({
+  language: z.string().trim().min(2).max(8).optional(),
+  voice_id: z.string().trim().min(1).max(64).nullable().optional(),
+  target_minutes: z.number().int().min(1).max(MAX_TARGET_MINUTES).optional(),
+})
+
+function meView(user: { outputLanguage: string; voiceId: string | null; targetMinutes: number; rssToken: string }) {
+  const language = user.outputLanguage.trim().toLowerCase().slice(0, 2)
+  const base = (process.env.R2_PUBLIC_BASE_URL ?? '').replace(/\/+$/, '')
+  return {
+    language,
+    voice_id: user.voiceId,
+    // The narrator the next episode will actually use, override or default.
+    voice: voiceFor(language, user.voiceId) ?? null,
+    voices: VOICE_OPTIONS,
+    target_minutes: Math.min(MAX_TARGET_MINUTES, Math.max(1, user.targetMinutes)),
+    max_minutes: MAX_TARGET_MINUTES,
+    minimum_sources: MIN_SOURCES_PER_EPISODE,
+    daily_at: '06:00',
+    // Public by necessity (podcast apps fetch it anonymously); the token in it
+    // is the only thing standing between a stranger and your episodes, which
+    // is why it only ever travels to the authenticated app.
+    feed_url: base ? `${base}/${feedKey(user.rssToken)}` : null,
+    // Null until the Postmark inbound address exists; the app hides the row.
+    ingest_address: process.env.INGEST_ADDRESS ?? null,
+  }
+}
+
+authed.get('/me', async (c) => {
+  const [user] = await c
+    .get('conn')
+    .select({ outputLanguage: users.outputLanguage, voiceId: users.voiceId, targetMinutes: users.targetMinutes, rssToken: users.rssToken })
+    .from(users)
+    .where(eq(users.id, c.get('userId')))
+  if (!user) return c.json({ error: 'not found' }, 404)
+  return c.json(meView(user))
+})
+
+authed.put('/me', async (c) => {
+  const parsed = MeUpdateSchema.safeParse(await c.req.json().catch(() => null))
+  if (!parsed.success) return c.json({ error: 'expected { language?, voice_id?, target_minutes? }' }, 400)
+  const patch: Partial<{ outputLanguage: string; voiceId: string | null; targetMinutes: number }> = {}
+  if (parsed.data.language !== undefined) {
+    const language = parsed.data.language.slice(0, 2).toLowerCase()
+    if (!/^[a-z]{2}$/.test(language)) return c.json({ error: 'unsupported language' }, 400)
+    patch.outputLanguage = language
+  }
+  if (parsed.data.voice_id !== undefined) {
+    if (parsed.data.voice_id !== null && !VOICE_OPTIONS.some((v) => v.id === parsed.data.voice_id)) {
+      return c.json({ error: 'unknown voice' }, 400)
+    }
+    patch.voiceId = parsed.data.voice_id
+  }
+  if (parsed.data.target_minutes !== undefined) patch.targetMinutes = parsed.data.target_minutes
+  const conn = c.get('conn')
+  const userId = c.get('userId')
+  if (Object.keys(patch).length > 0) await conn.update(users).set(patch).where(eq(users.id, userId))
+  const [user] = await conn
+    .select({ outputLanguage: users.outputLanguage, voiceId: users.voiceId, targetMinutes: users.targetMinutes, rssToken: users.rssToken })
+    .from(users)
+    .where(eq(users.id, userId))
+  if (!user) return c.json({ error: 'not found' }, 404)
+  return c.json(meView(user))
+})
 
 authed.put('/me/language', async (c) => {
   const parsed = LanguageSchema.safeParse(await c.req.json().catch(() => null))

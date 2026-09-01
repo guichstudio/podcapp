@@ -79,6 +79,19 @@ export const DEFAULT_VOICES: Record<string, string> = {
   en: 'cjVigY5qzO86Huf0OWal', // Eric — smooth, trustworthy, American
 }
 
+// What the app's voice picker offers, per language. Only these ids can be
+// written to users.voice_id: an arbitrary ElevenLabs id is a cost and a quality
+// risk nobody has listened to. English: the 2026-09-01 listening test. French:
+// the two voices the project has actually aired with.
+export interface VoiceOption { id: string; name: string; style: string; language: string }
+export const VOICE_OPTIONS: VoiceOption[] = [
+  { id: 'cjVigY5qzO86Huf0OWal', name: 'Eric', style: 'documentary', language: 'en' },
+  { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda', style: 'newsroom', language: 'en' },
+  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', style: 'broadcaster', language: 'en' },
+  { id: 'MAZdzkb78f8SA7DNBT41', name: 'Nico', style: 'parisien', language: 'fr' },
+  { id: 'jGGIwkfv43kUFffPXEEO', name: 'Louis', style: 'documentaire', language: 'fr' },
+]
+
 export function voiceFor(language: string, override: string | null | undefined): string | undefined {
   return override ?? DEFAULT_VOICES[language.trim().toLowerCase().slice(0, 2)] ?? process.env.ELEVENLABS_VOICE_ID
 }
