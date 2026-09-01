@@ -83,10 +83,16 @@ ffmpeg ships with the repo via the `ffmpeg-static` dev dependency: no Homebrew, 
 
 ## Session ritual
 
+0. **Travailler dans un worktree, jamais directement sur `main`.**
+   `git worktree add ../podcapp-<sujet> -b <sujet>`, committer là, fusionner à la fin,
+   puis `git worktree remove`. Plusieurs sessions tournent en parallèle sur ce dépôt :
+   un `git add` large sur `main` embarque les fichiers d'une autre session dans un commit
+   qui ne les concerne pas. C'est arrivé trois fois pendant la construction du site.
 1. Read ARCHITECTURE.md + this file. State which phase and which DoD this session targets.
 2. Work in small verifiable increments — one pipeline stage at a time.
 3. After any pipeline or prompt change: `pnpm eval:run`, compare metrics with the previous run before merging.
-4. End of session: update **Current state**, append to **Decision log**, write the next action.
+4. **Ne jamais `git add -A` / `git add .` à la racine.** Stager les chemins qu'on a soi-même touchés.
+5. End of session: update **Current state**, append to **Decision log**, write the next action.
 
 ---
 
