@@ -143,17 +143,18 @@ modèle rédacteur).
    `https://podcapp.vercel.app/ingest/email?token=<POSTMARK_INBOUND_TOKEN du .env>`,
    puis noter l'adresse `...@inbound.postmarkapp.com`. C'est l'adresse à
    laquelle transférer les newsletters.
-2. **TestFlight** (action Louis, dans cet ordre — le code est prêt, voir
-   [ios/README.md](ios/README.md)) : macOS 15.6 minimum, puis Xcode 26 minimum
-   (depuis le 28 avril 2026, App Store Connect refuse tout binaire construit
-   avec un SDK plus ancien ; ce Mac est en macOS 14.4 / Xcode 15.4), puis
-   l'**Apple Developer Program** (99 $/an), puis le nouvel identifiant d'équipe
-   à reporter dans `ios/project.yml` — celui qui y figure est l'équipe
-   personnelle gratuite. L'upload lui-même est `ios/testflight.sh`. Pour des
-   testeurs externes, la revue Apple demandera en plus un jeton de
-   démonstration (l'app ne montre rien sans jeton). La politique de
-   confidentialité existe : `GET /privacy` sur l'API, liée depuis l'écran
-   Réglages de l'app — elle part en ligne au prochain déploiement.
+2. **TestFlight** (action Louis, en cours — le code est prêt, tous les textes
+   à coller sont dans [docs/testflight.md](docs/testflight.md), le runbook
+   technique dans [ios/README.md](ios/README.md)). Les prérequis machine sont
+   remplis : macOS 26.6.2, Xcode 26.6, SDK iOS 26.5 (App Store Connect refuse
+   tout binaire construit avant le SDK iOS 26), et l'Apple Developer Program
+   est actif — l'adhésion a conservé le Team ID `V7BMDJS5C7` déjà présent dans
+   `ios/project.yml`, rien à y changer. Restent : la fiche app dans App Store
+   Connect, une clé d'API App Store Connect (rôle App Manager), puis
+   `ios/testflight.sh`. Pour des testeurs externes, la revue Apple demandera en
+   plus un compte de démonstration avec des sources traitées et un épisode
+   publié (l'app ne montre rien sans jeton). La politique de confidentialité
+   est en ligne : `GET /privacy`, liée depuis l'écran Réglages.
 3. **Voix** : la voix suit désormais la langue de l'épisode (`DEFAULT_VOICES`
    dans `src/config.ts`, `users.voice_id` en surcharge). Anglais : Eric, choisi
    provisoirement sur test d'écoute le 2026-09-01. Français : toujours la voix

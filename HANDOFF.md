@@ -34,11 +34,25 @@ ce qui vient ensuite, et ce qui piège.
 
 ## Prochaines actions, dans l'ordre
 
-1. **TestFlight** (Louis, navigateur) : créer la fiche app dans App Store Connect (bundle `com.louisguichard.podcapp`, langue principale **anglais**, SKU `podcapp`) et une clé API (Users and Access → Integrations, rôle App Manager, `.p8` + Key ID + Issuer ID). Puis, depuis `ios/` :
-   `TEAM_ID=V7BMDJS5C7 ASC_KEY_ID=… ASC_ISSUER_ID=… ASC_KEY_PATH=… ./testflight.sh`
-2. **Beta App Review** (testeurs externes) : compte de démonstration avec sources traitées et un épisode publié — l'app ne montre rien sans jeton. Textes prêts dans `docs/testflight.md`.
+1. **TestFlight** : la fiche existe (**app id `6807563809`**) et tout le
+   remplissage est fait — sous-titre, catégorie News, droits sur le contenu
+   tiers, classification **13+**, étiquette de confidentialité publiée,
+   description bêta, e-mails, URLs, contact de vérification. Restent deux
+   gestes **navigateur, côté Louis** : coller les identifiants de démo dans
+   TestFlight → Test Information → « Connexion requise » (utilisateur
+   `beta-review@podcapp.fr`, mot de passe = le jeton d'API du compte, dans le
+   gestionnaire de mots de passe), et créer une clé API (Users and Access →
+   Integrations, rôle App Manager, `.p8` + Key ID + Issuer ID). Puis, depuis
+   `ios/` : `TEAM_ID=V7BMDJS5C7 ASC_KEY_ID=… ASC_ISSUER_ID=… ASC_KEY_PATH=… ./testflight.sh`
+   (`CURRENT_PROJECT_VERSION` est déjà à **27**).
+2. **Beta App Review** : le compte de démonstration existe et est peuplé
+   (`beta-review@podcapp.fr`, anglais, voix Eric, 5 min, 6 sources, épisode
+   `a5978667-…` publié à 4 min 50). Rien à refaire.
 3. **Postmark** (Louis, 5 min, voir README) puis `INGEST_ADDRESS=<adresse>` dans l'env Vercel : la ligne « Adresse d'ingestion » apparaît alors seule dans Réglages.
-4. **Premier épisode anglais** : la porte qualité (4/5) n'a été validée qu'en français. À écouter comme le français l'a été.
+4. **Premier épisode anglais** : il existe — celui du compte de démo,
+   `a5978667-545b-40c0-88e2-392b1bda8867`, 4 min 50, voix Eric. La porte
+   qualité (4/5) n'a jamais été passée en anglais : à écouter comme le
+   français l'a été, avec `eval/rubric.md`.
 5. **Voix française** : toujours la voix Phase 0 via l'env Trigger ; remplacer sur test d'écoute (même méthode que pour Eric).
 6. Optionnel : reclasser les anciennes sources (`category` NULL) si les étagères doivent se remplir sans attendre.
 
@@ -51,6 +65,13 @@ ce qui vient ensuite, et ce qui piège.
 - SwiftUI ne traduit que `Text("…")` ; un `String` passé à un helper (`label:`, `fieldLabel("…")`) doit être enveloppé dans `String(localized:)`. Après tout ajout : compléter `ios/design/fr-strings.json` puis `python3 ios/design/make-strings.py`.
 - Lancer le simulateur avec le **vrai** jeton fait remonter SA langue au serveur et bascule le compte. Utiliser un jeton factice, ou remettre la langue après (`PUT /me/language`).
 - Le prototype Claude Design v3 ne se rend pas fidèlement hors de son hôte ; sa logique est extraite dans le scratchpad de la session (`design-v3/logic.js`) — repartir des textes, pas des captures.
+- Une page bloquée par un anti-bot peut passer la porte d'extraction : AP News
+  a marqué 0,37 pour `MIN_EXTRACTION_QUALITY = 0,35`, est entrée dans le
+  matériau sous le titre « Page unavailable », et l'outro a affirmé qu'aucune
+  source n'avait échoué. Rien d'infondé n'est parti à l'antenne (le rédacteur ne
+  l'a pas retenue) mais l'affirmation de l'outro est fausse. Le score seul ne
+  sépare pas un article maigre d'une page de blocage : il faut un signal de
+  forme. Non corrigé.
 - Un prompt est un actif versionné : jamais d'édition en place, copier en vN+1, basculer dans `config.ts`, puis `pnpm eval:run`.
 
 ## Commandes utiles
