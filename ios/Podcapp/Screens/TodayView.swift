@@ -75,7 +75,7 @@ struct TodayView: View {
     private func errorState(_ message: String) -> some View {
         PlainCard(cornerRadius: 18, padding: 16) {
             VStack(alignment: .leading, spacing: 10) {
-                Overline(text: "Chargement impossible", color: Palette.danger)
+                Overline(text: String(localized: "Chargement impossible"), color: Palette.danger)
                 Text(message)
                     .typo(Typo.detail)
                     .foregroundStyle(Palette.body)
@@ -138,7 +138,7 @@ struct TodayView: View {
     private var noEpisodeCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 12) {
-                Overline(text: "Aucun briefing", color: Palette.accentDeep)
+                Overline(text: String(localized: "Aucun briefing"), color: Palette.accentDeep)
                 Text("Nothing to listen to yet.")
                     .typo(Typo.heroTitle)
                     .foregroundStyle(Palette.ink)
@@ -633,7 +633,7 @@ private struct TodayBackstageSheet: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .firstTextBaseline) {
-                    Overline(text: "Comment c’est fabriqué", color: Palette.accentDeep)
+                    Overline(text: String(localized: "Comment c’est fabriqué"), color: Palette.accentDeep)
                     Spacer(minLength: 8)
                     Button("Close") { dismiss() }
                         .typo(Typo.navButton)

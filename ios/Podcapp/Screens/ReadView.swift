@@ -43,17 +43,17 @@ struct ReadView: View {
 
                 switch episodes {
                 case .loading:
-                    StatusPanel(title: "Loading your briefings…", spinning: true)
+                    StatusPanel(title: String(localized: "Loading your briefings…"), spinning: true)
                 case let .failed(reason):
                     StatusPanel(
-                        title: "Could not load your briefings.",
+                        title: String(localized: "Could not load your briefings."),
                         detail: reason,
                         retry: { Task { await loadEpisodes() } }
                     )
                 case let .loaded(rows) where rows.isEmpty:
                     StatusPanel(
-                        title: "No briefing yet.",
-                        detail: "Save a few sources, then generate a briefing from the Today tab."
+                        title: String(localized: "No briefing yet."),
+                        detail: String(localized: "Save a few sources, then generate a briefing from the Today tab.")
                     )
                 case let .loaded(rows):
                     ForEach(rows) { row($0) }
@@ -102,13 +102,13 @@ struct ReadView: View {
     @ViewBuilder
     private func badge(for episode: EpisodeSummary) -> some View {
         if !episode.chapters.isEmpty {
-            ReadBadge(label: "Read")
+            ReadBadge(label: String(localized: "Read"))
         } else if episode.status == "failed" {
-            StatusChip(label: "Failed", kind: .danger)
+            StatusChip(label: String(localized: "Failed"), kind: .danger)
         } else if episode.status == "ready" {
-            StatusChip(label: "Audio only", kind: .aired)
+            StatusChip(label: String(localized: "Audio only"), kind: .aired)
         } else {
-            StatusChip(label: "In progress", kind: .neutral)
+            StatusChip(label: String(localized: "In progress"), kind: .neutral)
         }
     }
 
@@ -156,10 +156,10 @@ private struct ArticleScreen: View {
 
                 switch detail {
                 case .loading:
-                    StatusPanel(title: "Loading the briefing…", spinning: true)
+                    StatusPanel(title: String(localized: "Loading the briefing…"), spinning: true)
                 case let .failed(reason):
                     StatusPanel(
-                        title: "Could not open this briefing.",
+                        title: String(localized: "Could not open this briefing."),
                         detail: reason,
                         retry: { Task { await load() } }
                     )
@@ -194,7 +194,7 @@ private struct ArticleScreen: View {
 
         if full.chapters.isEmpty {
             StatusPanel(
-                title: "This briefing has no text yet.",
+                title: String(localized: "This briefing has no text yet."),
                 detail: missingScript(full.status)
             )
         } else {
@@ -265,10 +265,10 @@ private struct ArticleScreen: View {
         var parts: [String] = []
         if let seconds = full.actualSec { parts.append(Format.clock(seconds)) }
         let sources = Set(full.chapters.flatMap(\.sources).map(\.id)).count
-        if sources > 0 { parts.append(sources > 1 ? "\(sources) sources" : "1 source") }
+        if sources > 0 { parts.append(sources > 1 ? String(localized: "\(sources) sources") : String(localized: "1 source")) }
         // Every episode that ships has been through the grounding pass, so the
         // claim is only made once the episode is actually out.
-        if full.status == "ready" { parts.append("✓ vérifié") }
+        if full.status == "ready" { parts.append(String(localized: "✓ checked")) }
         return parts.joined(separator: " · ")
     }
 

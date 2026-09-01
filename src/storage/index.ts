@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { assertSafeKey } from './key.js'
 import { R2Storage } from './r2.js'
@@ -9,6 +9,8 @@ import { R2Storage } from './r2.js'
 export interface Storage {
   put(key: string, body: Buffer, contentType: string): Promise<void>
   get(key: string): Promise<Buffer | null>
+  /// Idempotent: a key that is already gone is a success.
+  delete(key: string): Promise<void>
   publicUrl(key: string): string
 }
 
@@ -37,6 +39,15 @@ class LocalStorage implements Storage {
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null
       throw err
+    }
+  }
+
+  async delete(key: string): Promise<void> {
+    assertSafeKey(key)
+    try {
+      await unlink(join(this.root, key))
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err
     }
   }
 

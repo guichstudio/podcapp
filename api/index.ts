@@ -309,6 +309,30 @@ authed.put('/me/language', async (c) => {
   return c.json({ language })
 })
 
+// App Review 5.1.1(v), and the privacy policy's "erasure is final". Two steps,
+// because this function has no bucket client: the durable task erases audio,
+// feed, console and rows, and right here both tokens are replaced with values
+// nobody holds, so the app, the share sheet and every podcast client holding
+// the feed URL are locked out before this request even returns.
+authed.delete('/me', async (c) => {
+  if (!process.env.TRIGGER_SECRET_KEY) {
+    return c.json({ error: 'account deletion needs the cloud worker' }, 503)
+  }
+  const conn = c.get('conn')
+  const userId = c.get('userId')
+  // Trigger BEFORE revoking. The other way round, a trigger that fails leaves
+  // a user locked out of an account that still exists, with no token left to
+  // retry with. This way a failure changes nothing; and if the revoke itself
+  // fails, the task deletes the row within the minute and the tokens die
+  // with it.
+  await triggerTask('delete-account', { userId }, `delete-account:${userId}`)
+  await conn
+    .update(users)
+    .set({ apiToken: `revoked:${crypto.randomUUID()}`, rssToken: `revoked:${crypto.randomUUID()}` })
+    .where(eq(users.id, userId))
+  return c.json({ status: 'deleting' }, 202)
+})
+
 authed.post('/episodes', async (c) => {
   if (!process.env.TRIGGER_SECRET_KEY) {
     return c.json(

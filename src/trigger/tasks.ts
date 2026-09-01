@@ -3,6 +3,7 @@ import { and, eq, inArray, ne } from 'drizzle-orm'
 import { z } from 'zod'
 import { createDb, type Db } from '../db/client.js'
 import { episodes, stories, users } from '../db/schema.js'
+import { deleteAccount } from '../jobs/deleteAccount.js'
 import { generateEpisode } from '../jobs/generateEpisode.js'
 import { processSource } from '../jobs/processSource.js'
 import { publishEpisode } from '../jobs/publishEpisode.js'
@@ -259,5 +260,23 @@ export const dailyBriefingsTask = schedules.task({
     }
     logger.info('daily briefings decided', { outcomes })
     return outcomes
+  },
+})
+
+const DeleteAccountPayload = z.object({ userId: z.string().uuid() })
+
+// Account erasure, handed here by DELETE /me because the edge function has no
+// bucket client. deleteAccount is idempotent, so retries are safe and wanted:
+// a half-erased account is the one state this must never leave behind.
+export const deleteAccountTask = schemaTask({
+  id: 'delete-account',
+  schema: DeleteAccountPayload,
+  retry: { maxAttempts: 3 },
+  run: async (payload) => {
+    const storage = createCloudStorage()
+    const db = await createDb()
+    const result = await deleteAccount(db, storage, payload.userId)
+    logger.info('delete-account done', { userId: payload.userId, ...result })
+    return result
   },
 })

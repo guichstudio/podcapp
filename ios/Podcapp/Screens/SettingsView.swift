@@ -69,6 +69,10 @@ struct SettingsView: View {
                 privacyLink
                     .padding(.top, 20)
                     .padding(.horizontal, 4)
+
+                deleteAccountButton
+                    .padding(.top, 28)
+                    .padding(.horizontal, 4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 20)
@@ -105,6 +109,57 @@ struct SettingsView: View {
                     .underline()
             }
             .foregroundStyle(Palette.muted2)
+        }
+    }
+
+    // MARK: - Suppression du compte
+
+    @State private var confirmingDeletion = false
+    @State private var deletion: Deletion = .idle
+    enum Deletion: Equatable { case idle, working, failed(String) }
+
+    // App Review 5.1.1(v): an account you can sign into is an account you can
+    // delete from inside the app. It is also what makes the privacy policy's
+    // "erasure is final" a fact rather than a promise kept by hand.
+    private var deleteAccountButton: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button {
+                confirmingDeletion = true
+            } label: {
+                Text(deletion == .working ? String(localized: "Deleting…") : String(localized: "Delete my account"))
+                    .typo(Typo.metaSmall)
+                    .foregroundStyle(Palette.danger)
+                    .underline()
+            }
+            .buttonStyle(.plain)
+            .disabled(deletion == .working || !isConfigured)
+            if case let .failed(message) = deletion {
+                Text(message)
+                    .typo(Typo.metaSmall)
+                    .foregroundStyle(Palette.danger)
+            }
+        }
+        .confirmationDialog("Delete your account?", isPresented: $confirmingDeletion, titleVisibility: .visible) {
+            Button("Delete everything", role: .destructive) { Task { await deleteAccount() } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Your sources, briefings, audio and feed are erased for good. Nothing is kept.")
+        }
+    }
+
+    @MainActor
+    private func deleteAccount() async {
+        deletion = .working
+        do {
+            try await API.shared.deleteAccount()
+            Config.apiToken = ""
+            Config.reportedLanguage = nil
+            deletion = .idle
+            Feedback.saved()
+            NotificationCenter.default.post(name: .podcappSignedOut, object: nil)
+        } catch {
+            deletion = .failed(error.localizedDescription)
+            Feedback.refused()
         }
     }
 
@@ -233,7 +288,7 @@ struct SettingsView: View {
         connection = .checking
 
         do {
-            try await Ingest.save(url: nil, text: "Connection test from the Podcapp app.")
+            try await Ingest.save(url: nil, text: String(localized: "Connection test from the Podcapp app."))
             connection = .ok(String(localized: "Connected. Sharing is ready."))
             Feedback.saved()
         } catch {
@@ -269,14 +324,14 @@ struct SettingsView: View {
         PlainCard(cornerRadius: 16, padding: 0) {
             VStack(spacing: 0) {
                 feedbackRow(
-                    title: "Haptics",
-                    sub: "A tap under your finger on tabs, playback and chapters.",
+                    title: String(localized: "Haptics"),
+                    sub: String(localized: "A tap under your finger on tabs, playback and chapters."),
                     isOn: $haptics
                 )
                 Rectangle().fill(Palette.cardBorder).frame(height: 1)
                 feedbackRow(
-                    title: "Sounds",
-                    sub: "Four short sounds: saved, refused, generation queued, next chapter.",
+                    title: String(localized: "Sounds"),
+                    sub: String(localized: "Four short sounds: saved, refused, generation queued, next chapter."),
                     isOn: $sounds
                 )
             }
@@ -337,20 +392,20 @@ struct SettingsView: View {
     private var generationRows: [GenerationRow] {
         [
             GenerationRow(
-                label: "Output language",
-                sub: "Scripts and narration",
+                label: String(localized: "Output language"),
+                sub: String(localized: "Scripts and narration"),
                 value: AppLocale.current.localizedString(forLanguageCode: AppLocale.code)?.capitalized ?? AppLocale.code
             ),
-            GenerationRow(label: "Target length", sub: "Airtime budget fixed before writing", value: "15 min"),
-            GenerationRow(label: "Generation", sub: "Started from the computer", value: "Manual"),
+            GenerationRow(label: String(localized: "Target length"), sub: String(localized: "Airtime budget fixed before writing"), value: String(localized: "15 min")),
+            GenerationRow(label: String(localized: "Generation"), sub: String(localized: "Every morning at 6:00, or from Today"), value: String(localized: "Daily")),
             // States the fact, not a promise: a token can be stored and still be
             // refused, and only the test above knows whether the server takes it.
             GenerationRow(
-                label: "Share extension",
-                sub: "Share a link from Safari, then pick Podcapp",
+                label: String(localized: "Share extension"),
+                sub: String(localized: "Share a link from Safari, then pick Podcapp"),
                 value: isConfigured ? "Token saved" : "Token needed"
             ),
-            GenerationRow(label: "Private RSS feed", sub: "Apple Podcasts, Overcast", value: "Not shown"),
+            GenerationRow(label: String(localized: "Private RSS feed"), sub: String(localized: "Apple Podcasts, Overcast"), value: String(localized: "Published")),
         ]
     }
 

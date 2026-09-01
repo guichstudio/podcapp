@@ -130,20 +130,20 @@ struct LibraryView: View {
     private var content: some View {
         switch phase {
         case .loading:
-            message(title: "Loading your sources…", detail: nil, showsSpinner: true)
+            message(title: String(localized: "Loading your sources…"), detail: nil, showsSpinner: true)
         case let .failed(reason):
-            message(title: "Could not load", detail: reason, showsSpinner: false)
+            message(title: String(localized: "Could not load"), detail: reason, showsSpinner: false)
         case .loaded:
             if sources.isEmpty {
                 message(
-                    title: "No source saved yet.",
-                    detail: "Share a link from Safari with Podcapp, or paste it above.",
+                    title: String(localized: "No source saved yet."),
+                    detail: String(localized: "Share a link from Safari with Podcapp, or paste it above."),
                     showsSpinner: false
                 )
             } else if sections.isEmpty {
                 message(
-                    title: "Nothing in this filter.",
-                    detail: "\(sources.count) saved in total: tap All to see them.",
+                    title: String(localized: "Nothing in this filter."),
+                    detail: String(localized: "\(sources.count) saved in total: tap All to see them."),
                     showsSpinner: false
                 )
             } else {
@@ -229,29 +229,6 @@ struct LibraryView: View {
                             .foregroundStyle(Palette.body)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        if !state.actions.isEmpty {
-                            // No endpoint backs these yet: a dead button that looks
-                            // alive is worse than a named limitation.
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack(spacing: 8) {
-                                    ForEach(state.actions, id: \.self) { action in
-                                        Text(action)
-                                            .typo(Typo.buttonSmall)
-                                            .foregroundStyle(Palette.faint)
-                                            .lineLimit(1)
-                                            .padding(.horizontal, 13)
-                                            .padding(.vertical, 8)
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                                    .strokeBorder(Palette.cardBorder, lineWidth: 1)
-                                            )
-                                    }
-                                }
-                                Text("Unavailable: the server does not expose these actions yet.")
-                                    .typo(Typo.metaTiny)
-                                    .foregroundStyle(Palette.faint)
-                            }
-                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -276,13 +253,13 @@ struct LibraryView: View {
         return [
             LibrarySection(
                 id: "today",
-                title: "TODAY",
+                title: String(localized: "TODAY"),
                 rows: healthy.filter { calendar.isDateInToday($0.capturedAt) }
             ),
-            LibrarySection(id: "issues", title: "NEEDS A LOOK", rows: problems),
+            LibrarySection(id: "issues", title: String(localized: "NEEDS A LOOK"), rows: problems),
             LibrarySection(
                 id: "earlier",
-                title: "EARLIER",
+                title: String(localized: "EARLIER"),
                 rows: healthy.filter { !calendar.isDateInToday($0.capturedAt) }
             ),
         ].filter { !$0.rows.isEmpty }
@@ -345,14 +322,15 @@ private struct LibrarySection: Identifiable {
 }
 
 /// One row's status, translated from `sources.status` in src/db/schema.ts.
-/// Chip wording comes from CHIP_L.fr, the actions from ACT_FR.
+/// Chip wording comes from CHIP_L.fr. The design's per-row actions (exclude,
+/// delete) have no endpoint and are not drawn: App Review 2.1 does not allow a
+/// button that only says it does nothing.
 private struct LibraryStatus {
     let chip: String
     let kind: StatusChip.Kind
     let icon: String
     let isReady: Bool
     let isProblem: Bool
-    let actions: [String]
 
     static func of(_ source: SavedSource) -> LibraryStatus {
         switch source.status {
@@ -360,43 +338,40 @@ private struct LibraryStatus {
             // The queue drains on the laptop, so this is where a fresh capture
             // rests: normal, not a failure.
             return LibraryStatus(
-                chip: "EN FILE", kind: .neutral, icon: glyph(source),
-                isReady: false, isProblem: false, actions: ["Supprimer"]
+                chip: String(localized: "QUEUED"), kind: .neutral, icon: glyph(source),
+                isReady: false, isProblem: false
             )
         case "extracting":
             return LibraryStatus(
-                chip: "EXTRACTION", kind: .warning, icon: glyph(source),
-                isReady: false, isProblem: false, actions: ["Supprimer"]
+                chip: String(localized: "EXTRACTING"), kind: .warning, icon: glyph(source),
+                isReady: false, isProblem: false
             )
         case "analyzed":
             return LibraryStatus(
-                chip: "ANALYSÉ", kind: .neutral, icon: glyph(source),
-                isReady: true, isProblem: false,
-                actions: ["Exclure du prochain épisode", "Supprimer"]
+                chip: String(localized: "ANALYSED"), kind: .neutral, icon: glyph(source),
+                isReady: true, isProblem: false
             )
         case "ready":
             return LibraryStatus(
-                chip: "PRÊT", kind: .success, icon: glyph(source),
-                isReady: true, isProblem: false,
-                actions: ["Exclure du prochain épisode", "Supprimer"]
+                chip: String(localized: "READY"), kind: .success, icon: glyph(source),
+                isReady: true, isProblem: false
             )
         case "duplicate":
             return LibraryStatus(
-                chip: "DOUBLON", kind: .neutral, icon: "⧉",
-                isReady: false, isProblem: true, actions: ["Ignorer"]
+                chip: String(localized: "DUPLICATE"), kind: .neutral, icon: "⧉",
+                isReady: false, isProblem: true
             )
         case "extraction_failed", "low_quality", "unsupported":
             // Three ways to end up without usable text; the row's error line says
             // which one, so they share the one chip the design gives them.
             return LibraryStatus(
-                chip: "ÉCHEC", kind: .danger, icon: "⚠",
-                isReady: false, isProblem: true,
-                actions: ["Relancer l’extraction", "Supprimer"]
+                chip: String(localized: "FAILED"), kind: .danger, icon: "⚠",
+                isReady: false, isProblem: true
             )
         default:
             return LibraryStatus(
                 chip: source.status.uppercased(), kind: .neutral, icon: glyph(source),
-                isReady: false, isProblem: false, actions: []
+                isReady: false, isProblem: false
             )
         }
     }
@@ -426,7 +401,7 @@ private enum LibraryRow {
         if let lang = source.lang, !lang.isEmpty { parts.append(lang.uppercased()) }
         parts.append(stamp(source.capturedAt))
         if let quality = source.extractionQuality {
-            parts.append("qualité " + decimal(quality))
+            parts.append(String(localized: "quality ") + decimal(quality))
         }
         return parts.joined(separator: " · ")
     }
@@ -442,12 +417,12 @@ private enum LibraryRow {
             return String(localized: "Extracting…")
         case "analyzed":
             return source.inStory
-                ? "Analysé et rattaché à un sujet."
-                : "Analysé, en attente de regroupement."
+                ? String(localized: "Analysed and attached to a story.")
+                : String(localized: "Analysed, waiting to be grouped.")
         case "ready":
             return source.inStory
-                ? "Prêt, rattaché à un sujet : candidat au prochain briefing."
-                : "Prêt pour le prochain briefing."
+                ? String(localized: "Ready and attached to a story: a candidate for the next briefing.")
+                : String(localized: "Ready for the next briefing.")
         case "duplicate":
             return String(localized: "Already saved: counted once.")
         case "extraction_failed", "low_quality", "unsupported":

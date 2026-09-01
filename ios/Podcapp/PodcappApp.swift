@@ -30,6 +30,9 @@ private struct Entry: View {
                 // follows it on its own, and this is what makes the episodes
                 // follow it too.
                 .task { await API.shared.reportLanguageIfChanged() }
+                .onReceive(NotificationCenter.default.publisher(for: .podcappSignedOut)) { _ in
+                    withAnimation { connected = false }
+                }
         } else {
             OnboardingView(onDone: { connected = true })
                 .transition(.opacity)

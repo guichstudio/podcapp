@@ -6,6 +6,7 @@ import { PUBLIC_BASE_URL } from '../config.js'
 import { ScriptSchema } from '../core/types.js'
 import { createDb, type Db } from '../db/client.js'
 import { episodes, sources, stories, users } from '../db/schema.js'
+import { deleteAccount } from '../jobs/deleteAccount.js'
 import { generateEpisode } from '../jobs/generateEpisode.js'
 import { processSource } from '../jobs/processSource.js'
 import { chapterKey, episodeAudioKey, publishEpisode } from '../jobs/publishEpisode.js'
@@ -445,6 +446,13 @@ authed.put('/me/language', async (c) => {
   const db = c.get('db')
   await db.update(users).set({ outputLanguage: language }).where(eq(users.id, c.get('userId')))
   return c.json({ language })
+})
+
+// Same contract as the edge function's DELETE /me, done inline: this process
+// holds the storage client, so nothing needs handing off.
+authed.delete('/me', async (c) => {
+  const result = await deleteAccount(db, storage, c.get('userId'))
+  return c.json({ status: 'deleted', ...result })
 })
 
 app.route('/', authed)

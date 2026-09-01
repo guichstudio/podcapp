@@ -173,7 +173,7 @@ actor API {
             let text = try input.singleValueContainer().decode(String.self)
             guard let date = parser.date(from: text) else {
                 throw DecodingError.dataCorrupted(
-                    .init(codingPath: input.codingPath, debugDescription: "date ISO 8601 attendue, reçu \(text)")
+                    .init(codingPath: input.codingPath, debugDescription: "expected an ISO 8601 date, got \(text)")
                 )
             }
             return date
@@ -215,6 +215,15 @@ actor API {
         }
     }
 
+    /// DELETE /me. The server kills both tokens before it answers and erases
+    /// the rest durably: from this side the account is gone when this returns.
+    func deleteAccount() async throws {
+        var request = try makeRequest(for: "/me")
+        request.httpMethod = "DELETE"
+        _ = try await perform(request, as: DeleteAck.self)
+    }
+
+    private struct DeleteAck: Decodable { let status: String }
     private struct EpisodeList: Decodable { let episodes: [EpisodeSummary] }
     private struct LanguageBody: Encodable { let language: String }
     private struct LanguageAck: Decodable { let language: String }
@@ -281,7 +290,7 @@ actor API {
         guard let error = error as? DecodingError else { return error.localizedDescription }
         switch error {
         case let .keyNotFound(key, context):
-            return "champ « \(key.stringValue) » absent (\(Self.path(context)))"
+            return "field “\(key.stringValue)” missing (\(Self.path(context)))"
         case let .typeMismatch(_, context), let .valueNotFound(_, context), let .dataCorrupted(context):
             return "\(context.debugDescription) (\(Self.path(context)))"
         @unknown default:
@@ -291,6 +300,6 @@ actor API {
 
     private static func path(_ context: DecodingError.Context) -> String {
         let parts = context.codingPath.map(\.stringValue)
-        return parts.isEmpty ? "racine de la réponse" : parts.joined(separator: ".")
+        return parts.isEmpty ? "response root" : parts.joined(separator: ".")
     }
 }

@@ -76,6 +76,11 @@ enum AppLocale {
     static var isEnglish: Bool { code == "en" }
 }
 
+extension Notification.Name {
+    /// Posted once the account is deleted, so the shell drops back to onboarding.
+    static let podcappSignedOut = Notification.Name("podcapp.signedOut")
+}
+
 enum IngestError: LocalizedError {
     case notConfigured
     case badURL

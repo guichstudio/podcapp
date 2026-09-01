@@ -162,7 +162,7 @@ struct OnboardingView: View {
     private var connectContent: some View {
         VStack(spacing: 0) {
             OnboardingHeadline(
-                first: "Shall we?", second: "Two seconds.",
+                first: String(localized: "Shall we?"), second: String(localized: "Two seconds."),
                 left: Sparkle("✦", 14, Onbo.accent, x: 20, y: -6),
                 right: Sparkle("✧", 10, Palette.ink, x: 22, y: 28)
             )
@@ -617,7 +617,7 @@ private struct ListenPage: View {
     var body: some View {
         VStack(spacing: 0) {
             OnboardingHeadline(
-                first: "Your morning", second: "recap.",
+                first: String(localized: "Your morning"), second: String(localized: "recap."),
                 left: Sparkle("✦", 14, Onbo.accent, x: 20, y: -8),
                 right: Sparkle("✧", 10, Palette.ink, x: 22, y: 26)
             )
@@ -626,13 +626,13 @@ private struct ListenPage: View {
             ArtboardCanvas {
                 subtitle
                     .artboardCentered(y: 300)
-                mediaCard(glyph: "¶", title: "Article", sub: "12 min read")
+                mediaCard(glyph: "¶", title: String(localized: "Article"), sub: String(localized: "12 min read"))
                     .rotationEffect(.degrees(-5))
                     .artboard(x: 40, y: 402)
-                mediaCard(glyph: "▶", title: "Video", sub: "28 min to watch")
+                mediaCard(glyph: "▶", title: String(localized: "Video"), sub: String(localized: "28 min to watch"))
                     .rotationEffect(.degrees(3))
                     .artboardTrailing(right: 40, y: 478)
-                mediaCard(glyph: "↗", title: "Link", sub: "40-post thread")
+                mediaCard(glyph: "↗", title: String(localized: "Link"), sub: String(localized: "40-post thread"))
                     .rotationEffect(.degrees(-2))
                     .artboard(x: 40, y: 554)
                 bottomStack
@@ -703,7 +703,7 @@ private struct FormatsPage: View {
     var body: some View {
         VStack(spacing: 0) {
             OnboardingHeadline(
-                first: "Anything goes in.", second: "Really, anything.",
+                first: String(localized: "Anything goes in."), second: String(localized: "Really, anything."),
                 left: Sparkle("✧", 12, Palette.ink, x: 20, y: -4),
                 right: Sparkle("✦", 14, Onbo.accent, x: 22, y: 26)
             )
@@ -816,7 +816,7 @@ private struct BuiltPage: View {
     var body: some View {
         VStack(spacing: 0) {
             OnboardingHeadline(
-                first: "Built by you,", second: "checked by us.",
+                first: String(localized: "Built by you,"), second: String(localized: "checked by us."),
                 left: Sparkle("✦", 14, Onbo.accent, x: 20, y: 2),
                 right: Sparkle("✧", 10, Palette.ink, x: 22, y: -8)
             )
@@ -839,14 +839,14 @@ private struct BuiltPage: View {
                 .artboardCentered(y: Onbo.phoneTop)
                 claimFloat(
                     chip: "VRAI", color: Palette.success, fill: Palette.successBg,
-                    text: "Blue Owl −40 % · marché ≈ 1 800 Md$ · défaut First Brands",
+                    text: String(localized: "Blue Owl −40 % · marché ≈ 1 800 Md$ · défaut First Brands"),
                     width: 196
                 )
                 .rotationEffect(.degrees(-6))
                 .artboard(x: 11, y: 582)
                 claimFloat(
                     chip: "FAKE", color: Palette.warning, fill: Palette.warningBg,
-                    text: "«sur la semaine» → «en une semaine» date non établie",
+                    text: String(localized: "«sur la semaine» → «en une semaine» date non établie"),
                     width: 190
                 )
                 .rotationEffect(.degrees(5))
@@ -966,7 +966,7 @@ private struct SharePage: View {
     var body: some View {
         VStack(spacing: 0) {
             OnboardingHeadline(
-                first: "Share it.", second: "It’s captured.",
+                first: String(localized: "Share it."), second: String(localized: "It’s captured."),
                 left: Sparkle("✧", 12, Palette.ink, x: 20, y: -6),
                 right: Sparkle("✦", 14, Onbo.accent, x: 22, y: 30)
             )
@@ -1239,7 +1239,7 @@ private struct ReadPage: View {
     var body: some View {
         VStack(spacing: 0) {
             OnboardingHeadline(
-                first: "Listen…", second: "or read.",
+                first: String(localized: "Listen…"), second: String(localized: "or read."),
                 left: Sparkle("✧", 11, Palette.ink, x: 20, y: -4),
                 right: Sparkle("✦", 14, Onbo.accent, x: 22, y: 24)
             )

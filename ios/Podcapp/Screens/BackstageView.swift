@@ -8,15 +8,15 @@ struct EpisodeBackstage: View {
 
     /// The nine editorial steps of the pipeline, in the order it runs them.
     private static let stages: [(String, String)] = [
-        ("En file", "Cible fixée avant l’écriture"),
-        ("Sélection", "Classé par importance × nouveauté"),
-        ("Plan", "150 s ici, 90 s là : coupes nommées"),
-        ("Écriture", "≈1 500 mots, registre documentaire"),
-        ("Vérification", "Chaque phrase face à sa source"),
-        ("Édition", "Blocklist : zéro tic à l’antenne"),
-        ("Narration", "Voix documentaire française"),
-        ("Assemblage", "Chapitres assemblés, niveau réglé"),
-        ("Prêt", "Retenus + écartés, avec raisons"),
+        (String(localized: "Queued"), String(localized: "Target set before writing")),
+        (String(localized: "Selecting"), String(localized: "Ranked by importance × novelty")),
+        (String(localized: "Outline"), String(localized: "150 s here, 90 s there: named cuts")),
+        (String(localized: "Writing"), String(localized: "≈1,500 words, documentary register")),
+        (String(localized: "Checking"), String(localized: "Every sentence against its source")),
+        (String(localized: "Editing"), String(localized: "Blocklist: zero tics on air")),
+        (String(localized: "Narration"), String(localized: "Documentary voice")),
+        (String(localized: "Assembling"), String(localized: "Chapters joined, level set")),
+        (String(localized: "Ready"), String(localized: "Kept + set aside, with reasons")),
     ]
 
     var body: some View {
@@ -36,7 +36,7 @@ struct EpisodeBackstage: View {
     // point of showing it: the plan is what makes the cuts explicable.
     private func budget(_ episode: EpisodeDetail) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Overline(text: "Budget d’antenne, fixé avant l’écriture")
+            Overline(text: String(localized: "Budget d’antenne, fixé avant l’écriture"))
             if episode.budget.isEmpty {
                 Text("The editorial plan for this episode was not kept.")
                     .typo(Typo.metaSmall)
@@ -68,14 +68,13 @@ struct EpisodeBackstage: View {
             }
             if let first = episode.discarded.first {
                 PlayerFlag(
-                    label: "Set aside",
+                    label: String(localized: "Set aside"),
                     text: {
                         let rest = episode.discarded.count - 1
                         if rest <= 0 { return first }
-                        // "1 autres sujets" is not French: the tail agrees.
                         return rest == 1
-                            ? "\(first) (et 1 autre sujet écarté, avec sa raison)"
-                            : "\(first) (et \(rest) autres sujets écartés, chacun avec sa raison)"
+                            ? String(localized: "\(first) (and 1 other topic set aside, with its reason)")
+                            : String(localized: "\(first) (and \(rest) other topics set aside, each with its reason)")
                     }()
                 )
             }
@@ -86,14 +85,14 @@ struct EpisodeBackstage: View {
     // and what never reached the audio.
     private func stats(_ episode: EpisodeDetail) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Overline(text: "Passe de vérification")
+            Overline(text: String(localized: "Passe de vérification"))
             if let v = episode.verification, v.checked > 0 {
                 HStack(spacing: 8) {
-                    PlayerStat(value: v.checked, label: "sentences checked")
+                    PlayerStat(value: v.checked, label: String(localized: "sentences checked"))
                     Divider().frame(height: 40).overlay(Palette.cardBorder)
-                    PlayerStat(value: v.corrected, label: "rewritten to match the evidence")
+                    PlayerStat(value: v.corrected, label: String(localized: "rewritten to match the evidence"))
                     Divider().frame(height: 40).overlay(Palette.cardBorder)
-                    PlayerStat(value: v.dropped, label: "cut before air")
+                    PlayerStat(value: v.dropped, label: String(localized: "cut before air"))
                 }
                 .padding(13)
                 .frame(maxWidth: .infinity)
@@ -124,7 +123,7 @@ struct EpisodeBackstage: View {
         // them on a queued one would be a claim the status contradicts.
         let done = episode.status == "ready"
         return VStack(alignment: .leading, spacing: 8) {
-            Overline(text: "Pipeline")
+            Overline(text: String(localized: "Pipeline"))
             PlayerFlowLayout(spacing: 6) {
                 ForEach(Self.stages, id: \.0) { stage in
                     Text((done ? "✓ " : "") + stage.0)
@@ -144,8 +143,9 @@ struct EpisodeBackstage: View {
     }
 
     private func footer(_ episode: EpisodeDetail) -> String {
-        var parts = ["Statut : " + EpisodePlayer.frenchStatus(episode.status)]
-        parts.append("\(episode.chapters.count) chapitre\(episode.chapters.count > 1 ? "s" : "")")
+        var parts = [String(localized: "Status: ") + EpisodePlayer.statusLabel(episode.status)]
+        let n = episode.chapters.count
+        parts.append(n == 1 ? String(localized: "1 chapter") : String(localized: "\(n) chapters"))
         return parts.joined(separator: " · ")
     }
 }

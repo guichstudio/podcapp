@@ -97,7 +97,7 @@ export async function publishFeed(
 // the feed. Keying it by rss_token let anyone holding the (routinely shared)
 // feed URL derive it, so it hides behind a token derived from the API secret
 // instead, which never appears in any public artifact.
-function consoleToken(apiToken: string): string {
+export function consoleToken(apiToken: string): string {
   return createHash('sha256').update(`console:${apiToken}`).digest('hex').slice(0, 43)
 }
 

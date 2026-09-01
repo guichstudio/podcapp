@@ -36,6 +36,10 @@ targets:
     info:
       path: Podcapp/Info.plist
       properties:
+        # A podcast player that stops when the screen locks fails App Review
+        # on completeness alone. Also what lets the lock screen show the episode.
+        UIBackgroundModes:
+          - audio
         UIAppFonts:
           - InterTight-Light.ttf
           - InterTight-Regular.ttf

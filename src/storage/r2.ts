@@ -55,6 +55,16 @@ export class R2Storage implements Storage {
     return Buffer.from(await res.arrayBuffer())
   }
 
+  async delete(key: string): Promise<void> {
+    const res = await this.client.fetch(this.url(key), { method: 'DELETE' })
+    // S3 answers 204 for a delete, and 404 only for a bucket that does not
+    // exist: a missing object is a 204 too. Both mean "not there anymore".
+    if (res.status === 204 || res.status === 404) return
+    if (!res.ok) {
+      throw new Error(`r2 delete ${key} failed: ${res.status} ${(await res.text()).slice(0, 300)}`)
+    }
+  }
+
   publicUrl(key: string): string {
     assertSafeKey(key)
     return `${this.publicBaseUrl}/${encodeKey(key)}`

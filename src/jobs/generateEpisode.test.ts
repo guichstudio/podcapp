@@ -228,6 +228,7 @@ test('a run that throws still persists the artifacts it produced', async () => {
       written.set(key, body.toString('utf8'))
     },
     get: async () => null,
+      delete: async () => {},
     publicUrl: (key) => key,
   }
   const db = {

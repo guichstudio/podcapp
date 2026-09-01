@@ -1,3 +1,5 @@
+import MediaPlayer
+import UIKit
 import AVFoundation
 import SwiftUI
 import UIKit
@@ -73,6 +75,7 @@ final class EpisodePlayer: ObservableObject {
     private var lastChapter = -1
 
     private init() {
+        configureRemoteCommands()
         // 0.25 s is the design's own tick: fast enough for the seek bar, cheap
         // enough to run for a fifteen minute episode.
         let interval = CMTime(seconds: 0.25, preferredTimescale: 600)
@@ -115,6 +118,8 @@ final class EpisodePlayer: ObservableObject {
         guard lastChapter != index else { return }
         let previous = lastChapter
         lastChapter = index
+        // The chapter title is what the lock screen shows.
+        refreshNowPlaying()
         guard isPlaying, previous >= 0, index == previous + 1 else { return }
         Feedback.chapterTurned()
     }
@@ -182,11 +187,12 @@ final class EpisodePlayer: ObservableObject {
         self.time = 0
         self.duration = Double(episode.actualSec ?? 0)
         self.chapters = Self.timed(episode.chapters, total: self.duration)
+        refreshNowPlaying()
 
         guard let url = episode.audioURL else {
             // A queued or failed episode has no mp3. Say which, do not spin.
             teardownItem()
-            playbackError = "Pas encore d’audio pour cet épisode (\(Self.frenchStatus(episode.status)))."
+            playbackError = String(localized: "No audio for this episode yet (\(Self.statusLabel(episode.status))).")
             isPlaying = false
             return
         }
@@ -229,11 +235,13 @@ final class EpisodePlayer: ObservableObject {
         player.play()
         player.rate = Float(speed)
         isPlaying = true
+        refreshNowPlaying()
     }
 
     func pause() {
         player.pause()
         isPlaying = false
+        refreshNowPlaying()
     }
 
     func toggle() { isPlaying ? pause() : play() }
@@ -247,6 +255,7 @@ final class EpisodePlayer: ObservableObject {
             toleranceBefore: .zero,
             toleranceAfter: .zero
         )
+        refreshNowPlaying()
     }
 
     func skip(_ delta: Double) { seek(to: time + delta) }
@@ -271,12 +280,58 @@ final class EpisodePlayer: ObservableObject {
         let index = Self.speeds.firstIndex(of: speed) ?? 0
         speed = Self.speeds[(index + 1) % Self.speeds.count]
         if isPlaying { player.rate = Float(speed) }
+        refreshNowPlaying()
     }
 
     var speedLabel: String {
-        // French writes 1,2 and this label sits next to French controls.
-        let text = speed == speed.rounded() ? String(Int(speed)) : String(speed).replacingOccurrences(of: ".", with: ",")
+        // 1,2 in French, 1.2 in English: the separator follows the interface.
+        let separator = AppLocale.current.decimalSeparator ?? "."
+        let text = speed == speed.rounded() ? String(Int(speed)) : String(speed).replacingOccurrences(of: ".", with: separator)
         return text + "×"
+    }
+
+    // MARK: Lock screen, Control Center, headset buttons
+
+    /// Set on every state change rather than on every tick: the system
+    /// extrapolates the playhead from the rate, and four writes a second
+    /// would buy nothing.
+    private func refreshNowPlaying() {
+        var info: [String: Any] = [
+            MPMediaItemPropertyTitle: currentChapter?.title ?? episode?.title ?? String(localized: "Briefing"),
+            MPMediaItemPropertyArtist: "Podcapp",
+            MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? speed : 0,
+            MPNowPlayingInfoPropertyElapsedPlaybackTime: time,
+        ]
+        if let title = episode?.title { info[MPMediaItemPropertyAlbumTitle] = title }
+        if duration > 0 { info[MPMediaItemPropertyPlaybackDuration] = duration }
+        if let artwork = Self.artwork { info[MPMediaItemPropertyArtwork] = artwork }
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+    }
+
+    private static let artwork: MPMediaItemArtwork? = {
+        guard let image = UIImage(named: "logo") else { return nil }
+        return MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+    }()
+
+    /// Play/pause from the lock screen, a headset or Siri, ±15 s where a
+    /// podcast app puts them, and chapter skips on the track buttons. Without
+    /// this the lock screen shows nothing and the AirPods do nothing.
+    private func configureRemoteCommands() {
+        let center = MPRemoteCommandCenter.shared()
+        center.playCommand.addTarget { [weak self] _ in self?.play(); return .success }
+        center.pauseCommand.addTarget { [weak self] _ in self?.pause(); return .success }
+        center.togglePlayPauseCommand.addTarget { [weak self] _ in self?.toggle(); return .success }
+        center.skipForwardCommand.preferredIntervals = [15]
+        center.skipForwardCommand.addTarget { [weak self] _ in self?.skip(15); return .success }
+        center.skipBackwardCommand.preferredIntervals = [15]
+        center.skipBackwardCommand.addTarget { [weak self] _ in self?.skip(-15); return .success }
+        center.nextTrackCommand.addTarget { [weak self] _ in self?.nextChapter(); return .success }
+        center.previousTrackCommand.addTarget { [weak self] _ in self?.previousChapter(); return .success }
+        center.changePlaybackPositionCommand.addTarget { [weak self] event in
+            guard let self, let event = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
+            self.seek(to: event.positionTime)
+            return .success
+        }
     }
 
     // MARK: Internals
@@ -336,6 +391,7 @@ final class EpisodePlayer: ObservableObject {
         guard seconds.isFinite, seconds > 0, abs(seconds - duration) > 0.5 else { return }
         duration = seconds
         if let episode { chapters = Self.timed(episode.chapters, total: seconds) }
+        refreshNowPlaying()
         if let pendingChapter {
             self.pendingChapter = nil
             jump(toChapter: pendingChapter)
@@ -376,7 +432,7 @@ final class EpisodePlayer: ObservableObject {
         }
     }
 
-    static func frenchStatus(_ status: String) -> String {
+    static func statusLabel(_ status: String) -> String {
         switch status {
         case "ready": return String(localized: "ready")
         case "queued": return String(localized: "queued")
@@ -491,22 +547,22 @@ struct PlayerView: View {
             header
             if player.isLoading {
                 PlayerNotice(
-                    title: "Loading the briefing",
+                    title: String(localized: "Loading the briefing"),
                     detail: nil,
                     kind: .neutral,
                     showsSpinner: true
                 )
             } else if let loadError = player.loadError {
                 PlayerNotice(
-                    title: "Could not load the episode",
+                    title: String(localized: "Could not load the episode"),
                     detail: loadError,
                     kind: .danger,
                     showsSpinner: false
                 )
             } else if player.episode == nil {
                 PlayerNotice(
-                    title: "Nothing playing",
-                    detail: "Open a briefing from the Today tab to listen to it here.",
+                    title: String(localized: "Nothing playing"),
+                    detail: String(localized: "Open a briefing from the Today tab to listen to it here."),
                     kind: .neutral,
                     showsSpinner: false
                 )
@@ -702,8 +758,8 @@ struct PlayerView: View {
     private var pills: some View {
         HStack(spacing: 8) {
             PlayerPill(label: player.speedLabel) { player.cycleSpeed() }
-            PlayerPill(label: "Chapters") { player.sheet = .chapters }
-            PlayerPill(label: "Transcript") { player.sheet = .transcript }
+            PlayerPill(label: String(localized: "Chapters")) { player.sheet = .chapters }
+            PlayerPill(label: String(localized: "Transcript")) { player.sheet = .transcript }
         }
     }
 
@@ -801,7 +857,7 @@ private struct PlayerChaptersSheet: View {
 
     var body: some View {
         if player.chapters.isEmpty {
-            PlayerEmptyLine(text: "Cet épisode n’a pas encore de chapitres.")
+            PlayerEmptyLine(text: String(localized: "This episode has no chapters yet."))
         } else {
             VStack(spacing: 0) {
                 ForEach(player.chapters) { chapter in
@@ -852,10 +908,10 @@ private struct PlayerSourcesSheet: View {
     static func verdictLine(_ chapter: PlayerChapter) -> String {
         let n = chapter.grounding.count
         let fixed = chapter.correctedCount
-        let phrases = n == 1 ? "1 phrase a été confrontée" : "\(n) phrases ont été confrontées"
-        if fixed == 0 { return "\(phrases) à ces sources avant diffusion. Aucune n’a dû être corrigée." }
-        let corrected = fixed == 1 ? "1 a été réécrite" : "\(fixed) ont été réécrites"
-        return "\(phrases) à ces sources avant diffusion. \(corrected) pour coller à la preuve."
+        let phrases = n == 1 ? String(localized: "1 sentence was checked") : String(localized: "\(n) sentences were checked")
+        if fixed == 0 { return String(localized: "\(phrases) against these sources before air. None needed a fix.") }
+        let corrected = fixed == 1 ? String(localized: "1 was rewritten") : String(localized: "\(fixed) were rewritten")
+        return String(localized: "\(phrases) against these sources before air. \(corrected) to match the evidence.")
     }
 
     var body: some View {
@@ -876,15 +932,15 @@ private struct PlayerSourcesSheet: View {
                 let missing = chapter.citedCount - chapter.sources.count
                 if missing > 0 {
                     PlayerFlag(
-                        label: "Set aside",
+                        label: String(localized: "Set aside"),
                         text: missing == 1
-                            ? "1 source citée n’est plus dans votre bibliothèque : elle est signalée plutôt que reconstituée."
-                            : "\(missing) sources citées ne sont plus dans votre bibliothèque : elles sont signalées plutôt que reconstituées."
+                            ? String(localized: "1 cited source is no longer in your library: it is flagged rather than reconstructed.")
+                            : String(localized: "\(missing) cited sources are no longer in your library: they are flagged rather than reconstructed.")
                     )
                 }
 
                 if !chapter.grounding.isEmpty {
-                    Overline(text: "Vérifié à l’antenne")
+                    Overline(text: String(localized: "Checked on air"))
                         .padding(.top, 8)
                     Text(Self.verdictLine(chapter))
                         .typo(Typo.metaSmall)
@@ -897,7 +953,7 @@ private struct PlayerSourcesSheet: View {
                 } else if !chapter.sources.isEmpty {
                     // No entry at all means nothing in the chapter was checkable,
                     // which is not the same as nothing having been checked.
-                    Overline(text: "Vérifié à l’antenne")
+                    Overline(text: String(localized: "Checked on air"))
                         .padding(.top, 8)
                     Text("No sentence in this chapter carried a number, a quote or a name to check.")
                         .typo(Typo.metaSmall)
@@ -905,7 +961,7 @@ private struct PlayerSourcesSheet: View {
                         .lineSpacing(3)
                 }
             } else {
-                PlayerEmptyLine(text: "Aucun chapitre en lecture.")
+                PlayerEmptyLine(text: String(localized: "Aucun chapitre en lecture."))
             }
 
             Button {
@@ -974,7 +1030,7 @@ private struct PlayerTranscriptSheet: View {
     var body: some View {
         if let chapter = player.currentChapter, !chapter.text.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
-                Overline(text: PlayerSourceText.position(chapter, in: player.chapters) + " · synchronisé")
+                Overline(text: PlayerSourceText.position(chapter, in: player.chapters) + String(localized: " · in sync"))
                 Text(chapter.text)
                     .typo(Typo.transcriptBody)
                     .foregroundStyle(Palette.prose)
@@ -986,7 +1042,7 @@ private struct PlayerTranscriptSheet: View {
                     .padding(.top, 4)
             }
         } else {
-            PlayerEmptyLine(text: "Pas de texte pour ce chapitre : l’épisode n’a pas encore de script lisible.")
+            PlayerEmptyLine(text: String(localized: "Pas de texte pour ce chapitre : l’épisode n’a pas encore de script lisible."))
         }
     }
 }
@@ -998,7 +1054,7 @@ private struct PlayerBackstageSheet: View {
         if let episode = player.episode {
             EpisodeBackstage(detail: episode)
         } else {
-            PlayerEmptyLine(text: "Aucun épisode en lecture.")
+            PlayerEmptyLine(text: String(localized: "Aucun épisode en lecture."))
         }
     }
 }
