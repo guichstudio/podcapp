@@ -1,9 +1,12 @@
 import SwiftUI
 
-// The App Store onboarding from ios/design/onboarding-layout.html (FR screens
-// "01 Écoutez" through "05 Connexion"), as the first run of the app. Five pages
-// tell what the product does, the sixth connects it. The mock cards are
-// illustrations: their strings are hardcoded from the markup on purpose.
+// The App Store onboarding from ios/design/onboarding-layout.html (the FR
+// screens of the 2026-08-31 export), as the first run of the app. The design's
+// artboards are full 393x852 device screens, so every element carries the
+// html's absolute coordinates: pages lay out header, headline and pager bar in
+// flow, then an ArtboardCanvas positions the phone mock and its floats at the
+// design's own x/y. Page order follows the export: Écoutez, Tous les formats,
+// Construit, Partagez, Lisez, Connexion.
 //
 // The design's sixth screen offers "Continuer avec Apple" and "Continuer avec
 // Google". Neither exists: the product authenticates with a per-user token that
@@ -11,11 +14,6 @@ import SwiftUI
 // and a backend that does not exist. Rather than ship two buttons that cannot
 // work, that screen keeps the design's layout and puts the token field and the
 // Continuer button where the OAuth buttons sit.
-//
-// The design frames are 380x800 with no pager chrome; the app adds a header,
-// dots and a footer around the pages, so vertical gaps are compressed (never
-// elements dropped) and each phone mock bleeds past a clipped canvas exactly
-// like the design's overflow:hidden crop.
 
 struct OnboardingView: View {
     let onDone: () -> Void
@@ -25,7 +23,6 @@ struct OnboardingView: View {
     @FocusState private var tokenFocused: Bool
 
     enum ConnectStatus: Equatable { case idle, checking, failed(String) }
-
 
     var body: some View {
         ZStack {
@@ -41,9 +38,9 @@ struct OnboardingView: View {
                         LazyHStack(spacing: 0) {
                             Group {
                                 ListenPage()
-                                SharePage()
                                 FormatsPage()
                                 BuiltPage()
+                                SharePage()
                                 ReadPage()
                                 connectPage
                             }
@@ -61,9 +58,8 @@ struct OnboardingView: View {
         // off-screen. Anything less leaves a strip of background under the cut.
         .ignoresSafeArea(edges: .bottom)
         // Keyboard avoidance squeezed the whole shell when the token field took
-        // focus: the headline slid under the header, texts truncated, the dots
-        // overlapped the button. The shell keeps its geometry; the connect page
-        // scrolls instead.
+        // focus: the headline slid under the header, texts truncated. The shell
+        // keeps its geometry; the connect page scrolls instead.
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .onAppear { Config.markOnboardingSeen() }
     }
@@ -105,19 +101,21 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             OnboardingHeadline(
                 first: "On commence ?", second: "2 secondes.",
-                left: Sparkle("✦", 14, Onbo.accent, x: 56, y: -6),
-                right: Sparkle("✧", 10, Palette.ink, x: 64, y: 28)
+                left: Sparkle("✦", 14, Onbo.accent, x: 20, y: -6),
+                right: Sparkle("✧", 10, Palette.ink, x: 22, y: 28)
             )
-            .padding(.top, 14)
+            .padding(.top, 20)
+            PagerBar(fill: 1.0)
 
             AppMark(size: 96)
                 .shadow(color: Onbo.floatShadow.opacity(0.28), radius: 27, y: 24)
-                .padding(.top, 34)
+                .padding(.top, 87)
             Text("Bienvenue sur Podcapp")
                 .fs(19, .semibold)
                 .foregroundStyle(Palette.ink)
                 .padding(.top, 22)
-            Text("Votre radio quotidienne, sourcé par vous, vérifié par nous")
+            // The markup's dash is replaced per the house punctuation rule.
+            Text("Votre radio quotidienne : sourcée par vous, vérifiée par nous")
                 .fs(12, lh: 1.55)
                 .foregroundStyle(Palette.muted)
                 .multilineTextAlignment(.center)
@@ -162,7 +160,7 @@ struct OnboardingView: View {
                 .buttonStyle(.plain)
                 .disabled(token.isEmpty || status == .checking)
             }
-            .frame(width: 264)
+            .frame(width: 272)
             .padding(.top, 32)
 
             if case let .failed(message) = status {
@@ -170,7 +168,7 @@ struct OnboardingView: View {
                     .typo(Typo.metaSmall)
                     .foregroundStyle(Palette.danger)
                     .multilineTextAlignment(.center)
-                    .frame(width: 264)
+                    .frame(width: 272)
                     .padding(.top, 10)
             }
 
@@ -214,6 +212,20 @@ private enum Onbo {
     static let darkChip = Color(hex: 0x181720)
     /// Glass card shadow, rgba(50,42,110,...) before its opacity.
     static let floatShadow = Color(hex: 0x322A6E)
+    /// Pager chevrons: #8A87A0.
+    static let pagerChevron = Color(hex: 0x8A87A0)
+
+    /// The html artboards are full 393x852 device screens.
+    static let artboardW: CGFloat = 393
+    static let artboardH: CGFloat = 852
+    /// Where the canvas starts in artboard coordinates: header (52), headline
+    /// (20 + 71) and pager bar (18 + 15) of the design's own flow.
+    static let canvasTop: CGFloat = 235
+    /// The phone mock's absolute top on every phone screen.
+    static let phoneTop: CGFloat = 252
+    /// The closed phone body: interior 660 plus 2x10 bezel padding. Its bottom
+    /// (252 + 680 = 932) bleeds 80pt past the 852 artboard, like the html.
+    static let phoneHeight: CGFloat = 680
 }
 
 private extension View {
@@ -237,9 +249,29 @@ private extension View {
             .overlay(Capsule().strokeBorder(.white.opacity(0.16)))
             .shadow(color: Color(hex: 0x1C1B22, opacity: 0.35), radius: 15, y: 14)
     }
+
+    /// Absolute positioning at the html's artboard coordinates, inside an
+    /// ArtboardCanvas (whose top is artboard y 235). Apply AFTER rotation so
+    /// the box lands where the css left/top put it.
+    func artboard(x: CGFloat, y: CGFloat) -> some View {
+        frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .offset(x: x, y: y - Onbo.canvasTop)
+    }
+
+    /// Horizontally centered variant, for left:50% / translateX(-50%) blocks.
+    func artboardCentered(y: CGFloat, xNudge: CGFloat = 0) -> some View {
+        frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .offset(x: xNudge, y: y - Onbo.canvasTop)
+    }
+
+    /// Right-anchored variant, for css right:N.
+    func artboardTrailing(right: CGFloat, y: CGFloat) -> some View {
+        frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+            .offset(x: -right, y: y - Onbo.canvasTop)
+    }
 }
 
-// MARK: - Headline with sparkles
+// MARK: - Headline, pager bar, canvas
 
 private struct Sparkle {
     let glyph: String
@@ -284,47 +316,57 @@ private struct OnboardingHeadline: View {
     }
 }
 
-// MARK: - Mock scaffolding
+/// The design's page indicator under each headline: chevrons around a 134pt
+/// track whose fill encodes the position (17% to 100%). Purely visual, like
+/// the html: the actual paging is the swipe.
+private struct PagerBar: View {
+    let fill: CGFloat
 
-/// The zone under a headline: fits the design artboard, phone mock closed,
-/// into whatever space the page has left, scaling down as one block so the
-/// html's proportions survive on any screen. The closure receives the design
-/// size (its height is the closed phone's height).
-private struct MockCanvas<Content: View>: View {
-    // The mocks keep the design's own proportions: a 380pt-wide artboard
-    // holding the CLOSED 302x680 phone of onboarding-layout.html (the html
-    // crops it at the artboard edge only because its cards are 800pt tall).
-    // The whole artboard scales uniformly, down only, to fit both screen
-    // dimensions, so the full bezel is visible and nothing is stretched.
-    private let designWidth: CGFloat = 380
-    // Headroom above the bezel rings + closed phone + breathing room so the
-    // bezel bottom clears the home indicator.
-    private let phoneHeight: CGFloat = 680
-    private let designHeight: CGFloat = 14 + 680 + 44
-    private let content: (CGSize) -> Content
+    var body: some View {
+        HStack(spacing: 14) {
+            Text("‹").fs(15).foregroundStyle(Onbo.pagerChevron)
+            ZStack(alignment: .leading) {
+                Capsule().fill(Palette.ink.opacity(0.12))
+                Capsule().fill(Palette.ink).frame(width: 134 * fill)
+            }
+            .frame(width: 134, height: 4)
+            Text("›").fs(15).foregroundStyle(Onbo.pagerChevron)
+        }
+        .padding(.top, 18)
+    }
+}
 
-    init(@ViewBuilder content: @escaping (CGSize) -> Content) {
-        self.content = content
+/// The zone under the pager bar. Children carry the html's absolute artboard
+/// coordinates via .artboard()/.artboardCentered(); the whole artboard scales
+/// uniformly (down only) to the screen width and clips at the page bounds, so
+/// the phone bleeds off the bottom exactly like the design's overflow:hidden.
+private struct ArtboardCanvas<Content: View>: View {
+    private let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
     }
 
     var body: some View {
         GeometryReader { geo in
-            let scale = min(1, geo.size.width / designWidth, geo.size.height / designHeight)
-            ZStack(alignment: .top) {
-                content(CGSize(width: designWidth, height: phoneHeight))
-            }
-            .padding(.top, 14)
-            .frame(width: designWidth, height: designHeight, alignment: .top)
-            .scaleEffect(scale, anchor: .top)
-            .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
+            let scale = min(1, geo.size.width / Onbo.artboardW)
+            ZStack(alignment: .topLeading) { content }
+                .frame(
+                    width: Onbo.artboardW,
+                    height: Onbo.artboardH - Onbo.canvasTop,
+                    alignment: .topLeading
+                )
+                .scaleEffect(scale, anchor: .top)
+                .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
         }
         .clipped()
     }
 }
 
 /// The dark phone frame the mocks live in: bezel gradient, three concentric
-/// rings, side buttons, dynamic island and a screen clipped at radius 35. The
-/// height is the design's closed 680pt body.
+/// rings, side buttons, top bezel sheen, dynamic island and a screen clipped
+/// at radius 35. The height is the design's closed 680pt body; on phone pages
+/// its bottom bleeds past the screen edge.
 private struct PhoneFrame<Screen: View>: View {
     let height: CGFloat
     let screenFill: AnyShapeStyle
@@ -345,6 +387,15 @@ private struct PhoneFrame<Screen: View>: View {
                 .fill(LinearGradient(
                     colors: [Color(hex: 0x111014), Color(hex: 0x0B0A0E)],
                     startPoint: .topLeading, endPoint: .bottomTrailing
+                ))
+                .frame(width: 302, height: height)
+            RoundedRectangle(cornerRadius: 47, style: .continuous)
+                .fill(LinearGradient(
+                    stops: [
+                        .init(color: .white.opacity(0.1), location: 0),
+                        .init(color: .white.opacity(0), location: 0.14),
+                    ],
+                    startPoint: .top, endPoint: .bottom
                 ))
                 .frame(width: 302, height: height)
             sideButton(y: 132, height: 24, edge: -1)
@@ -449,44 +500,54 @@ private struct ListenPage: View {
         VStack(spacing: 0) {
             OnboardingHeadline(
                 first: "Trop à lire ?", second: "Écoutez.",
-                left: Sparkle("✦", 14, Onbo.accent, x: 58, y: -8),
-                right: Sparkle("✧", 10, Palette.ink, x: 62, y: 26)
+                left: Sparkle("✦", 14, Onbo.accent, x: 20, y: -8),
+                right: Sparkle("✧", 10, Palette.ink, x: 22, y: 26)
             )
-            .padding(.top, 14)
-            MockCanvas { size in
-                PhoneFrame(height: size.height, screenFill: AnyShapeStyle(Color(hex: 0xFAFAF8))) {
+            .padding(.top, 20)
+            PagerBar(fill: 0.17)
+            ArtboardCanvas {
+                PhoneFrame(height: Onbo.phoneHeight, screenFill: AnyShapeStyle(Color(hex: 0xFAFAF8))) {
                     homeScreen
                 }
+                .artboardCentered(y: Onbo.phoneTop)
+                // The html nests this float inside the phone div (left -19,
+                // top 420 of the phone), so its artboard position is the
+                // phone's origin (45.5, 252) plus those offsets.
                 briefingFloat
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .offset(x: 20, y: 325)
+                    .artboard(x: 26.5, y: 672)
                 speedFloat
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                    .offset(x: -20, y: 422)
+                    .artboardTrailing(right: 14, y: 706)
             }
-            .padding(.top, 16)
         }
     }
 
     private var homeScreen: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                HStack(spacing: 6) {
-                    AppMark(size: 20)
-                    Text("Podcapp").fs(13, .semibold).foregroundStyle(Palette.ink)
+        ZStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    HStack(spacing: 6) {
+                        AppMark(size: 20)
+                        Text("Podcapp").fs(13, .semibold).foregroundStyle(Palette.ink)
+                    }
+                    Spacer()
+                    Text("LUN. 31 AOÛT").fs(9, .semibold, track: 0.08).foregroundStyle(Palette.muted)
                 }
-                Spacer()
-                Text("LUN. 31 AOÛT").fs(9, .semibold, track: 0.08).foregroundStyle(Palette.muted)
+                heroCard
+                Text("Demain").fs(12, .semibold).foregroundStyle(Palette.ink)
+                HStack(alignment: .top, spacing: 6) {
+                    tomorrowCard(title: "Contagion du crédit privé", sub: "2 sources")
+                    tomorrowCard(title: "L'économie des agents", sub: "Extraction…")
+                }
+                Text("Précédents").fs(12, .semibold).foregroundStyle(Palette.ink)
+                    .padding(.top, 2)
+                prevRow(title: "Briefing de jeudi", sub: "27 août · 4 chapitres", time: "14:36", divider: true)
+                prevRow(title: "Briefing de mercredi", sub: "26 août · 5 chapitres", time: "15:02", divider: false)
             }
-            heroCard
-            Text("Demain").fs(12, .semibold).foregroundStyle(Palette.ink)
-            HStack(alignment: .top, spacing: 6) {
-                tomorrowCard(title: "Contagion du crédit privé", sub: "2 sources")
-                tomorrowCard(title: "L'économie des agents", sub: "Extraction…")
-            }
+            .frame(width: 250, alignment: .leading)
+            .padding(.top, 46)
+            tabBar
+                .offset(y: 530)
         }
-        .frame(width: 250, alignment: .leading)
-        .padding(.top, 46)
     }
 
     private var heroCard: some View {
@@ -509,8 +570,17 @@ private struct ListenPage: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(13)
-        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Palette.glassFill))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Palette.glassBorder))
+        .background(RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .fill(LinearGradient(
+                stops: [
+                    .init(color: Color(hex: 0x7C6CDC, opacity: 0.3), location: 0),
+                    .init(color: Color(hex: 0x7C6CDC, opacity: 0.12), location: 0.42),
+                    .init(color: .white.opacity(0.65), location: 1),
+                ],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .strokeBorder(Color(hex: 0x6C5CC8, opacity: 0.28)))
     }
 
     private func tomorrowCard(title: String, sub: String) -> some View {
@@ -522,6 +592,49 @@ private struct ListenPage: View {
         .padding(8)
         .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(.white.opacity(0.8)))
         .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Palette.cardBorder))
+    }
+
+    private func prevRow(title: String, sub: String, time: String, divider: Bool) -> some View {
+        HStack(spacing: 8) {
+            AppMark(size: 26)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title).fs(10, .semibold, lh: 1.25).foregroundStyle(Palette.ink)
+                Text(sub).fs(8.5).foregroundStyle(Palette.muted2)
+            }
+            Spacer()
+            Text(time).fs(9).foregroundStyle(Palette.muted2)
+        }
+        .padding(.vertical, 6)
+        .overlay(alignment: .bottom) {
+            if divider {
+                Rectangle().fill(Palette.ink.opacity(0.07)).frame(height: 1)
+            }
+        }
+    }
+
+    private var tabBar: some View {
+        VStack(spacing: 0) {
+            Rectangle().fill(Palette.ink.opacity(0.08)).frame(height: 1)
+            HStack(spacing: 0) {
+                tab("●", "Aujourd’hui", active: true)
+                tab("¶", "Lire", active: false)
+                tab("☰", "Sources", active: false)
+                tab("⚙", "Réglages", active: false)
+            }
+            .padding(.top, 8)
+            .padding(.horizontal, 4)
+            .padding(.bottom, 26)
+        }
+        .background(Color(hex: 0xFAFAF8, opacity: 0.9))
+    }
+
+    private func tab(_ glyph: String, _ label: String, active: Bool) -> some View {
+        VStack(spacing: 2) {
+            Text(glyph).font(.system(size: 11))
+            Text(label).fs(7, .semibold)
+        }
+        .foregroundStyle(active ? Palette.ink : Palette.faint)
+        .frame(maxWidth: .infinity)
     }
 
     private var briefingFloat: some View {
@@ -537,7 +650,7 @@ private struct ListenPage: View {
         }
         .padding(.vertical, 11)
         .padding(.horizontal, 13)
-        .frame(width: 190, alignment: .leading)
+        .frame(width: 180, alignment: .leading)
         .glassFloat(radius: 14)
         .rotationEffect(.degrees(-7))
     }
@@ -553,6 +666,269 @@ private struct ListenPage: View {
     }
 }
 
+// MARK: - Screen 02b, Tous les formats
+
+private struct FormatsPage: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            OnboardingHeadline(
+                first: "Tout y passe.", second: "Vraiment tout.",
+                left: Sparkle("✧", 12, Palette.ink, x: 20, y: -4),
+                right: Sparkle("✦", 14, Onbo.accent, x: 22, y: 26)
+            )
+            .padding(.top, 20)
+            PagerBar(fill: 0.33)
+            ArtboardCanvas {
+                formatsCard
+                    .artboardCentered(y: 290)
+                Text("✓ Un seul geste : Partager → Podcapp")
+                    .fs(11, .semibold)
+                    .foregroundStyle(.white)
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 16)
+                    .darkPill()
+                    .rotationEffect(.degrees(-2))
+                    .artboardCentered(y: 670, xNudge: -2.5)
+                Text("Vidéos transcrites automatiquement · newsletters par transfert")
+                    .fs(11)
+                    .foregroundStyle(Onbo.caption)
+                    .artboardCentered(y: 735)
+            }
+        }
+    }
+
+    private var formatsCard: some View {
+        VStack(spacing: 0) {
+            formatRow("YouTube", "vidéo", divider: true) {
+                appIcon(AnyShapeStyle(Color(hex: 0xFF0033))) {
+                    Text("▶").font(.system(size: 12)).foregroundStyle(.white)
+                }
+            }
+            formatRow("Facebook", "vidéo · article", divider: true) {
+                appIcon(AnyShapeStyle(Color(hex: 0x1877F2))) {
+                    Text("f").font(.system(size: 18, weight: .bold)).foregroundStyle(.white)
+                }
+            }
+            formatRow("Instagram", "post · reel", divider: true) {
+                appIcon(AnyShapeStyle(LinearGradient(
+                    stops: [
+                        .init(color: Color(hex: 0xF58529), location: 0),
+                        .init(color: Color(hex: 0xDD2A7B), location: 0.55),
+                        .init(color: Color(hex: 0x8134AF), location: 1),
+                    ],
+                    startPoint: .bottomLeading, endPoint: .topTrailing
+                ))) { instagramGlyph }
+            }
+            formatRow("X · Twitter", "lien · thread", divider: true) {
+                appIcon(AnyShapeStyle(Palette.ink)) {
+                    Text("𝕏").font(.system(size: 13)).foregroundStyle(.white)
+                }
+            }
+            formatRow("PDF", "document", divider: true) {
+                appIcon(AnyShapeStyle(Palette.danger)) {
+                    Text("PDF").fs(8, .semibold, track: 0.04).foregroundStyle(.white)
+                }
+            }
+            formatRow("Mail", "newsletter", divider: false) {
+                appIcon(AnyShapeStyle(Onbo.safariBlue)) {
+                    Image(systemName: "envelope")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white)
+                }
+            }
+        }
+        .padding(6)
+        .frame(width: 300)
+        .background(RoundedRectangle(cornerRadius: 26, style: .continuous).fill(.white.opacity(0.52)))
+        .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(.white.opacity(0.75)))
+        .shadow(color: Onbo.floatShadow.opacity(0.22), radius: 30, y: 24)
+    }
+
+    private func formatRow(_ name: String, _ tag: String, divider: Bool, @ViewBuilder icon: () -> some View) -> some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                icon()
+                Text(name).fs(14, .semibold).foregroundStyle(Palette.ink)
+                Spacer()
+                Text(tag).fs(11).foregroundStyle(Palette.muted2)
+            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 14)
+            if divider {
+                Rectangle().fill(Palette.hairline).frame(height: 1)
+            }
+        }
+    }
+
+    private func appIcon(_ fill: AnyShapeStyle, @ViewBuilder glyph: () -> some View) -> some View {
+        RoundedRectangle(cornerRadius: 10, style: .continuous)
+            .fill(fill)
+            .frame(width: 34, height: 34)
+            .overlay(glyph())
+            .shadow(color: Color(hex: 0x1C1B22, opacity: 0.14), radius: 5, y: 4)
+    }
+
+    private var instagramGlyph: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .strokeBorder(.white, lineWidth: 1.8)
+                .frame(width: 16, height: 16)
+            Circle().strokeBorder(.white, lineWidth: 1.8).frame(width: 8, height: 8)
+            Circle().fill(.white).frame(width: 2.4, height: 2.4).offset(x: 4.6, y: -4.6)
+        }
+    }
+}
+
+// MARK: - Screen 03, Construit
+
+private struct BuiltPage: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            OnboardingHeadline(
+                first: "Construit par vous,", second: "vérifié par nous.",
+                left: Sparkle("✦", 14, Onbo.accent, x: 20, y: 2),
+                right: Sparkle("✧", 10, Palette.ink, x: 22, y: -8)
+            )
+            .padding(.top, 20)
+            PagerBar(fill: 0.5)
+            ArtboardCanvas {
+                PhoneFrame(height: Onbo.phoneHeight, screenFill: AnyShapeStyle(LinearGradient(
+                    stops: [
+                        .init(color: Color(hex: 0xE4DFF5), location: 0),
+                        .init(color: Color(hex: 0xF4F3EF), location: 0.6),
+                    ],
+                    startPoint: .top, endPoint: .bottom
+                ))) {
+                    ZStack(alignment: .top) {
+                        playerScreen
+                        statsFloat
+                            .offset(x: -1, y: 494)
+                    }
+                }
+                .artboardCentered(y: Onbo.phoneTop)
+                claimFloat(
+                    chip: "VRAI", color: Palette.success, fill: Palette.successBg,
+                    text: "Blue Owl −40 % · marché ≈ 1 800 Md$ · défaut First Brands",
+                    width: 196
+                )
+                .rotationEffect(.degrees(-6))
+                .artboard(x: 11, y: 582)
+                claimFloat(
+                    chip: "FAKE", color: Palette.warning, fill: Palette.warningBg,
+                    text: "«sur la semaine» → «en une semaine» date non établie",
+                    width: 190
+                )
+                .rotationEffect(.degrees(5))
+                .artboard(x: 177.5, y: 658)
+            }
+        }
+    }
+
+    private var playerScreen: some View {
+        VStack(spacing: 12) {
+            AppMark(size: 64)
+                .shadow(color: Onbo.floatShadow.opacity(0.25), radius: 17, y: 14)
+                .padding(.top, 8)
+            Text("CHAPITRE 1 SUR 4")
+                .fs(8, .semibold, track: 0.1)
+                .foregroundStyle(Palette.accentMuted)
+            Text("Crédit privé, le cafard de Wall Street")
+                .fs(15, .semibold, lh: 1.2)
+                .foregroundStyle(Palette.ink)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 210)
+            MockProgress(fraction: 0.34, height: 3.5, tint: Palette.ink, track: Palette.ink.opacity(0.14))
+                .frame(width: 205)
+            HStack(spacing: 10) {
+                Text("⏮").font(.system(size: 12)).foregroundStyle(Palette.ink)
+                skipButton("−15")
+                Text("❚❚")
+                    .font(.system(size: 14))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(Circle().fill(Palette.ink))
+                    .shadow(color: Palette.ink.opacity(0.3), radius: 11, y: 10)
+                skipButton("+15")
+                Text("⏭").font(.system(size: 12)).foregroundStyle(Palette.ink)
+            }
+            sourceCard
+                .padding(.top, 4)
+        }
+        .frame(width: 250)
+        .padding(.top, 50)
+    }
+
+    private func skipButton(_ label: String) -> some View {
+        Text(label)
+            .fs(7.5, .semibold)
+            .foregroundStyle(Palette.ink)
+            .frame(width: 30, height: 30)
+            .overlay(Circle().strokeBorder(Palette.ink.opacity(0.16)))
+    }
+
+    private var sourceCard: some View {
+        HStack(spacing: 8) {
+            Text("SOURCE").fs(7, .semibold, track: 0.08).foregroundStyle(Palette.accentMuted)
+            // The markup's dash is replaced per the house punctuation rule.
+            Text("L'ECHO · «Vous avez aimé les subprimes…»")
+                .fs(8.5, .semibold)
+                .foregroundStyle(Palette.ink)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text("↗").font(.system(size: 9)).foregroundStyle(Palette.faint)
+        }
+        .padding(.vertical, 9)
+        .padding(.horizontal, 11)
+        .frame(width: 220)
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.white.opacity(0.72)))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .strokeBorder(Palette.ink.opacity(0.09)))
+    }
+
+    private var statsFloat: some View {
+        HStack(spacing: 14) {
+            stat("42", "vérifiées")
+            statDivider
+            stat("4", "réécrites")
+            statDivider
+            stat("0", "non sourcée")
+        }
+        .padding(.vertical, 11)
+        .padding(.horizontal, 14)
+        .glassFloat(radius: 14)
+        .rotationEffect(.degrees(-2))
+    }
+
+    private func stat(_ number: String, _ label: String) -> some View {
+        VStack(spacing: 0) {
+            Text(number).fs(17, .semibold).foregroundStyle(Palette.ink)
+            Text(label).fs(8).foregroundStyle(Palette.muted)
+        }
+    }
+
+    private var statDivider: some View {
+        Rectangle().fill(Palette.ink.opacity(0.1)).frame(width: 1, height: 28)
+    }
+
+    private func claimFloat(chip: String, color: Color, fill: Color, text: String, width: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(chip)
+                .fs(8, .semibold, track: 0.06)
+                .foregroundStyle(color)
+                .padding(.vertical, 3)
+                .padding(.horizontal, 8)
+                .background(Capsule().fill(fill))
+            Text(text)
+                .fs(10.5, .semibold, lh: 1.35)
+                .foregroundStyle(Palette.ink)
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .frame(width: width, alignment: .leading)
+        .glassFloat(radius: 13)
+    }
+}
+
 // MARK: - Screen 02, Partagez
 
 private struct SharePage: View {
@@ -560,34 +936,34 @@ private struct SharePage: View {
         VStack(spacing: 0) {
             OnboardingHeadline(
                 first: "Partagez.", second: "C'est capturé.",
-                left: Sparkle("✧", 12, Palette.ink, x: 66, y: -6),
-                right: Sparkle("✦", 14, Onbo.accent, x: 56, y: 30)
+                left: Sparkle("✧", 12, Palette.ink, x: 20, y: -6),
+                right: Sparkle("✦", 14, Onbo.accent, x: 22, y: 30)
             )
-            .padding(.top, 14)
-            MockCanvas { size in
-                PhoneFrame(height: size.height, screenFill: AnyShapeStyle(Color(hex: 0xFAFAF8))) {
+            .padding(.top, 20)
+            PagerBar(fill: 0.67)
+            ArtboardCanvas {
+                PhoneFrame(height: Onbo.phoneHeight, screenFill: AnyShapeStyle(Color(hex: 0xFAFAF8))) {
                     ZStack(alignment: .top) {
                         articleContent
-                        Color(hex: 0x14121E, opacity: 0.38)
+                        Color(hex: 0x14121E, opacity: 0.22)
                         stepsFloat
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                            .offset(x: 25, y: 130)
+                            .offset(x: 16, y: 208)
                         capturedToast
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                            .offset(x: 130, y: 228)
+                            .offset(x: 130, y: 318)
+                        actionBar
+                            .frame(maxHeight: .infinity, alignment: .bottom)
+                            .padding(.bottom, 240)
+                            .padding(.horizontal, 6)
+                        shareSheet
+                            .frame(maxHeight: .infinity, alignment: .bottom)
+                            .padding(.bottom, 70)
+                            .padding(.horizontal, 6)
                     }
                 }
-                // Anchored to the phone's bottom edge, like the html pins its
-                // sheet to the screen bottom.
-                VStack(spacing: 10) {
-                    actionBar
-                    shareSheet
-                }
-                .frame(width: 270)
-                .frame(height: size.height - 18, alignment: .bottom)
-                .frame(maxWidth: .infinity)
+                .artboardCentered(y: Onbo.phoneTop)
             }
-            .padding(.top, 16)
         }
     }
 
@@ -600,23 +976,54 @@ private struct SharePage: View {
                 .padding(.horizontal, 11)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Palette.ink.opacity(0.06)))
+            Text("VOTRE ARTICLE")
+                .fs(8, .semibold, track: 0.08)
+                .foregroundStyle(Onbo.accent)
+                .padding(.vertical, 3)
+                .padding(.horizontal, 8)
+                .background(Capsule().fill(Color(hex: 0x7C6CDC, opacity: 0.14)))
+                .overlay(Capsule().strokeBorder(Color(hex: 0x7C6CDC, opacity: 0.3)))
             Text("«Vous avez aimé les subprimes, vous allez adorer la crise des crédits privés»")
-                .fs(13.5, .semibold, lh: 1.25)
+                .fs(15, .semibold, lh: 1.22)
                 .foregroundStyle(Palette.ink)
+            HStack(spacing: 6) {
+                Text("ECHO")
+                    .fs(4.5, .semibold)
+                    .foregroundStyle(.white)
+                    .frame(width: 14, height: 14)
+                    .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(Palette.ink))
+                Text("L'Echo · Marchés · 28 août 2026").fs(9).foregroundStyle(Palette.muted2)
+            }
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(LinearGradient(
+                    colors: [Palette.ink.opacity(0.16), Palette.ink.opacity(0.07)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                ))
+                .frame(height: 84)
+                .overlay(
+                    Text("▶")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white)
+                        .padding(.leading, 2)
+                        .frame(width: 30, height: 30)
+                        .background(Circle().fill(Palette.ink.opacity(0.55)))
+                )
             skeleton(1)
+            skeleton(0.94)
             skeleton(0.88)
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Palette.ink.opacity(0.07))
-                .frame(height: 64)
-                .overlay(Text("▸").font(.system(size: 15)).foregroundStyle(Palette.faint))
-            skeleton(0.92)
+            Text("Blue Owl, First Brands : les dominos")
+                .fs(10, .semibold)
+                .foregroundStyle(Palette.ink)
+                .padding(.top, 2)
+            skeleton(0.96)
+            skeleton(0.7)
         }
         .frame(width: 250, alignment: .leading)
         .padding(.top, 46)
     }
 
     private func skeleton(_ fraction: CGFloat) -> some View {
-        Capsule().fill(Palette.ink.opacity(0.08)).frame(width: 250 * fraction, height: 6)
+        Capsule().fill(Palette.ink.opacity(0.1)).frame(width: 250 * fraction, height: 6)
     }
 
     private var stepsFloat: some View {
@@ -792,256 +1199,6 @@ private struct SharePage: View {
     }
 }
 
-// MARK: - Screen 02b, Tous les formats
-
-private struct FormatsPage: View {
-    var body: some View {
-        VStack(spacing: 0) {
-            OnboardingHeadline(
-                first: "Tout y passe.", second: "Vraiment tout.",
-                left: Sparkle("✧", 12, Palette.ink, x: 60, y: -4),
-                right: Sparkle("✦", 14, Onbo.accent, x: 58, y: 26)
-            )
-            .padding(.top, 14)
-            formatsCard
-                .padding(.top, 26)
-            Text("Vidéos transcrites automatiquement · newsletters par transfert")
-                .fs(11)
-                .foregroundStyle(Onbo.caption)
-                .padding(.top, 14)
-            Spacer(minLength: 8)
-            Text("✓ Un seul geste : Partager → Podcapp")
-                .fs(11, .semibold)
-                .foregroundStyle(.white)
-                .padding(.vertical, 10)
-                .padding(.horizontal, 16)
-                .darkPill()
-                .rotationEffect(.degrees(-2))
-                .padding(.bottom, 6)
-        }
-    }
-
-    private var formatsCard: some View {
-        VStack(spacing: 0) {
-            formatRow("YouTube", "vidéo", divider: true) {
-                appIcon(AnyShapeStyle(Color(hex: 0xFF0033))) {
-                    Text("▶").font(.system(size: 12)).foregroundStyle(.white)
-                }
-            }
-            formatRow("Facebook", "vidéo · article", divider: true) {
-                appIcon(AnyShapeStyle(Color(hex: 0x1877F2))) {
-                    Text("f").font(.system(size: 18, weight: .bold)).foregroundStyle(.white)
-                }
-            }
-            formatRow("Instagram", "post · reel", divider: true) {
-                appIcon(AnyShapeStyle(LinearGradient(
-                    stops: [
-                        .init(color: Color(hex: 0xF58529), location: 0),
-                        .init(color: Color(hex: 0xDD2A7B), location: 0.55),
-                        .init(color: Color(hex: 0x8134AF), location: 1),
-                    ],
-                    startPoint: .bottomLeading, endPoint: .topTrailing
-                ))) { instagramGlyph }
-            }
-            formatRow("X · Twitter", "lien · thread", divider: true) {
-                appIcon(AnyShapeStyle(Palette.ink)) {
-                    Text("𝕏").font(.system(size: 13)).foregroundStyle(.white)
-                }
-            }
-            formatRow("PDF", "document", divider: true) {
-                appIcon(AnyShapeStyle(Palette.danger)) {
-                    Text("PDF").fs(8, .semibold, track: 0.04).foregroundStyle(.white)
-                }
-            }
-            formatRow("Mail", "newsletter", divider: false) {
-                appIcon(AnyShapeStyle(Onbo.safariBlue)) {
-                    Image(systemName: "envelope")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(.white)
-                }
-            }
-        }
-        .padding(6)
-        .frame(width: 290)
-        .background(RoundedRectangle(cornerRadius: 26, style: .continuous).fill(.white.opacity(0.52)))
-        .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(.white.opacity(0.75)))
-        .shadow(color: Onbo.floatShadow.opacity(0.22), radius: 30, y: 24)
-    }
-
-    private func formatRow(_ name: String, _ tag: String, divider: Bool, @ViewBuilder icon: () -> some View) -> some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                icon()
-                Text(name).fs(14, .semibold).foregroundStyle(Palette.ink)
-                Spacer()
-                Text(tag).fs(11).foregroundStyle(Palette.muted2)
-            }
-            .padding(.vertical, 12)
-            .padding(.horizontal, 14)
-            if divider {
-                Rectangle().fill(Palette.hairline).frame(height: 1)
-            }
-        }
-    }
-
-    private func appIcon(_ fill: AnyShapeStyle, @ViewBuilder glyph: () -> some View) -> some View {
-        RoundedRectangle(cornerRadius: 10, style: .continuous)
-            .fill(fill)
-            .frame(width: 34, height: 34)
-            .overlay(glyph())
-            .shadow(color: Color(hex: 0x1C1B22, opacity: 0.14), radius: 5, y: 4)
-    }
-
-    private var instagramGlyph: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                .strokeBorder(.white, lineWidth: 1.8)
-                .frame(width: 16, height: 16)
-            Circle().strokeBorder(.white, lineWidth: 1.8).frame(width: 8, height: 8)
-            Circle().fill(.white).frame(width: 2.4, height: 2.4).offset(x: 4.6, y: -4.6)
-        }
-    }
-}
-
-// MARK: - Screen 03, Construit
-
-private struct BuiltPage: View {
-    var body: some View {
-        VStack(spacing: 0) {
-            OnboardingHeadline(
-                first: "Construit,", second: "par vous.",
-                left: Sparkle("✦", 14, Onbo.accent, x: 54, y: 2),
-                right: Sparkle("✧", 10, Palette.ink, x: 68, y: -8)
-            )
-            .padding(.top, 14)
-            MockCanvas { size in
-                PhoneFrame(height: size.height, screenFill: AnyShapeStyle(LinearGradient(
-                    stops: [
-                        .init(color: Color(hex: 0xE4DFF5), location: 0),
-                        .init(color: Color(hex: 0xF4F3EF), location: 0.6),
-                    ],
-                    startPoint: .top, endPoint: .bottom
-                ))) {
-                    playerScreen
-                }
-                claimFloat(
-                    chip: "VÉRIFIÉ", color: Palette.success, fill: Palette.successBg,
-                    text: "Blue Owl −40 % · marché ≈ 1 800 Md$ · défaut First Brands",
-                    width: 196, angle: -6
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .offset(x: 67, y: 300)
-                claimFloat(
-                    chip: "CORRIGÉ", color: Palette.warning, fill: Palette.warningBg,
-                    text: "«sur la semaine» → «en une semaine» date non établie",
-                    width: 190, angle: 5
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .offset(x: 174, y: 348)
-                // Anchored to the phone's bottom edge.
-                statsFloat
-                    .frame(height: size.height - 20, alignment: .bottom)
-                    .frame(maxWidth: .infinity)
-            }
-            .padding(.top, 16)
-        }
-    }
-
-    private var playerScreen: some View {
-        VStack(spacing: 12) {
-            AppMark(size: 64)
-                .shadow(color: Onbo.floatShadow.opacity(0.25), radius: 17, y: 14)
-                .padding(.top, 8)
-            Text("CHAPITRE 1 SUR 4")
-                .fs(8, .semibold, track: 0.1)
-                .foregroundStyle(Palette.accentMuted)
-            Text("Crédit privé, le cafard de Wall Street")
-                .fs(15, .semibold, lh: 1.2)
-                .foregroundStyle(Palette.ink)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 210)
-            MockProgress(fraction: 0.34, height: 3.5, tint: Palette.ink, track: Palette.ink.opacity(0.14))
-                .frame(width: 250 * 0.82)
-            transport
-        }
-        .frame(width: 250)
-        .padding(.top, 50)
-    }
-
-    private var transport: some View {
-        HStack(spacing: 10) {
-            // The markup's ⏮ and ⏭ render as emoji on iOS, so the same shapes
-            // come from SF Symbols instead.
-            Image(systemName: "backward.end.fill")
-                .font(.system(size: 11))
-                .foregroundStyle(Palette.ink)
-            skipButton("−15")
-            Text("❚❚")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(.white)
-                .frame(width: 44, height: 44)
-                .background(Circle().fill(Palette.ink))
-                .shadow(color: Color(hex: 0x1C1B22, opacity: 0.3), radius: 11, y: 10)
-            skipButton("+15")
-            Image(systemName: "forward.end.fill")
-                .font(.system(size: 11))
-                .foregroundStyle(Palette.ink)
-        }
-    }
-
-    private func skipButton(_ label: String) -> some View {
-        Text(label)
-            .fs(7.5, .semibold)
-            .foregroundStyle(Palette.ink)
-            .frame(width: 30, height: 30)
-            .overlay(Circle().strokeBorder(Palette.ink.opacity(0.16)))
-    }
-
-    private func claimFloat(chip: String, color: Color, fill: Color, text: String, width: CGFloat, angle: Double) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Text(chip)
-                .fs(8, .semibold, track: 0.06)
-                .foregroundStyle(color)
-                .padding(.vertical, 3)
-                .padding(.horizontal, 8)
-                .background(Capsule().fill(fill))
-            Text(text)
-                .fs(10.5, .semibold, lh: 1.35)
-                .foregroundStyle(Palette.ink)
-        }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 12)
-        .frame(width: width, alignment: .leading)
-        .glassFloat(radius: 13)
-        .rotationEffect(.degrees(angle))
-    }
-
-    private var statsFloat: some View {
-        HStack(spacing: 14) {
-            statCell("42", "vérifiées")
-            statDivider
-            statCell("4", "réécrites")
-            statDivider
-            statCell("0", "non sourcée")
-        }
-        .padding(.vertical, 11)
-        .padding(.horizontal, 14)
-        .glassFloat(radius: 14)
-        .rotationEffect(.degrees(-2))
-    }
-
-    private func statCell(_ number: String, _ label: String) -> some View {
-        VStack(spacing: 0) {
-            Text(number).fs(17, .semibold).foregroundStyle(Palette.ink)
-            Text(label).fs(8).foregroundStyle(Palette.muted)
-        }
-    }
-
-    private var statDivider: some View {
-        Rectangle().fill(Palette.ink.opacity(0.1)).frame(width: 1, height: 26)
-    }
-}
-
 // MARK: - Screen 04, Lisez
 
 private struct ReadPage: View {
@@ -1049,22 +1206,19 @@ private struct ReadPage: View {
         VStack(spacing: 0) {
             OnboardingHeadline(
                 first: "Écoutez…", second: "ou lisez.",
-                left: Sparkle("✧", 11, Palette.ink, x: 62, y: -4),
-                right: Sparkle("✦", 14, Onbo.accent, x: 54, y: 24)
+                left: Sparkle("✧", 11, Palette.ink, x: 20, y: -4),
+                right: Sparkle("✦", 14, Onbo.accent, x: 22, y: 24)
             )
-            .padding(.top, 14)
-            MockCanvas { size in
-                PhoneFrame(height: size.height, screenFill: AnyShapeStyle(Color(hex: 0xFAFAF8))) {
+            .padding(.top, 20)
+            PagerBar(fill: 0.83)
+            ArtboardCanvas {
+                PhoneFrame(height: Onbo.phoneHeight, screenFill: AnyShapeStyle(Color(hex: 0xFAFAF8))) {
                     readerScreen
                 }
+                .artboardCentered(y: Onbo.phoneTop)
                 quiverFloat
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .offset(x: 82, y: 392)
-                readFloat
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .offset(x: 235, y: 433)
+                    .artboard(x: 14, y: 680)
             }
-            .padding(.top, 16)
         }
     }
 
@@ -1107,6 +1261,13 @@ private struct ReadPage: View {
             Text("Quiver Quantitative a publié ce vendredi une démonstration qui résume bien le moment…")
                 .fs(9.5, .light, lh: 1.65)
                 .foregroundStyle(Palette.prose)
+            chapterRow("03", "Les douze fins possibles de l'IA", "3:00")
+                .padding(.top, 4)
+            Text("Selon une enquête de janvier 2024, le chercheur moyen estime à une chance sur six la probabilité que l'IA anéantisse l'humanité…")
+                .fs(9.5, .light, lh: 1.65)
+                .foregroundStyle(Palette.prose)
+            chapterRow("04", "The Space Between Us", "1:30")
+                .padding(.top, 4)
         }
         .frame(width: 250, alignment: .leading)
         .padding(.top, 48)
@@ -1139,10 +1300,14 @@ private struct ReadPage: View {
         .padding(.horizontal, 12)
         .frame(width: 217, alignment: .leading)
         .glassFloat(radius: 13)
+        .overlay(alignment: .topLeading) {
+            readPill
+                .offset(x: 121, y: 63)
+        }
         .rotationEffect(.degrees(-7))
     }
 
-    private var readFloat: some View {
+    private var readPill: some View {
         Text("¶ Lire l'article")
             .fs(11, .semibold)
             .foregroundStyle(.white)
