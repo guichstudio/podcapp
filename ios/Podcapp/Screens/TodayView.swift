@@ -546,18 +546,24 @@ private struct TodayGenerateCard: View {
         do {
             _ = try await API.shared.generateEpisode(targetMin: targetMinutes)
             outcome = .queued
+            Feedback.launched()
         } catch APIError.http(_, let message) where !message.isEmpty {
             // 409 and 503 arrive here: the server already worded the refusal.
             outcome = .failed(message)
+            Feedback.refused()
         } catch {
             outcome = .failed(error.localizedDescription)
+            Feedback.refused()
         }
     }
 
     private var lengthPicker: some View {
         HStack(spacing: 0) {
             ForEach([5, 8, 10], id: \.self) { minutes in
-                Button { targetMinutes = minutes } label: {
+                Button {
+                    if minutes != targetMinutes { Feedback.select() }
+                    targetMinutes = minutes
+                } label: {
                     Text("\(minutes)′")
                         .typo(Typo.buttonSmall)
                         .foregroundStyle(minutes == targetMinutes ? Palette.onDark : Palette.body)

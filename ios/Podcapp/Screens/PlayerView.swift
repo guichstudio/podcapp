@@ -68,6 +68,9 @@ final class EpisodePlayer: ObservableObject {
     private var sessionReady = false
     /// A chapter asked for before the timeline was known, replayed once it is.
     private var pendingChapter: Int?
+    /// Last chapter the narration was heard in, so a boundary crossing can be
+    /// told apart from a seek. -1 until the first tick of a fresh player.
+    private var lastChapter = -1
 
     private init() {
         // 0.25 s is the design's own tick: fast enough for the seek bar, cheap
@@ -77,6 +80,7 @@ final class EpisodePlayer: ObservableObject {
             guard let self else { return }
             self.time = max(0, current.seconds)
             if self.duration <= 0 { self.refreshDuration() }
+            self.noticeChapterTurn()
         }
         // The system pauses the player on its own (phone call, Siri, headphones
         // unplugged): the UI must follow the player, not the last button tap,
@@ -100,6 +104,19 @@ final class EpisodePlayer: ObservableObject {
         // Walking backwards means the boundary belongs to the chapter it opens.
         for chapter in chapters.reversed() where time >= chapter.start { return chapter.id }
         return 0
+    }
+
+    /// The only feedback the app gives without being touched, so it fires on
+    /// one case and no other: the audio itself crossing into the next chapter
+    /// while it plays. A seek that lands elsewhere is the user's own doing and
+    /// was already felt under their thumb.
+    private func noticeChapterTurn() {
+        let index = currentIndex
+        guard lastChapter != index else { return }
+        let previous = lastChapter
+        lastChapter = index
+        guard isPlaying, previous >= 0, index == previous + 1 else { return }
+        Feedback.chapterTurned()
     }
 
     var currentChapter: PlayerChapter? {
@@ -409,6 +426,7 @@ struct MiniPlayerBar: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             Button {
                 player.toggle()
+                player.isPlaying ? Feedback.play() : Feedback.pause()
             } label: {
                 Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: 15, weight: .semibold))
@@ -650,9 +668,12 @@ struct PlayerView: View {
             .buttonStyle(.plain)
             .accessibilityLabel("Chapitre précédent")
 
-            PlayerSkipButton(label: "-15") { player.skip(-15) }
+            PlayerSkipButton(label: "-15") { Feedback.tap(); player.skip(-15) }
 
-            Button { player.toggle() } label: {
+            Button {
+                player.toggle()
+                player.isPlaying ? Feedback.play() : Feedback.pause()
+            } label: {
                 Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: 24, weight: .medium))
                     .foregroundStyle(Palette.onDark)
@@ -663,7 +684,7 @@ struct PlayerView: View {
             .buttonStyle(.plain)
             .accessibilityLabel(player.isPlaying ? "Pause" : "Lecture")
 
-            PlayerSkipButton(label: "+15") { player.skip(15) }
+            PlayerSkipButton(label: "+15") { Feedback.tap(); player.skip(15) }
 
             Button { player.nextChapter() } label: {
                 Image(systemName: "forward.end.fill")

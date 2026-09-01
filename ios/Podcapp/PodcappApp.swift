@@ -7,6 +7,9 @@ struct PodcappApp: App {
         // idempotent and is what settles Typo.interAvailable, which decides
         // whether text draws in Inter Tight or falls back to SF Pro.
         Typo.registerFonts()
+        // Four files, 15 KB: loading them now means the first feedback sound is
+        // on time rather than a beat late.
+        Feedback.warmUp()
     }
 
     var body: some Scene {

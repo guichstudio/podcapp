@@ -29,6 +29,7 @@ struct OnboardingView: View {
         let current = page ?? 0
         let target = min(Self.pageCount - 1, max(0, current + delta))
         guard target != current else { return }
+        Feedback.select()
         withAnimation(.easeInOut(duration: 0.3)) { page = target }
     }
 

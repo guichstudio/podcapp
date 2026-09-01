@@ -305,9 +305,11 @@ struct LibraryView: View {
             try await Ingest.save(url: LibraryRow.link(from: text), text: text)
             draft = ""
             addState = .done("Enregistré. Il rejoindra votre prochain briefing.")
+            Feedback.saved()
             await load()
         } catch {
             addState = .failed(error.localizedDescription)
+            Feedback.refused()
         }
     }
 }

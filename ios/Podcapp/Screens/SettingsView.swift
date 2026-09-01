@@ -16,6 +16,10 @@ struct SettingsView: View {
     // Config is plain UserDefaults and publishes nothing, so the saved state is
     // mirrored here and refreshed by saveAndTest() instead of read mid-render.
     @State private var isConfigured = Config.isConfigured
+    // Config publishes nothing, so the switches keep their own state and write
+    // through on change, like the token field above.
+    @State private var haptics = Config.hapticsEnabled
+    @State private var sounds = Config.soundEnabled
 
     enum Connection: Equatable {
         case idle
@@ -37,6 +41,9 @@ struct SettingsView: View {
                     .padding(.bottom, 22)
 
                 languageCard
+                    .padding(.bottom, 12)
+
+                feedbackCard
                     .padding(.bottom, 12)
 
                 Text("Ces réglages s’affichent seulement, ils se changent sur l’ordinateur qui génère les épisodes.")
@@ -70,6 +77,15 @@ struct SettingsView: View {
         }
         .background(ScreenBackground())
         .scrollDismissesKeyboard(.interactively)
+        .onChange(of: haptics) { _, on in
+            Config.hapticsEnabled = on
+            // Fires only when switched on, and that firing is the demonstration.
+            if on { Feedback.tap() }
+        }
+        .onChange(of: sounds) { _, on in
+            Config.soundEnabled = on
+            if on { Feedback.saved() }
+        }
     }
 
     // App Review 5.1.1 wants the privacy policy reachable from inside the app,
@@ -219,8 +235,10 @@ struct SettingsView: View {
         do {
             try await Ingest.save(url: nil, text: "Test de connexion depuis l’app Podcapp.")
             connection = .ok("Connecté. Le partage est prêt.")
+            Feedback.saved()
         } catch {
             connection = .failed(error.localizedDescription)
+            Feedback.refused()
         }
     }
 
@@ -243,6 +261,45 @@ struct SettingsView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 15)
         }
+    }
+
+    // MARK: - Retours
+
+    private var feedbackCard: some View {
+        PlainCard(cornerRadius: 16, padding: 0) {
+            VStack(spacing: 0) {
+                feedbackRow(
+                    title: "Vibrations",
+                    sub: "Un retour sous le doigt sur les onglets, la lecture et les chapitres.",
+                    isOn: $haptics
+                )
+                Rectangle().fill(Palette.cardBorder).frame(height: 1)
+                feedbackRow(
+                    title: "Sons",
+                    sub: "Quatre sons courts : enregistré, refusé, génération lancée, chapitre suivant.",
+                    isOn: $sounds
+                )
+            }
+        }
+    }
+
+    private func feedbackRow(title: String, sub: String, isOn: Binding<Bool>) -> some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .typo(Typo.listTitle)
+                    .foregroundStyle(Palette.ink)
+                Text(sub)
+                    .typo(Typo.metaSmall)
+                    .foregroundStyle(Palette.muted2)
+            }
+            Spacer(minLength: 0)
+            Toggle("", isOn: isOn)
+                .labelsHidden()
+                .tint(Palette.ink)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 15)
     }
 
     // Both options are shown as the design draws them, but the app ships one set

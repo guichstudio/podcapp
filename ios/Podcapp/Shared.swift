@@ -38,6 +38,18 @@ enum Config {
 
     static var isConfigured: Bool { !apiToken.isEmpty }
 
+    // object(forKey:), not bool(forKey:): an absent key reads as false there,
+    // and both of these are on until someone turns them off.
+    static var hapticsEnabled: Bool {
+        get { store.object(forKey: "haptics") as? Bool ?? true }
+        set { store.set(newValue, forKey: "haptics") }
+    }
+
+    static var soundEnabled: Bool {
+        get { store.object(forKey: "sounds") as? Bool ?? true }
+        set { store.set(newValue, forKey: "sounds") }
+    }
+
     // Shown once. Kept apart from isConfigured so a token cleared later does not
     // replay the whole story, it only asks for the token again.
     static var hasSeenOnboarding: Bool { store.bool(forKey: "sawOnboarding") }

@@ -88,6 +88,9 @@ struct RootView: View {
         HStack(spacing: 0) {
             ForEach(RootTab.allCases) { candidate in
                 Button {
+                    // Silent on the tab you are already on: a tab bar that
+                    // ticks when nothing moves reads as a glitch.
+                    if candidate != tab { Feedback.select() }
                     tab = candidate
                     opened.insert(candidate)
                 } label: {

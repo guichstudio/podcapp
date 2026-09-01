@@ -12,7 +12,7 @@ options:
 settings:
   base:
     MARKETING_VERSION: "1.0"
-    CURRENT_PROJECT_VERSION: "17"
+    CURRENT_PROJECT_VERSION: "18"
     SWIFT_VERSION: "5.9"
     # Louis's personal team. Kept here rather than only in the generated project,
     # which XcodeGen overwrites every time the spec is regenerated.
@@ -63,6 +63,7 @@ targets:
     sources:
       - path: ShareExtension
       - path: Podcapp/Shared.swift
+      - path: Podcapp/Feedback.swift
     info:
       path: ShareExtension/Info.plist
       properties:

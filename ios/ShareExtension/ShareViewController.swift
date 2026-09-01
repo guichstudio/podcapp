@@ -4,7 +4,18 @@ import UniformTypeIdentifiers
 
 @MainActor
 final class ShareModel: ObservableObject {
-    @Published var state: State = .saving
+    // The haptic hangs on the state itself rather than on each of the six places
+    // that set it, which is also why the extension cannot forget one. No sound:
+    // this sheet sits on top of somebody else's app.
+    @Published var state: State = .saving {
+        didSet {
+            switch state {
+            case .saved: Feedback.saved(sound: false)
+            case .failed: Feedback.refused(sound: false)
+            case .saving: break
+            }
+        }
+    }
     enum State: Equatable { case saving, saved(String), failed(String) }
 }
 
