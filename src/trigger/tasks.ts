@@ -1,8 +1,8 @@
-import { logger, schemaTask } from '@trigger.dev/sdk'
-import { and, eq, ne } from 'drizzle-orm'
+import { logger, schedules, schemaTask } from '@trigger.dev/sdk'
+import { and, eq, inArray, ne } from 'drizzle-orm'
 import { z } from 'zod'
 import { createDb, type Db } from '../db/client.js'
-import { episodes } from '../db/schema.js'
+import { episodes, stories, users } from '../db/schema.js'
 import { generateEpisode } from '../jobs/generateEpisode.js'
 import { processSource } from '../jobs/processSource.js'
 import { publishEpisode } from '../jobs/publishEpisode.js'
@@ -130,5 +130,106 @@ export const generateEpisodeTask = schemaTask({
       })
       throw err
     }
+  },
+})
+
+// Keep in sync with ACTIVE_EPISODE_STATUSES in api/index.ts: every status a
+// generation moves through before landing on ready or failed.
+const ACTIVE_EPISODE_STATUSES = [
+  'queued',
+  'selecting',
+  'outlining',
+  'writing',
+  'grounding',
+  'editing',
+  'tts',
+  'assembling',
+]
+
+type BriefingOutcome = { userId: string; episodeId?: string; skipped?: string }
+
+// One user's morning decision, mirroring POST /episodes: skip when there is
+// nothing new (stories are marked 'aired' by publishEpisode, so an open story
+// IS new material), skip while a generation can still be alive, reap the ones
+// that died without reaching their catch, then queue a run.
+async function queueBriefing(
+  db: Db,
+  user: { id: string; targetMinutes: number; outputLanguage: string },
+): Promise<BriefingOutcome> {
+  const open = await db
+    .select({ id: stories.id })
+    .from(stories)
+    .where(and(eq(stories.userId, user.id), eq(stories.status, 'open')))
+    .limit(1)
+  if (open.length === 0) return { userId: user.id, skipped: 'no open stories' }
+
+  const staleBefore = new Date(Date.now() - 30 * 60 * 1000)
+  const actives = await db
+    .select({ id: episodes.id, status: episodes.status, createdAt: episodes.createdAt })
+    .from(episodes)
+    .where(and(eq(episodes.userId, user.id), inArray(episodes.status, ACTIVE_EPISODE_STATUSES)))
+  const live = actives.find((a) => a.createdAt > staleBefore)
+  if (live) return { userId: user.id, skipped: `active episode ${live.id} (${live.status})` }
+  for (const stale of actives) {
+    await db
+      .update(episodes)
+      .set({ status: 'failed', failedStage: stale.status, error: 'Génération interrompue sans se terminer (délai de 30 minutes dépassé).' })
+      .where(and(eq(episodes.id, stale.id), inArray(episodes.status, ACTIVE_EPISODE_STATUSES)))
+  }
+
+  // users.target_minutes is written outside this task, so it gets the same
+  // bounds POST /episodes applies rather than being trusted.
+  const targetSec = Math.min(10, Math.max(1, user.targetMinutes)) * 60
+  const [row] = await db
+    .insert(episodes)
+    .values({ userId: user.id, targetSec, status: 'queued' })
+    .returning({ id: episodes.id })
+  if (!row) throw new Error('episode insert returned no row')
+
+  try {
+    await generateEpisodeTask.trigger(
+      { episodeId: row.id, userId: user.id, targetSec, language: user.outputLanguage },
+      // Keyed on the row, like the API: a lost ack must not pay writer + TTS twice.
+      { idempotencyKey: `episode-${row.id}` },
+    )
+  } catch (err) {
+    // Nothing else will ever pick this row up: a queued episode nobody will
+    // run is a lie, so it is marked failed with the reason.
+    await db
+      .update(episodes)
+      .set({ status: 'failed', failedStage: 'trigger', error: `Envoi au cloud impossible : ${String(err).slice(0, 500)}` })
+      .where(eq(episodes.id, row.id))
+    throw err
+  }
+  return { userId: user.id, episodeId: row.id }
+}
+
+// The onboarding's promise ("≈ 10 min d'audio · chaque matin") made real:
+// every morning, each user whose captures produced uncovered stories gets a
+// briefing queued before they wake up. Users with nothing new get nothing:
+// no briefing is better than a padded one.
+export const dailyBriefingsTask = schedules.task({
+  id: 'daily-briefings',
+  cron: { pattern: '0 6 * * *', timezone: 'Europe/Paris' },
+  run: async () => {
+    requireCloudEnv()
+    const db = await createDb()
+    const allUsers = await db
+      .select({ id: users.id, targetMinutes: users.targetMinutes, outputLanguage: users.outputLanguage })
+      .from(users)
+
+    // Per-user isolation: one user's failure must not cost the others their
+    // morning briefing.
+    const outcomes: BriefingOutcome[] = []
+    for (const user of allUsers) {
+      try {
+        outcomes.push(await queueBriefing(db, user))
+      } catch (err) {
+        logger.error('daily briefing failed for a user', { userId: user.id, error: String(err) })
+        outcomes.push({ userId: user.id, skipped: `error: ${String(err).slice(0, 200)}` })
+      }
+    }
+    logger.info('daily briefings decided', { outcomes })
+    return outcomes
   },
 })

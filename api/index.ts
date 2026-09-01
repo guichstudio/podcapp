@@ -1,5 +1,5 @@
 import { neon } from '@neondatabase/serverless'
-import { and, desc, eq, inArray } from 'drizzle-orm'
+import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { Hono } from 'hono'
 import { handle } from 'hono/vercel'
@@ -33,7 +33,7 @@ import * as schema from '../src/db/schema.js'
 
 export const config = { runtime: 'edge' }
 
-const { episodes, sources, stories, users } = schema
+const { episodes, events, sources, stories, users } = schema
 
 type Conn = ReturnType<typeof db>
 type Env = { Variables: { userId: string; conn: Conn } }
@@ -138,6 +138,79 @@ function chaptersOf(script: unknown): Script['chapters'] {
 const app = new Hono<Env>()
 
 app.get('/health', (c) => c.json({ ok: true }))
+
+// Postmark's inbound payload, reduced to what routing and extraction need.
+// Everything else Postmark sends is ignored by safeParse.
+const PostmarkInboundSchema = z.object({
+  FromFull: z.object({ Email: z.string().min(1) }),
+  Subject: z.string().optional(),
+  HtmlBody: z.string().optional(),
+  TextBody: z.string().optional(),
+  MessageID: z.string().optional(),
+})
+
+// Postmark inbound webhook (ARCHITECTURE §7). Registered on the bare app, like
+// /health: Postmark cannot send our bearer, so the webhook URL carries a shared
+// secret and the SENDER address routes the mail. One inbound address serves
+// every beta user; forwarding from the address on your users row is the auth.
+// Rejections answer 200 on purpose (a non-2xx would make Postmark retry a mail
+// that will never route) and land in events so no failure is silent.
+app.post('/ingest/email', async (c) => {
+  const secret = process.env.POSTMARK_INBOUND_TOKEN
+  if (!secret) return c.json({ error: 'server misconfigured: POSTMARK_INBOUND_TOKEN is not set' }, 500)
+  if (c.req.query('token') !== secret) return c.json({ error: 'invalid token' }, 401)
+
+  const parsed = PostmarkInboundSchema.safeParse(await c.req.json().catch(() => null))
+  if (!parsed.success) return c.json({ error: 'not a Postmark inbound payload' }, 400)
+  const mail = parsed.data
+
+  const conn = db()
+  const from = mail.FromFull.Email.trim().toLowerCase()
+  const rejected = async (reason: string, userId?: string) => {
+    await conn.insert(events).values({
+      userId: userId ?? null,
+      name: 'email_inbound_rejected',
+      payload: { from, subject: mail.Subject ?? null, messageId: mail.MessageID ?? null, reason },
+    })
+    return c.json({ accepted: false, reason }, 200)
+  }
+
+  const [user] = await conn
+    .select({ id: users.id })
+    .from(users)
+    .where(sql`lower(${users.email}) = ${from}`)
+  if (!user) return rejected('unknown sender')
+
+  const html = mail.HtmlBody?.trim()
+  const text = mail.TextBody?.trim()
+  if (!html && !text) return rejected('empty body', user.id)
+
+  const [row] = await conn
+    .insert(sources)
+    .values({
+      userId: user.id,
+      // Same shapes POST /ingest accepts; processSource routes on the type.
+      type: html ? 'email' : 'text',
+      raw: html ? { html, subject: mail.Subject } : { text },
+      sourceHash: `pending-${crypto.randomUUID()}`,
+      status: 'received',
+    })
+    .returning({ id: sources.id })
+  if (!row) return c.json({ error: 'insert failed' }, 500)
+
+  // Same contract as /ingest: the row is stored either way; the laptop drain
+  // picks it up if the cloud trigger fails.
+  let queued = false
+  if (process.env.TRIGGER_SECRET_KEY) {
+    try {
+      await triggerTask('process-source', { sourceId: row.id })
+      queued = true
+    } catch (err) {
+      console.error('process-source trigger failed', row.id, err)
+    }
+  }
+  return c.json({ accepted: true, source_id: row.id, queued }, 200)
+})
 
 // Registered before the authed sub-app is mounted: mounting at '/' installs the
 // bearer check on '/*', which would otherwise also cover /health.
