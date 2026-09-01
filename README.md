@@ -145,6 +145,43 @@ modèle rédacteur).
 4. Cosmétique et robustesse listées dans CLAUDE.md (heuristique d'extraction
    sur les pages de section, fallback Playwright non nécessaire à ce jour).
 
+## Audit final (2026-09-01)
+
+Un audit multi-agents (5 axes : justesse API, justesse iOS, latence, français,
+sécurité), chaque trouvaille contre-vérifiée par un agent adverse, a confirmé
+23 défauts réels. Tous corrigés le jour même :
+
+**Latence.** `GET /episodes` transportait les scripts complets de 50 épisodes
+pour n'afficher que des titres de chapitres : la projection se fait maintenant
+en SQL (réponse ~1,5 Ko au lieu de dizaines de Ko). `GET /sources` fait ses
+deux requêtes en parallèle. L'app charge le détail du hero en parallèle des
+sources, met en cache les articles lus, et surtout **met l'audio en cache
+local** : un épisode publié étant immuable, il n'est plus re-téléchargé depuis
+R2 à chaque lecture.
+
+**Justesse.** Un index unique partiel (`episodes_one_active_per_user`) ferme
+la course entre deux générations simultanées (double tap, cron vs bouton) que
+la garde applicative seule ne pouvait pas fermer sans transaction. Un run
+`generate-episode` re-vérifie que sa ligne est encore `queued` avant de payer
+rédacteur et TTS (un run retardé ne ressuscite plus un épisode moissonné). Un
+timeout d'envoi au cloud laisse l'épisode en file au lieu de le déclarer
+faussement mort. Côté iOS : un item audio en échec est reconstruit au lieu
+d'être rejoué en silence, l'état lecture/pause suit le player système (appel,
+Siri, écouteurs débranchés), et la détection du conteneur App Group est
+devenue honnête (`containerURL`, pas `UserDefaults(suiteName:)`).
+
+**Sécurité.** L'email du compte ne figure plus dans le XML du flux (bucket
+public). La console n'est plus dérivable de l'URL du flux (jeton propre dérivé
+du secret API ; les anciens chemins sont écrasés par une pierre tombale). Les
+sources citées par la console sont filtrées par propriétaire. Le webhook email
+rejette les SPF en échec dur (le routage par expéditeur reste un risque bêta
+assumé et journalisé).
+
+**Coquilles.** Pluriels accordés ("1 chapitre", "1 autre sujet écarté"),
+féminins accordés ("Vérifiée"/"Corrigée" pour une phrase), apostrophes
+typographiques partout, description du flux en français, flux renommé
+"Podcapp".
+
 ## Historique des jalons
 
 - **Phase 0** (2026-08-28) : golden path manuel, 5 sources réelles → script
