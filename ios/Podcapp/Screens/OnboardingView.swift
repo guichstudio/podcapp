@@ -223,9 +223,13 @@ private enum Onbo {
     static let canvasTop: CGFloat = 235
     /// The phone mock's absolute top on every phone screen.
     static let phoneTop: CGFloat = 252
-    /// The closed phone body: interior 660 plus 2x10 bezel padding. Its bottom
-    /// (252 + 680 = 932) bleeds 80pt past the 852 artboard, like the html.
+    /// The closed phone body: interior 660 plus 2x10 bezel padding. In the
+    /// html its bottom (252 + 680 = 932) bleeds 80pt past the 852 artboard;
+    /// Louis wants the full bezel on screen instead, so phone pages fit the
+    /// canvas down to closedBottom (phone bottom plus breathing room above
+    /// the home indicator).
     static let phoneHeight: CGFloat = 680
+    static let closedBottom: CGFloat = phoneTop + phoneHeight + 44
 }
 
 private extension View {
@@ -338,24 +342,24 @@ private struct PagerBar: View {
 
 /// The zone under the pager bar. Children carry the html's absolute artboard
 /// coordinates via .artboard()/.artboardCentered(); the whole artboard scales
-/// uniformly (down only) to the screen width and clips at the page bounds, so
-/// the phone bleeds off the bottom exactly like the design's overflow:hidden.
+/// uniformly (down only) so everything up to fitBottom stays on screen. Phone
+/// pages pass Onbo.closedBottom so the full bezel is visible with the design's
+/// proportions intact; pages without a phone keep the default artboard height.
 private struct ArtboardCanvas<Content: View>: View {
+    private let fitBottom: CGFloat
     private let content: Content
 
-    init(@ViewBuilder content: () -> Content) {
+    init(fitBottom: CGFloat = Onbo.artboardH, @ViewBuilder content: () -> Content) {
+        self.fitBottom = fitBottom
         self.content = content()
     }
 
     var body: some View {
         GeometryReader { geo in
-            let scale = min(1, geo.size.width / Onbo.artboardW)
+            let designH = fitBottom - Onbo.canvasTop
+            let scale = min(1, geo.size.width / Onbo.artboardW, geo.size.height / designH)
             ZStack(alignment: .topLeading) { content }
-                .frame(
-                    width: Onbo.artboardW,
-                    height: Onbo.artboardH - Onbo.canvasTop,
-                    alignment: .topLeading
-                )
+                .frame(width: Onbo.artboardW, height: designH, alignment: .topLeading)
                 .scaleEffect(scale, anchor: .top)
                 .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
         }
@@ -505,7 +509,7 @@ private struct ListenPage: View {
             )
             .padding(.top, 20)
             PagerBar(fill: 0.17)
-            ArtboardCanvas {
+            ArtboardCanvas(fitBottom: Onbo.closedBottom) {
                 PhoneFrame(height: Onbo.phoneHeight, screenFill: AnyShapeStyle(Color(hex: 0xFAFAF8))) {
                     homeScreen
                 }
@@ -545,8 +549,11 @@ private struct ListenPage: View {
             }
             .frame(width: 250, alignment: .leading)
             .padding(.top, 46)
+            // The html pins this at y 530 because its artboard crops the
+            // interior at 590; with the phone closed the bar belongs at the
+            // interior's real bottom edge.
             tabBar
-                .offset(y: 530)
+                .offset(y: 602)
         }
     }
 
@@ -791,7 +798,7 @@ private struct BuiltPage: View {
             )
             .padding(.top, 20)
             PagerBar(fill: 0.5)
-            ArtboardCanvas {
+            ArtboardCanvas(fitBottom: Onbo.closedBottom) {
                 PhoneFrame(height: Onbo.phoneHeight, screenFill: AnyShapeStyle(LinearGradient(
                     stops: [
                         .init(color: Color(hex: 0xE4DFF5), location: 0),
@@ -802,7 +809,7 @@ private struct BuiltPage: View {
                     ZStack(alignment: .top) {
                         playerScreen
                         statsFloat
-                            .offset(x: -1, y: 494)
+                            .offset(x: -1, y: 579)
                     }
                 }
                 .artboardCentered(y: Onbo.phoneTop)
@@ -941,7 +948,7 @@ private struct SharePage: View {
             )
             .padding(.top, 20)
             PagerBar(fill: 0.67)
-            ArtboardCanvas {
+            ArtboardCanvas(fitBottom: Onbo.closedBottom) {
                 PhoneFrame(height: Onbo.phoneHeight, screenFill: AnyShapeStyle(Color(hex: 0xFAFAF8))) {
                     ZStack(alignment: .top) {
                         articleContent
@@ -952,13 +959,16 @@ private struct SharePage: View {
                         capturedToast
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                             .offset(x: 130, y: 318)
+                        // The html's bottom offsets (240 and 70) assume the
+                        // interior is cropped at 590; shifted down for the
+                        // closed phone, same gap between the two bars.
                         actionBar
                             .frame(maxHeight: .infinity, alignment: .bottom)
-                            .padding(.bottom, 240)
+                            .padding(.bottom, 182)
                             .padding(.horizontal, 6)
                         shareSheet
                             .frame(maxHeight: .infinity, alignment: .bottom)
-                            .padding(.bottom, 70)
+                            .padding(.bottom, 12)
                             .padding(.horizontal, 6)
                     }
                 }
@@ -1211,7 +1221,7 @@ private struct ReadPage: View {
             )
             .padding(.top, 20)
             PagerBar(fill: 0.83)
-            ArtboardCanvas {
+            ArtboardCanvas(fitBottom: Onbo.closedBottom) {
                 PhoneFrame(height: Onbo.phoneHeight, screenFill: AnyShapeStyle(Color(hex: 0xFAFAF8))) {
                     readerScreen
                 }
