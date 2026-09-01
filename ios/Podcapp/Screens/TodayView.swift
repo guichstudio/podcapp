@@ -96,23 +96,45 @@ struct TodayView: View {
         .padding(.top, 10)
     }
 
+    // MARK: - Hero strip
+
+    /// The latest briefing first, the earlier ones behind it as narrower cards,
+    /// one page per swipe. The design's answer to a list of past episodes that
+    /// pushed Générer below the fold.
+    @ViewBuilder
+    private func heroStrip(_ data: TodayData) -> some View {
+        if data.featured == nil && data.past.isEmpty {
+            noEpisodeCard.padding(.horizontal, 20)
+        } else {
+            ScrollView(.horizontal) {
+                LazyHStack(alignment: .top, spacing: 12) {
+                    if let featured = data.featured {
+                        TodayHeroCard(
+                            episode: featured.episode,
+                            detail: featured.detail,
+                            onBackstage: { backstage = featured.detail }
+                        )
+                        .containerRelativeFrame(.horizontal) { width, _ in width - 40 }
+                    }
+                    ForEach(data.past) { episode in
+                        TodayPastCard(episode: episode)
+                            .containerRelativeFrame(.horizontal) { width, _ in (width - 40) * 0.74 }
+                    }
+                }
+                .scrollTargetLayout()
+            }
+            .contentMargins(.horizontal, 20, for: .scrollContent)
+            .scrollTargetBehavior(.viewAligned)
+            .scrollIndicators(.hidden)
+        }
+    }
+
     // MARK: - Content
 
     @ViewBuilder
     private func content(_ data: TodayData) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Group {
-                if let featured = data.featured {
-                    TodayHeroCard(
-                        episode: featured.episode,
-                        detail: featured.detail,
-                        onBackstage: { backstage = featured.detail }
-                    )
-                } else {
-                    noEpisodeCard
-                }
-            }
-            .padding(.horizontal, 20)
+            heroStrip(data)
 
             focusSection(data)
 
@@ -120,18 +142,6 @@ struct TodayView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 18)
 
-            if !data.past.isEmpty {
-                Text("Earlier")
-                    .typo(Typo.sectionTitle)
-                    .foregroundStyle(Palette.ink)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 26)
-                    .padding(.bottom, 6)
-                ForEach(data.past) { episode in
-                    TodayPastRow(episode: episode)
-                        .padding(.horizontal, 20)
-                }
-            }
         }
     }
 
@@ -485,6 +495,8 @@ private struct TodayGenerateCard: View {
     @Binding var targetMinutes: Int
 
     private var shortBy: Int { max(0, minimum - readySourceCount) }
+    private var ruleMet: Bool { shortBy == 0 }
+    @State private var generation: GenerationTarget?
 
     @State private var isGenerating = false
     @State private var outcome: Outcome?
@@ -498,23 +510,39 @@ private struct TodayGenerateCard: View {
     }
 
     var body: some View {
+        card.sheet(item: $generation) { target in
+            GenerationSheet(episodeId: target.id)
+        }
+    }
+
+    private var card: some View {
         PlainCard(cornerRadius: 18, padding: 16) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .center, spacing: 10) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Next briefing")
-                            .typo(Typo.rowTitleStrong)
-                            .foregroundStyle(Palette.ink)
-                        Text("\(TodayText.plural(readySourceCount, String(localized: "source ready"), String(localized: "sources ready"))) · target \(targetMinutes) min")
-                            .typo(Typo.meta)
-                            .foregroundStyle(Palette.muted)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Text("Next briefing")
+                        .typo(Typo.rowTitleStrong)
+                        .foregroundStyle(Palette.ink)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     lengthPicker
                 }
 
+                // The four-link rule, drawn rather than explained: the ring fills
+                // with the server's own count and turns green at the minimum.
+                HStack(spacing: 12) {
+                    ruleRing
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(ruleTitle)
+                            .typo(Typo.listTitle)
+                            .foregroundStyle(Palette.ink)
+                        Text(ruleSub)
+                            .typo(Typo.metaSmall)
+                            .foregroundStyle(Palette.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
                 Button { Task { await generate() } } label: {
-                    Text(isGenerating ? String(localized: "Sending…") : String(localized: "Generate"))
+                    Text(isGenerating ? String(localized: "Sending…") : String(localized: "Generate now"))
                         .typo(Typo.buttonLarge)
                         .foregroundStyle(Palette.onDark)
                         .frame(maxWidth: .infinity)
@@ -527,28 +555,14 @@ private struct TodayGenerateCard: View {
                 .buttonStyle(.plain)
                 .disabled(isGenerating || shortBy > 0)
 
-                // The server refuses below the minimum anyway; saying so here
-                // spares a round trip that ends in the same sentence.
-                if shortBy > 0 {
-                    Text(shortBy == 1
-                        ? String(localized: "An episode needs at least \(minimum) saved links. Share 1 more.")
-                        : String(localized: "An episode needs at least \(minimum) saved links. Share \(shortBy) more."))
+                switch outcome {
+                case .queued:
+                    // The sheet carries the progress; this line remains for
+                    // when it has been dismissed and the run is still going.
+                    Text("Episode in the works · the feed and this screen update as soon as it is ready.")
                         .typo(Typo.metaSmall)
                         .foregroundStyle(Palette.muted)
                         .fixedSize(horizontal: false, vertical: true)
-                }
-
-                switch outcome {
-                case .queued:
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Episode in the works")
-                            .typo(Typo.rowTitleStrong)
-                            .foregroundStyle(Palette.ink)
-                        Text("Give it about ten minutes: the briefing lands in the feed and at the top of this screen as soon as it is ready.")
-                            .typo(Typo.metaSmall)
-                            .foregroundStyle(Palette.muted)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
                 case let .failed(message):
                     Text(message)
                         .typo(Typo.metaSmall)
@@ -561,13 +575,46 @@ private struct TodayGenerateCard: View {
         }
     }
 
+    private var ruleTitle: String {
+        if ruleMet { return String(localized: "Minimum reached") }
+        return readySourceCount == 1
+            ? String(localized: "1 link of \(minimum) minimum")
+            : String(localized: "\(readySourceCount) links of \(minimum) minimum")
+    }
+
+    private var ruleSub: String {
+        ruleMet
+            ? String(localized: "Ready to generate · target \(targetMinutes) min.")
+            : String(localized: "At least \(minimum) links are needed to build an episode.")
+    }
+
+    private var ruleRing: some View {
+        let fraction = min(1, Double(readySourceCount) / Double(max(1, minimum)))
+        let tint = ruleMet ? Color(hex: 0x2E7D46) : Color(hex: 0x7C6CDC)
+        return ZStack {
+            Circle().stroke(Palette.hairline, lineWidth: 4)
+            Circle()
+                .trim(from: 0, to: fraction)
+                .stroke(tint, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .animation(.easeOut(duration: 0.5), value: fraction)
+            Text("\(min(readySourceCount, minimum))/\(minimum)")
+                .typo(Typo.metaTiny)
+                .foregroundStyle(Palette.ink)
+                .tabularNumerals()
+        }
+        .frame(width: 44, height: 44)
+        .accessibilityLabel(ruleTitle)
+    }
+
     @MainActor
     private func generate() async {
         isGenerating = true
         defer { isGenerating = false }
         do {
-            _ = try await API.shared.generateEpisode(targetMin: targetMinutes)
+            let id = try await API.shared.generateEpisode(targetMin: targetMinutes)
             outcome = .queued
+            generation = GenerationTarget(id: id)
             Feedback.launched()
         } catch APIError.http(_, let message) where !message.isEmpty {
             // 409 and 503 arrive here: the server already worded the refusal.
@@ -604,37 +651,44 @@ private struct TodayGenerateCard: View {
 
 // MARK: - Past episodes
 
-private struct TodayPastRow: View {
+/// An earlier briefing in the hero strip: title, date, and one tap to play.
+private struct TodayPastCard: View {
     let episode: EpisodeSummary
 
     var body: some View {
-        HStack(spacing: 12) {
-            TodayLogo(size: 40)
-            VStack(alignment: .leading, spacing: 2) {
+        PlainCard(cornerRadius: 22, padding: 18) {
+            VStack(alignment: .leading, spacing: 12) {
+                TodayLogo(size: 40)
                 Text(TodayText.title(episode.title, createdAt: episode.createdAt))
                     .typo(Typo.rowTitleStrong)
                     .foregroundStyle(Palette.ink)
-                    .lineLimit(2)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(meta)
                     .typo(Typo.meta)
                     .foregroundStyle(Palette.muted)
+                Spacer(minLength: 0)
+                if episode.status == "ready", let seconds = episode.actualSec {
+                    Button { EpisodePlayer.shared.open(episodeId: episode.id) } label: {
+                        HStack(spacing: 8) {
+                            Text("▶").typo(Typo.buttonSmall)
+                            Text(TodayText.clock(seconds)).typo(Typo.buttonLarge).tabularNumerals()
+                        }
+                        .foregroundStyle(Palette.onDark)
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 18)
+                        .background(Palette.ink, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    StatusChip(
+                        label: TodayText.episodeStatusLabel(episode.status),
+                        kind: TodayText.episodeChipKind(episode.status)
+                    )
+                }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            if episode.status == "ready", let seconds = episode.actualSec {
-                Text(TodayText.clock(seconds))
-                    .typo(Typo.meta)
-                    .foregroundStyle(Palette.muted)
-                    .tabularNumerals()
-            } else {
-                StatusChip(
-                    label: TodayText.episodeStatusLabel(episode.status),
-                    kind: TodayText.episodeChipKind(episode.status)
-                )
-            }
+            .frame(maxWidth: .infinity, minHeight: 250, alignment: .topLeading)
         }
-        .padding(.vertical, 13)
-        .overlay(alignment: .bottom) { Rectangle().fill(Palette.hairline).frame(height: 1) }
     }
 
     private var meta: String {

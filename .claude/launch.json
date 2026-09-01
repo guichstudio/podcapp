@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "design-v3",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8765", "--directory", "/private/tmp/claude-501/-Users-louisguichard-Desktop-portfolio/f9852407-b136-4add-a28c-21f6e113b14f/scratchpad/design-v3"],
+      "port": 8765
+    }
+  ]
+}

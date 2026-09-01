@@ -79,6 +79,8 @@ enum AppLocale {
 extension Notification.Name {
     /// Posted once the account is deleted, so the shell drops back to onboarding.
     static let podcappSignedOut = Notification.Name("podcapp.signedOut")
+    /// Posted from Réglages: the shell shows the onboarding again, token kept.
+    static let podcappReplayOnboarding = Notification.Name("podcapp.replayOnboarding")
 }
 
 enum IngestError: LocalizedError {

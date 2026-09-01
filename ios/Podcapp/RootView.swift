@@ -18,7 +18,7 @@ enum RootTab: String, CaseIterable, Identifiable {
         switch self {
         case .today: return String(localized: "Today")
         case .read: return String(localized: "Read")
-        case .sources: return String(localized: "Sources")
+        case .sources: return String(localized: "Library")
         case .settings: return String(localized: "Settings")
         }
     }

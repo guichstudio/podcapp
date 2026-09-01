@@ -227,6 +227,51 @@ actor API {
     }
 
     private struct DeleteAck: Decodable { let status: String }
+    /// The account as the server shows it. snake_case on the wire like the
+    /// other write endpoints, because PUT /me answers with the same shape.
+    struct VoiceOption: Decodable, Identifiable, Sendable, Equatable {
+        let id: String
+        let name: String
+        let style: String
+        let language: String
+    }
+
+    struct Me: Decodable, Sendable, Equatable {
+        let language: String
+        let voiceId: String?
+        /// The narrator the next episode will actually use, override or default.
+        let voice: String?
+        let voices: [VoiceOption]
+        let targetMinutes: Int
+        let maxMinutes: Int
+        let minimumSources: Int
+        let dailyAt: String
+        let feedUrl: String?
+        let ingestAddress: String?
+
+        enum CodingKeys: String, CodingKey {
+            case language, voice, voices
+            case voiceId = "voice_id"
+            case targetMinutes = "target_minutes"
+            case maxMinutes = "max_minutes"
+            case minimumSources = "minimum_sources"
+            case dailyAt = "daily_at"
+            case feedUrl = "feed_url"
+            case ingestAddress = "ingest_address"
+        }
+
+        var feedURL: URL? { feedUrl.flatMap(URL.init(string:)) }
+    }
+
+    func me() async throws -> Me {
+        try await get("/me", as: Me.self)
+    }
+
+    /// nil clears the override and the language default takes over again.
+    func updateVoice(_ voiceId: String?) async throws -> Me {
+        try await put("/me", json: ["voice_id": voiceId as Any], as: Me.self)
+    }
+
     private struct EpisodeList: Decodable { let episodes: [EpisodeSummary] }
     private struct LanguageBody: Encodable { let language: String }
     private struct LanguageAck: Decodable { let language: String }
@@ -248,6 +293,19 @@ actor API {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(body)
+        return try await perform(request, as: type)
+    }
+
+    /// For a body that has to carry an explicit null, which Encodable drops.
+    private func put<T: Decodable>(_ path: String, json: [String: Any], as type: T.Type) async throws -> T {
+        var request = try makeRequest(for: path)
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let cleaned = json.mapValues { value -> Any in
+            if case Optional<Any>.none = value { return NSNull() }
+            return value
+        }
+        request.httpBody = try JSONSerialization.data(withJSONObject: cleaned)
         return try await perform(request, as: type)
     }
 

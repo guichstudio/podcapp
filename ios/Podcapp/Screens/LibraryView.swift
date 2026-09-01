@@ -23,7 +23,7 @@ struct LibraryView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Text("Sources")
+                Text("Library")
                     .typo(Typo.screenTitle)
                     .foregroundStyle(Palette.ink)
                     .padding(.top, 6)

@@ -110,7 +110,12 @@ struct OnboardingView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
             withAnimation(.easeOut(duration: 0.25)) { keyboard = 0 }
         }
-        .onAppear { Config.markOnboardingSeen() }
+        .onAppear {
+            Config.markOnboardingSeen()
+            // A replay from Réglages arrives with a token already saved: the
+            // last page then re-checks it instead of asking for it again.
+            if token.isEmpty { token = Config.apiToken }
+        }
     }
 
     private var header: some View {
@@ -215,7 +220,7 @@ struct OnboardingView: View {
                 } label: {
                     HStack(spacing: 8) {
                         if status == .checking { ProgressView().tint(.white) }
-                        Text(status == .checking ? "Connexion" : "Continuer")
+                        Text(status == .checking ? String(localized: "Connecting") : String(localized: "Continue"))
                             .fs(13.5, .semibold)
                     }
                     .foregroundStyle(.white)

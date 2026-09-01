@@ -33,6 +33,9 @@ private struct Entry: View {
                 .onReceive(NotificationCenter.default.publisher(for: .podcappSignedOut)) { _ in
                     withAnimation { connected = false }
                 }
+                .onReceive(NotificationCenter.default.publisher(for: .podcappReplayOnboarding)) { _ in
+                    withAnimation { connected = false }
+                }
         } else {
             OnboardingView(onDone: { connected = true })
                 .transition(.opacity)
