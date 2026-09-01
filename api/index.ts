@@ -147,7 +147,19 @@ const PostmarkInboundSchema = z.object({
   HtmlBody: z.string().optional(),
   TextBody: z.string().optional(),
   MessageID: z.string().optional(),
+  Headers: z.array(z.object({ Name: z.string(), Value: z.string() })).optional(),
 })
+
+// Routing trusts the From header, which is forgeable. Postmark passes the
+// upstream SPF verdict through in the raw headers: an explicit hard fail is
+// rejected, everything else (pass, softfail, none, absent) is let through so a
+// legitimate forwarder with imperfect DNS never loses mail.
+function spfHardFail(headers: { Name: string; Value: string }[] | undefined): boolean {
+  if (!headers) return false
+  return headers.some(
+    (h) => h.Name.toLowerCase() === 'received-spf' && /^\s*fail\b/i.test(h.Value),
+  )
+}
 
 // Postmark inbound webhook (ARCHITECTURE §7). Registered on the bare app, like
 // /health: Postmark cannot send our bearer, so the webhook URL carries a shared
@@ -174,6 +186,8 @@ app.post('/ingest/email', async (c) => {
     })
     return c.json({ accepted: false, reason }, 200)
   }
+
+  if (spfHardFail(mail.Headers)) return rejected('spf hard fail')
 
   const [user] = await conn
     .select({ id: users.id })
@@ -314,10 +328,24 @@ authed.post('/episodes', async (c) => {
   // bounds as the request body rather than being trusted.
   const targetMin = Math.min(10, Math.max(1, parsed.data.target_min ?? user.targetMinutes))
   const targetSec = targetMin * 60
-  const [row] = await conn
-    .insert(episodes)
-    .values({ userId, targetSec, status: 'queued' })
-    .returning({ id: episodes.id })
+  // The select-based guard above gives the friendly message; the partial
+  // unique index episodes_one_active_per_user makes it correct under two
+  // concurrent requests (no transaction is possible on the HTTP driver).
+  let row: { id: string } | undefined
+  try {
+    ;[row] = await conn
+      .insert(episodes)
+      .values({ userId, targetSec, status: 'queued' })
+      .returning({ id: episodes.id })
+  } catch (err) {
+    if ((err as { code?: string }).code === '23505') {
+      return c.json(
+        { error: 'Un épisode est déjà en préparation. Attendez qu’il se termine avant d’en lancer un autre.' },
+        409,
+      )
+    }
+    throw err
+  }
   if (!row) return c.json({ error: 'insert failed' }, 500)
 
   try {
@@ -329,9 +357,19 @@ authed.post('/episodes', async (c) => {
       `episode-${row.id}`,
     )
   } catch (err) {
-    // Unlike /ingest, nothing else will ever pick this row up: a queued episode
-    // nobody will run is a lie, so it is marked failed with the reason.
     console.error('generate-episode trigger failed', row.id, err)
+    // A timeout is NOT a rejection: the run may have been accepted after the
+    // abort, and its idempotency key lives on this row. Leaving the row queued
+    // keeps the active guard blocking retries while the outcome is unknown;
+    // the 30-minute reaper cleans it up if the run truly never started.
+    if (err instanceof DOMException && err.name === 'TimeoutError') {
+      return c.json(
+        { error: 'Le cloud met trop de temps à répondre. L’épisode reste en file : vérifiez son statut dans quelques minutes.' },
+        503,
+      )
+    }
+    // A definite rejection: nothing else will ever pick this row up, and a
+    // queued episode nobody will run is a lie.
     const reason = err instanceof Error ? err.message : String(err)
     try {
       await conn
@@ -355,6 +393,10 @@ authed.get('/episodes', async (c) => {
   const base = process.env.R2_PUBLIC_BASE_URL
   if (!base) return c.json({ error: 'server misconfigured: R2_PUBLIC_BASE_URL is not set' }, 500)
 
+  // The list only shows chapter titles and source counts, but chapters carry
+  // the full spoken text: selecting the script column shipped ~50 complete
+  // scripts from Neon through the Edge function on every open of the app. The
+  // projection happens in SQL so neither hop pays for the prose.
   const rows = await c
     .get('conn')
     .select({
@@ -364,7 +406,16 @@ authed.get('/episodes', async (c) => {
       createdAt: episodes.createdAt,
       actualSec: episodes.actualSec,
       audioBytes: episodes.audioBytes,
-      script: episodes.script,
+      chapterSummaries: sql<{ title: string | null; source_count: number }[] | null>`(
+        select jsonb_agg(jsonb_build_object(
+          'title', ch->>'title',
+          'source_count', jsonb_array_length(coalesce(ch->'source_ids', '[]'::jsonb))
+        ) order by ord)
+        from jsonb_array_elements(
+          case when jsonb_typeof(${episodes.script}->'chapters') = 'array'
+               then ${episodes.script}->'chapters' else '[]'::jsonb end
+        ) with ordinality t(ch, ord)
+      )`,
     })
     .from(episodes)
     .where(eq(episodes.userId, c.get('userId')))
@@ -380,9 +431,9 @@ authed.get('/episodes', async (c) => {
       actualSec: ep.actualSec,
       audioUrl: readyAudioUrl(base, ep.status, ep.id),
       audioBytes: ep.audioBytes,
-      chapters: chaptersOf(ep.script).map((ch) => ({
-        title: ch.title,
-        sourceCount: ch.source_ids.length,
+      chapters: (ep.chapterSummaries ?? []).map((ch) => ({
+        title: ch.title ?? '',
+        sourceCount: ch.source_count,
       })),
     })),
   })
@@ -539,30 +590,32 @@ authed.get('/sources', async (c) => {
   const conn = c.get('conn')
   const userId = c.get('userId')
 
-  const rows = await conn
-    .select({
-      id: sources.id,
-      title: sources.title,
-      url: sources.url,
-      publisher: sources.publisher,
-      type: sources.type,
-      lang: sources.lang,
-      status: sources.status,
-      extractionQuality: sources.extractionQuality,
-      error: sources.error,
-      capturedAt: sources.capturedAt,
-    })
-    .from(sources)
-    .where(eq(sources.userId, userId))
-    .orderBy(desc(sources.capturedAt))
-    .limit(100)
-
   // stories.source_ids is a uuid array, so membership is answered from the
-  // user's own stories rather than with a containment query per source.
-  const storyRows = await conn
-    .select({ sourceIds: stories.sourceIds })
-    .from(stories)
-    .where(eq(stories.userId, userId))
+  // user's own stories rather than with a containment query per source. Both
+  // selects depend only on userId, so they share one wait over the HTTP driver.
+  const [rows, storyRows] = await Promise.all([
+    conn
+      .select({
+        id: sources.id,
+        title: sources.title,
+        url: sources.url,
+        publisher: sources.publisher,
+        type: sources.type,
+        lang: sources.lang,
+        status: sources.status,
+        extractionQuality: sources.extractionQuality,
+        error: sources.error,
+        capturedAt: sources.capturedAt,
+      })
+      .from(sources)
+      .where(eq(sources.userId, userId))
+      .orderBy(desc(sources.capturedAt))
+      .limit(100),
+    conn
+      .select({ sourceIds: stories.sourceIds })
+      .from(stories)
+      .where(eq(stories.userId, userId)),
+  ])
   const clustered = new Set(storyRows.flatMap((s) => s.sourceIds))
 
   return c.json({

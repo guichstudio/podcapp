@@ -77,7 +77,7 @@ function metricsHtml(m: NonNullable<ConsoleEpisode['metrics']>): string {
 function episodeHtml(ep: ConsoleEpisode): string {
   return `<article class="ep">
 <h2>${escapeHtml(ep.title)}</h2>
-<div class="meta">${frenchDate(ep.publishedAt)} · ${duration(ep.durationSec)} · ${ep.chapters.length} chapitres</div>
+<div class="meta">${frenchDate(ep.publishedAt)} · ${duration(ep.durationSec)} · ${ep.chapters.length} chapitre${ep.chapters.length > 1 ? 's' : ''}</div>
 <audio controls preload="none" src="${escapeHtml(ep.audioUrl)}"></audio>
 ${ep.metrics ? metricsHtml(ep.metrics) : ''}
 ${ep.chapters.map(chapterHtml).join('\n')}

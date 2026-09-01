@@ -16,8 +16,9 @@ import { createStorage } from '../storage/index.js'
 
 type Env = { Variables: { userId: string; db: Db } }
 
-const FEED_TITLE = 'Briefing'
-const FEED_DESCRIPTION = 'Personal audio briefing, built from the articles and newsletters you saved.'
+const FEED_TITLE = 'Podcapp'
+const FEED_DESCRIPTION =
+  'Votre briefing audio personnel, construit à partir des articles et newsletters que vous avez sauvegardés.'
 
 // Path params land in uuid columns, where a malformed value is a driver error
 // rather than an empty result. Postgres renders uuids lowercase, so a key built
@@ -164,8 +165,9 @@ app.get('/rss/:token', async (c) => {
   const feed = buildFeed({
     title: FEED_TITLE,
     description: FEED_DESCRIPTION,
-    author: user.email.split('@')[0] ?? user.email,
-    email: user.email,
+    // Not the email local part: the feed is served token-only but gets copied
+    // into podcast apps, and it must not identify the account.
+    author: FEED_TITLE,
     language: feedLanguage(user.outputLanguage),
     // The token stays in atom:link rel=self only: clients render <link> as "visit
     // website" and can leak it as a referrer.

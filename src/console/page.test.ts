@@ -41,7 +41,8 @@ test('renders the French date, duration and chapter count', () => {
   const html = buildConsole({ episodes: [episode()], feedUrl: 'f', manifestUrl: 'm' })
   assert.ok(html.includes('samedi 29 août 2026'), '2026-08-29 is a Saturday')
   assert.ok(html.includes('14 min 05'))
-  assert.ok(html.includes('1 chapitres'))
+  assert.ok(html.includes('1 chapitre'), 'singular: one chapter')
+  assert.ok(!html.includes('1 chapitres'), 'the plural must agree in number')
 })
 
 test('the accuracy verdict is green at zero and red above it', () => {

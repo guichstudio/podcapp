@@ -47,7 +47,7 @@ struct SettingsView: View {
 
                 generationCard
 
-                Text("Le flux RSS reste compatible, Apple Podcasts, Overcast.")
+                Text("Le flux RSS reste compatible avec Apple Podcasts, Overcast et les autres.")
                     .typo(Typo.metaSmall)
                     .foregroundStyle(Palette.muted2)
                     .padding(.top, 14)

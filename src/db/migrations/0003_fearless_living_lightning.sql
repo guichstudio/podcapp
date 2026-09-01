@@ -1,0 +1,2 @@
+ALTER TABLE "users" ALTER COLUMN "target_minutes" SET DEFAULT 10;--> statement-breakpoint
+CREATE UNIQUE INDEX "episodes_one_active_per_user" ON "episodes" USING btree ("user_id") WHERE status not in ('ready', 'failed');

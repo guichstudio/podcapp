@@ -86,8 +86,6 @@ test('the channel carries every tag Apple Podcasts requires', () => {
     '<itunes:author>Louis</itunes:author>',
     '<itunes:explicit>false</itunes:explicit>',
     '<itunes:category text="News"/>',
-    '<itunes:name>Louis</itunes:name>',
-    '<itunes:email>louis@example.com</itunes:email>',
     '<itunes:image href="https://cdn.example.com/cover.jpg"/>',
     '<itunes:episodeType>full</itunes:episodeType>',
     '</channel>',
@@ -95,6 +93,9 @@ test('the channel carries every tag Apple Podcasts requires', () => {
   ]) {
     assert.ok(xml.includes(expected), `missing from the feed: ${expected}`)
   }
+  // The bucket is public: nothing in the feed may identify the account.
+  assert.ok(!xml.includes('itunes:owner'), 'the owner block must not be published')
+  assert.ok(!xml.includes('@'.concat('example.com')), 'no email address in the public feed')
 })
 
 test('a "]]>" inside a description does not break out of its CDATA section', () => {
@@ -138,7 +139,6 @@ function feed(over: Partial<Parameters<typeof buildFeed>[0]> = {}) {
     title: 'Briefing',
     description: 'Le briefing quotidien.',
     author: 'Louis',
-    email: 'louis@example.com',
     language: 'fr',
     link: 'https://podcapp.example.com',
     selfUrl: 'https://podcapp.example.com/rss/tok.xml',

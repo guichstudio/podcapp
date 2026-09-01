@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { and, desc, eq, inArray } from 'drizzle-orm'
 import { ScriptSchema } from '../core/types.js'
 import { buildConsole, buildManifest, type ConsoleEpisode } from '../console/page.js'
@@ -13,8 +14,9 @@ import { buildFeed, COVER_KEYS, feedKey, type FeedEpisode } from './feed.js'
 // can refresh both right after the audio lands. The argv scripts
 // (src/rss/publish.ts, src/console/publish.ts) are thin wrappers around these.
 
-const FEED_TITLE = 'Briefing'
-const FEED_DESCRIPTION = 'Personal audio briefing, built from the articles and newsletters you saved.'
+const FEED_TITLE = 'Podcapp'
+const FEED_DESCRIPTION =
+  'Votre briefing audio personnel, construit à partir des articles et newsletters que vous avez sauvegardés.'
 
 // Writes the feed as a static object next to the audio it points at. The API
 // serves the same feed from the database, but this needs no server at all: with
@@ -74,8 +76,9 @@ export async function publishFeed(
   const xml = buildFeed({
     title: FEED_TITLE,
     description: FEED_DESCRIPTION,
-    author: user.email.split('@')[0] ?? user.email,
-    email: user.email,
+    // Not the email local part: the bucket is public and the feed must not
+    // identify the account.
+    author: FEED_TITLE,
     language: user.outputLanguage.trim().toLowerCase().slice(0, 2),
     // Clients surface this as the show's website, so it has to resolve. FEED_LINK
     // is where a real site goes; the bucket root is a working fallback.
@@ -90,8 +93,16 @@ export async function publishFeed(
   return { feedUrl: selfUrl, episodeCount: items.length, imageUrl: imageUrl ?? null }
 }
 
-// Publishes the console next to the feed, behind the same rss_token: the bucket
-// is public, so the token is what keeps a personal briefing personal.
+// The console shows full scripts, source URLs and costs: strictly more than
+// the feed. Keying it by rss_token let anyone holding the (routinely shared)
+// feed URL derive it, so it hides behind a token derived from the API secret
+// instead, which never appears in any public artifact.
+function consoleToken(apiToken: string): string {
+  return createHash('sha256').update(`console:${apiToken}`).digest('hex').slice(0, 43)
+}
+
+// Publishes the console next to the feed on the public bucket: its own token
+// is what keeps a personal briefing personal.
 export async function publishConsole(
   db: Db,
   storage: Storage,
@@ -100,8 +111,9 @@ export async function publishConsole(
   const [user] = await db.select().from(users).where(eq(users.id, userId))
   if (!user) throw new Error(`no user with id ${userId}`)
 
-  const consoleKey = `console/${user.rssToken}.html`
-  const manifestKey = `console/${user.rssToken}.webmanifest`
+  const token = consoleToken(user.apiToken)
+  const consoleKey = `console/${token}.html`
+  const manifestKey = `console/${token}.webmanifest`
 
   const rows = await db
     .select()
@@ -121,7 +133,9 @@ export async function publishConsole(
         ? (await db
             .select({ id: sources.id, title: sources.title, url: sources.url, publisher: sources.publisher })
             .from(sources)
-            .where(inArray(sources.id, sourceIds))
+            // source_ids come from a model output: never resolve rows that
+            // belong to someone else onto a published page.
+            .where(and(inArray(sources.id, sourceIds), eq(sources.userId, user.id)))
         ).map((s) => [s.id, s])
         : [],
     )
@@ -170,6 +184,12 @@ export async function publishConsole(
     manifestUrl: storage.publicUrl(manifestKey),
   })
   await storage.put(consoleKey, Buffer.from(html, 'utf8'), 'text/html; charset=utf-8')
+  // The console used to live behind rss_token, so anyone holding the feed URL
+  // could derive it. Storage has no delete: the legacy objects are overwritten
+  // with an empty page that names nothing, on every publish.
+  const tombstone = '<!doctype html><meta charset="utf-8"><p>Cette page a été retirée.</p>'
+  await storage.put(`console/${user.rssToken}.html`, Buffer.from(tombstone, 'utf8'), 'text/html; charset=utf-8')
+  await storage.put(`console/${user.rssToken}.webmanifest`, Buffer.from('{}', 'utf8'), 'application/manifest+json')
   await storage.put(
     manifestKey,
     Buffer.from(buildManifest(storage.publicUrl(consoleKey)), 'utf8'),

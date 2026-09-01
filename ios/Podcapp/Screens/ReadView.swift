@@ -281,13 +281,33 @@ private struct ArticleScreen: View {
     }
 
     private func load() async {
+        // A ready episode's script never changes, so reopening an article the
+        // reader just left must not refetch and re-render a loading panel.
+        if let cached = await ArticleCache.shared.detail(for: episode.id) {
+            detail = .loaded(cached)
+            return
+        }
         detail = .loading
         do {
-            detail = .loaded(try await API.shared.episode(id: episode.id))
+            let full = try await API.shared.episode(id: episode.id)
+            if full.status == "ready" { await ArticleCache.shared.store(full) }
+            detail = .loaded(full)
         } catch {
             detail = .failed(error.localizedDescription)
         }
     }
+}
+
+/// Session-lifetime cache of READY episode details: their script, grounding
+/// and sources are immutable once published. Non-ready episodes are never
+/// stored, so a briefing in progress keeps refreshing.
+@MainActor
+private final class ArticleCache {
+    static let shared = ArticleCache()
+    private var byId: [String: EpisodeDetail] = [:]
+
+    func detail(for id: String) -> EpisodeDetail? { byId[id] }
+    func store(_ detail: EpisodeDetail) { byId[detail.id] = detail }
 }
 
 // MARK: - Pieces

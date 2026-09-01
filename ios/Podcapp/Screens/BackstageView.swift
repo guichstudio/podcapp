@@ -69,9 +69,14 @@ struct EpisodeBackstage: View {
             if let first = episode.discarded.first {
                 PlayerFlag(
                     label: "Écarté",
-                    text: episode.discarded.count == 1
-                        ? first
-                        : "\(first) (et \(episode.discarded.count - 1) autres sujets écartés, chacun avec sa raison)"
+                    text: {
+                        let rest = episode.discarded.count - 1
+                        if rest <= 0 { return first }
+                        // "1 autres sujets" is not French: the tail agrees.
+                        return rest == 1
+                            ? "\(first) (et 1 autre sujet écarté, avec sa raison)"
+                            : "\(first) (et \(rest) autres sujets écartés, chacun avec sa raison)"
+                    }()
                 )
             }
         }
@@ -140,7 +145,7 @@ struct EpisodeBackstage: View {
 
     private func footer(_ episode: EpisodeDetail) -> String {
         var parts = ["Statut : " + EpisodePlayer.frenchStatus(episode.status)]
-        parts.append("\(episode.chapters.count) chapitres")
+        parts.append("\(episode.chapters.count) chapitre\(episode.chapters.count > 1 ? "s" : "")")
         return parts.joined(separator: " · ")
     }
 }

@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm'
 import {
   bigserial,
   customType,
@@ -9,6 +10,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
 // Must match EMBEDDING_DIMS in src/config.ts (kept literal here: drizzle-kit's
@@ -106,7 +108,17 @@ export const episodes = pgTable('episodes', {
   failedStage: text('failed_stage'),
   error: text('error'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-})
+},
+  (t) => [
+    // One live generation per user, enforced where the check-then-insert race
+    // cannot be: POST /episodes and the daily cron both read active rows and
+    // then insert, without a transaction (the neon-http driver cannot hold
+    // one), so two concurrent requests would otherwise both pay writer + TTS.
+    uniqueIndex('episodes_one_active_per_user')
+      .on(t.userId)
+      .where(sql`status not in ('ready', 'failed')`),
+  ],
+)
 
 export const explainedConcepts = pgTable(
   'explained_concepts',

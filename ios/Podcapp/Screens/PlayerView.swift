@@ -63,6 +63,7 @@ final class EpisodePlayer: ObservableObject {
     private let player = AVPlayer()
     private var timeObserver: Any?
     private var statusObserver: NSKeyValueObservation?
+    private var transportObserver: NSKeyValueObservation?
     private var endObserver: NSObjectProtocol?
     private var sessionReady = false
     /// A chapter asked for before the timeline was known, replayed once it is.
@@ -76,6 +77,16 @@ final class EpisodePlayer: ObservableObject {
             guard let self else { return }
             self.time = max(0, current.seconds)
             if self.duration <= 0 { self.refreshDuration() }
+        }
+        // The system pauses the player on its own (phone call, Siri, headphones
+        // unplugged): the UI must follow the player, not the last button tap,
+        // or the pause glyph animates over silence.
+        transportObserver = player.observe(\.timeControlStatus, options: [.new]) { [weak self] observed, _ in
+            let playing = observed.timeControlStatus != .paused
+            DispatchQueue.main.async {
+                guard let self, self.isPlaying != playing else { return }
+                self.isPlaying = playing
+            }
         }
     }
 
@@ -141,8 +152,10 @@ final class EpisodePlayer: ObservableObject {
         loadError = nil
         pendingChapter = nil
 
-        // Same episode again: keep the position instead of restarting it.
-        if self.episode?.id == episode.id, player.currentItem != nil {
+        // Same episode again: keep the position instead of restarting it. A
+        // failed item is not kept: replaying it would pretend to play silence,
+        // so it falls through and gets rebuilt from the fresh URL.
+        if self.episode?.id == episode.id, let current = player.currentItem, current.status != .failed {
             if let startAt { seek(to: startAt) }
             play()
             return
@@ -162,7 +175,12 @@ final class EpisodePlayer: ObservableObject {
         }
 
         playbackError = nil
-        let item = AVPlayerItem(url: url)
+        // The mp3 never changes once published (the row goes ready exactly
+        // once), and AVPlayer bypasses URLCache: play the cached copy when one
+        // exists, and fill the cache in the background otherwise.
+        let cached = Self.cachedAudio(for: episode.id)
+        if cached == nil { Self.cacheAudio(episodeId: episode.id, from: url) }
+        let item = AVPlayerItem(url: cached ?? url)
         statusObserver = item.observe(\.status, options: [.initial, .new]) { [weak self] item, _ in
             DispatchQueue.main.async { self?.itemStatusChanged(item) }
         }
@@ -245,6 +263,33 @@ final class EpisodePlayer: ObservableObject {
     }
 
     // MARK: Internals
+
+    private static func audioCacheURL(for episodeId: String) -> URL {
+        let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        return dir.appendingPathComponent("episode-\(episodeId).mp3")
+    }
+
+    private static func cachedAudio(for episodeId: String) -> URL? {
+        let url = audioCacheURL(for: episodeId)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
+    /// Ids with a download in flight, so replaying while one runs does not
+    /// start a second. Main-actor confined, like every caller.
+    private static var cachingIds = Set<String>()
+
+    private static func cacheAudio(episodeId: String, from remote: URL) {
+        guard !cachingIds.contains(episodeId) else { return }
+        cachingIds.insert(episodeId)
+        URLSession.shared.downloadTask(with: remote) { tmp, response, _ in
+            let ok = (response as? HTTPURLResponse)?.statusCode == 200
+            if ok, let tmp {
+                // moveItem fails if the file landed meanwhile, which is fine.
+                try? FileManager.default.moveItem(at: tmp, to: audioCacheURL(for: episodeId))
+            }
+            DispatchQueue.main.async { cachingIds.remove(episodeId) }
+        }.resume()
+    }
 
     private func teardownItem() {
         statusObserver = nil
@@ -1245,7 +1290,9 @@ private struct GroundedSentenceRow: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .top, spacing: 8) {
                 StatusChip(
-                    label: entry.wasCorrected ? "Corrigé" : "Vérifié",
+                    // Feminine: the referent is "une phrase", like the sheet's
+                    // own copy ("1 a été réécrite").
+                    label: entry.wasCorrected ? "Corrigée" : "Vérifiée",
                     kind: entry.wasCorrected ? .warning : .success
                 )
                 Spacer(minLength: 0)

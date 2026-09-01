@@ -20,7 +20,17 @@ struct OnboardingView: View {
 
     @State private var token = ""
     @State private var status: ConnectStatus = .idle
+    @State private var page: Int? = 0
     @FocusState private var tokenFocused: Bool
+
+    private static let pageCount = 6
+
+    private func go(_ delta: Int) {
+        let current = page ?? 0
+        let target = min(Self.pageCount - 1, max(0, current + delta))
+        guard target != current else { return }
+        withAnimation(.easeInOut(duration: 0.3)) { page = target }
+    }
 
     enum ConnectStatus: Equatable { case idle, checking, failed(String) }
 
@@ -37,12 +47,12 @@ struct OnboardingView: View {
                     ScrollView(.horizontal) {
                         LazyHStack(spacing: 0) {
                             Group {
-                                ListenPage()
-                                BuiltPage()
-                                FormatsPage()
-                                SharePage()
-                                ReadPage()
-                                connectPage
+                                ListenPage().id(0)
+                                BuiltPage().id(1)
+                                FormatsPage().id(2)
+                                SharePage().id(3)
+                                ReadPage().id(4)
+                                connectPage.id(5)
                             }
                             .frame(width: geo.size.width, height: geo.size.height)
                         }
@@ -50,7 +60,27 @@ struct OnboardingView: View {
                     }
                     .scrollTargetBehavior(.paging)
                     .scrollIndicators(.hidden)
+                    // Tap navigation on top of the swipe: a strip on each side
+                    // pages back/forward, like a story viewer. Plain tap
+                    // gestures, so the drag still belongs to the ScrollView.
+                    .overlay {
+                        // 44pt, not wider: on a 375pt phone the connect page's
+                        // 272pt column leaves only 51.5pt of margin per side.
+                        HStack(spacing: 0) {
+                            Color.clear
+                                .contentShape(Rectangle())
+                                .onTapGesture { go(-1) }
+                                .frame(width: 44)
+                            Spacer(minLength: 0)
+                            Color.clear
+                                .contentShape(Rectangle())
+                                .onTapGesture { go(1) }
+                                .frame(width: 44)
+                        }
+                    }
+                    .scrollPosition(id: $page)
                 }
+                .environment(\.pagerNav, PagerNav(prev: { go(-1) }, next: { go(1) }))
             }
         }
         // At the ROOT: the pager is a scroll view and clips at its own bounds,
@@ -320,23 +350,57 @@ private struct OnboardingHeadline: View {
     }
 }
 
+/// Back/forward actions for the pager, injected by the shell so the per-page
+/// PagerBar chevrons can navigate without every page threading closures.
+struct PagerNav {
+    var prev: () -> Void = {}
+    var next: () -> Void = {}
+}
+
+private struct PagerNavKey: EnvironmentKey {
+    static let defaultValue = PagerNav()
+}
+
+extension EnvironmentValues {
+    var pagerNav: PagerNav {
+        get { self[PagerNavKey.self] }
+        set { self[PagerNavKey.self] = newValue }
+    }
+}
+
 /// The design's page indicator under each headline: chevrons around a 134pt
-/// track whose fill encodes the position (17% to 100%). Purely visual, like
-/// the html: the actual paging is the swipe.
+/// track whose fill encodes the position (17% to 100%). The chevrons page
+/// back and forward; the fill is still static per page, like the html.
 private struct PagerBar: View {
     let fill: CGFloat
 
+    @Environment(\.pagerNav) private var nav
+
     var body: some View {
         HStack(spacing: 14) {
-            Text("‹").fs(15).foregroundStyle(Onbo.pagerChevron)
+            chevron("‹", action: nav.prev)
             ZStack(alignment: .leading) {
                 Capsule().fill(Palette.ink.opacity(0.12))
                 Capsule().fill(Palette.ink).frame(width: 134 * fill)
             }
             .frame(width: 134, height: 4)
-            Text("›").fs(15).foregroundStyle(Onbo.pagerChevron)
+            chevron("›", action: nav.next)
         }
         .padding(.top, 18)
+    }
+
+    private func chevron(_ glyph: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(glyph)
+                .fs(15)
+                .foregroundStyle(Onbo.pagerChevron)
+                // A 15pt glyph is an impossible tap target: pad the hit area
+                // without moving the visual.
+                .padding(12)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(-12)
     }
 }
 
@@ -787,7 +851,7 @@ private struct BuiltPage: View {
         HStack(spacing: 8) {
             Text("SOURCE").fs(7, .semibold, track: 0.08).foregroundStyle(Palette.accentMuted)
             // The markup's dash is replaced per the house punctuation rule.
-            Text("L'ECHO · «Vous avez aimé les subprimes…»")
+            Text("L’ECHO · «Vous avez aimé les subprimes…»")
                 .fs(8.5, .semibold)
                 .foregroundStyle(Palette.ink)
                 .lineLimit(1)
@@ -912,7 +976,7 @@ private struct SharePage: View {
                     .foregroundStyle(.white)
                     .frame(width: 14, height: 14)
                     .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(Palette.ink))
-                Text("L'Echo · Marchés · 28 août 2026").fs(9).foregroundStyle(Palette.muted2)
+                Text("L’Echo · Marchés · 28 août 2026").fs(9).foregroundStyle(Palette.muted2)
             }
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(LinearGradient(

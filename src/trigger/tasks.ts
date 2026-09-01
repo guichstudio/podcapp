@@ -59,9 +59,10 @@ export const processSourceTask = schemaTask({
 const GenerateEpisodePayload = z.object({
   episodeId: z.string().min(1),
   userId: z.string().min(1),
-  // Same bound as POST /episodes: an out-of-range value would overflow the
-  // target_sec integer column.
-  targetSec: z.number().int().min(60).max(3600),
+  // Same bound as POST /episodes and queueBriefing (1..10 minutes), so a
+  // manual run from the Trigger.dev dashboard cannot start an oversized
+  // generation the product never allows.
+  targetSec: z.number().int().min(60).max(600),
   language: z.string().min(2),
 })
 
@@ -92,6 +93,23 @@ export const generateEpisodeTask = schemaTask({
   run: async (payload) => {
     const storage = createCloudStorage()
     const db = await createDb()
+
+    // The reapers (API and cron) mark any active row older than 30 minutes as
+    // failed, assuming the run died. A run that sat that long in the queue is
+    // alive though, and generateEpisode writes statuses unconditionally: it
+    // would resurrect the reaped row and pay writer + TTS for a briefing that
+    // was already replaced. The reap is terminal; this makes it so.
+    const [row] = await db
+      .select({ status: episodes.status })
+      .from(episodes)
+      .where(eq(episodes.id, payload.episodeId))
+    if (row?.status !== 'queued') {
+      logger.warn('generate-episode skipped: row is not queued anymore', {
+        episodeId: payload.episodeId,
+        status: row?.status ?? 'missing',
+      })
+      return { skipped: row?.status ?? 'missing' }
+    }
 
     try {
       await generateEpisode(db, {
@@ -180,10 +198,20 @@ async function queueBriefing(
   // users.target_minutes is written outside this task, so it gets the same
   // bounds POST /episodes applies rather than being trusted.
   const targetSec = Math.min(10, Math.max(1, user.targetMinutes)) * 60
-  const [row] = await db
-    .insert(episodes)
-    .values({ userId: user.id, targetSec, status: 'queued' })
-    .returning({ id: episodes.id })
+  // The partial unique index episodes_one_active_per_user closes the race
+  // between this insert and a concurrent POST /episodes from the user.
+  let row: { id: string } | undefined
+  try {
+    ;[row] = await db
+      .insert(episodes)
+      .values({ userId: user.id, targetSec, status: 'queued' })
+      .returning({ id: episodes.id })
+  } catch (err) {
+    if ((err as { code?: string }).code === '23505') {
+      return { userId: user.id, skipped: 'lost the race to a concurrent generation' }
+    }
+    throw err
+  }
   if (!row) throw new Error('episode insert returned no row')
 
   try {

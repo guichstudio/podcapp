@@ -7,16 +7,24 @@ enum Config {
     static let appGroup = "group.com.louisguichard.podcapp"
     static let defaultBaseURL = "https://podcapp.vercel.app"
 
-    // The App Group container only exists when the build carries its entitlement.
-    // An unsigned simulator build has none, and `UserDefaults(suiteName:)` then
-    // returns nil, which silently swallowed every write: the token looked saved
-    // and the app authenticated with an empty one. Falling back to the app's own
-    // defaults keeps it working; only the share extension truly needs the group.
-    private static var store: UserDefaults { UserDefaults(suiteName: appGroup) ?? .standard }
+    // The App Group container only exists when the build carries its
+    // entitlement. `UserDefaults(suiteName:)` is the WRONG probe for that: it
+    // returns a defaults object either way (nil only for the main bundle id)
+    // and silently swallows every write when the entitlement is missing, which
+    // once made the token look saved while the app authenticated with an empty
+    // one. containerURL is the honest probe, so a misprovisioned build falls
+    // back to the app's own defaults and keeps working; only the share
+    // extension truly needs the group.
+    private static let groupWorks: Bool =
+        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup) != nil
+
+    private static var store: UserDefaults {
+        groupWorks ? (UserDefaults(suiteName: appGroup) ?? .standard) : .standard
+    }
 
     /// False when the app and its share extension cannot see the same storage,
     /// which is the one failure the user has to be told about.
-    static var sharesStorageWithExtension: Bool { UserDefaults(suiteName: appGroup) != nil }
+    static var sharesStorageWithExtension: Bool { groupWorks }
 
     static var baseURL: String {
         get { store.string(forKey: "baseURL") ?? defaultBaseURL }

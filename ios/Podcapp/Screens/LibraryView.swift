@@ -247,7 +247,7 @@ struct LibraryView: View {
                                             )
                                     }
                                 }
-                                Text("Indisponible : le serveur n'expose pas encore ces actions.")
+                                Text("Indisponible : le serveur n’expose pas encore ces actions.")
                                     .typo(Typo.metaTiny)
                                     .foregroundStyle(Palette.faint)
                             }
@@ -389,7 +389,7 @@ private struct LibraryStatus {
             return LibraryStatus(
                 chip: "ÉCHEC", kind: .danger, icon: "⚠",
                 isReady: false, isProblem: true,
-                actions: ["Relancer l'extraction", "Supprimer"]
+                actions: ["Relancer l’extraction", "Supprimer"]
             )
         default:
             return LibraryStatus(
@@ -435,7 +435,7 @@ private enum LibraryRow {
         if let error = source.error, !error.isEmpty { return error }
         switch source.status {
         case "received":
-            return "En file. L'extraction se lance au prochain traitement."
+            return "En file. L’extraction se lance au prochain traitement."
         case "extracting":
             return "Extraction…"
         case "analyzed":
@@ -451,7 +451,7 @@ private enum LibraryRow {
         case "extraction_failed", "low_quality", "unsupported":
             return "Extraction échouée, sans détail renvoyé par le serveur."
         default:
-            return "Statut « \(source.status) » inconnu de l'app."
+            return "Statut « \(source.status) » inconnu de l’app."
         }
     }
 

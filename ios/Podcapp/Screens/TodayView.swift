@@ -210,23 +210,31 @@ struct TodayView: View {
     private func load(reset: Bool = true) async {
         if reset { phase = .loading }
         do {
-            async let episodesCall = API.shared.episodes()
             async let sourcesCall = API.shared.sources()
-            let episodes = try await episodesCall
-            let sources = try await sourcesCall
+            let episodes = try await API.shared.episodes()
 
             // /episodes comes back newest first, so the first ready row is the
             // hero. A user whose only episode is still being made still gets a
             // hero, showing that status rather than an empty screen.
             let newest = episodes.first { $0.status == "ready" } ?? episodes.first
+            // The list endpoint carries no source ids; the detail is the only
+            // way to know what already aired and what it cited. It depends only
+            // on the episodes list, so it runs while /sources is in flight
+            // instead of behind it.
+            let detailTask = Task { [newest] () -> EpisodeDetail? in
+                guard let newest else { return nil }
+                return try await API.shared.episode(id: newest.id)
+            }
+            let sources: [SavedSource]
+            do {
+                sources = try await sourcesCall
+            } catch {
+                detailTask.cancel()
+                throw error
+            }
             var featured: TodayData.Featured?
-            if let newest {
-                featured = TodayData.Featured(
-                    episode: newest,
-                    // The list endpoint carries no source ids; the detail is the
-                    // only way to know what already aired and what it cited.
-                    detail: try await API.shared.episode(id: newest.id)
-                )
+            if let newest, let detail = try await detailTask.value {
+                featured = TodayData.Featured(episode: newest, detail: detail)
             }
 
             let aired: Set<String> = {

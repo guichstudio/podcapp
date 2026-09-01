@@ -30,7 +30,6 @@ export interface FeedInput {
   title: string
   description: string
   author: string
-  email: string
   language: string
   // The show's website, surfaced by clients. Kept apart from selfUrl so the
   // secret feed URL is never displayed as the podcast's public home.
@@ -123,11 +122,10 @@ export function buildFeed(input: FeedInput): string {
     `    <itunes:author>${escapeXml(input.author)}</itunes:author>`,
     '    <itunes:explicit>false</itunes:explicit>',
     '    <itunes:category text="News"/>',
-    '    <itunes:owner>',
-    `      <itunes:name>${escapeXml(input.author)}</itunes:name>`,
-    `      <itunes:email>${escapeXml(input.email)}</itunes:email>`,
-    '    </itunes:owner>',
   ]
+  // No <itunes:owner>: it exists for podcast-directory ownership checks these
+  // private per-user feeds never undergo, and the feed lives on a public
+  // bucket, so the account email must not be printed into it.
 
   if (input.imageUrl) lines.push(`    <itunes:image href="${escapeXml(input.imageUrl)}"/>`)
 
