@@ -189,8 +189,11 @@ actor API {
         try await get("/episodes/\(id)", as: EpisodeDetail.self)
     }
 
-    func sources() async throws -> [SavedSource] {
-        try await get("/sources", as: SourceList.self).sources
+    /// The saved sources, plus the server's own count of what an episode can be
+    /// built from and the minimum it demands. The app never recomputes that
+    /// rule: the counter on screen and the refusal on the wire share one source.
+    func sources() async throws -> SourceBatch {
+        try await get("/sources", as: SourceBatch.self)
     }
 
     /// Asks the server to queue a briefing. Returns the id of the queued
@@ -227,7 +230,12 @@ actor API {
     private struct EpisodeList: Decodable { let episodes: [EpisodeSummary] }
     private struct LanguageBody: Encodable { let language: String }
     private struct LanguageAck: Decodable { let language: String }
-    private struct SourceList: Decodable { let sources: [SavedSource] }
+    struct SourceBatch: Decodable, Sendable {
+        let sources: [SavedSource]
+        // Older servers send neither; the card then shows the list count alone.
+        let available: Int?
+        let minimum: Int?
+    }
     private struct GenerateBody: Encodable { let target_min: Int }
     private struct GenerateAck: Decodable { let episode_id: String }
 

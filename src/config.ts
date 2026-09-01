@@ -25,10 +25,14 @@ export const MIN_EXTRACTION_QUALITY = 0.35
 export const SIMILARITY_MERGE = 0.93
 export const SIMILARITY_REVIEW = 0.7
 
-export const DEFAULT_TARGET_MINUTES = 10
-// Hard ceiling (Louis, 2026-08-31): TTS is the cost driver, and a briefing
-// should be dense rather than long.
-export const MAX_TARGET_MINUTES = 10
+export const DEFAULT_TARGET_MINUTES = 5
+// Hard ceiling (Louis, 2026-09-01, down from 10): TTS is the cost driver, and
+// a briefing should be dense rather than long. Enforced wherever a target is
+// read — request body, users.target_minutes, the cron — never trusted.
+export const MAX_TARGET_MINUTES = 5
+// No episode from a thin pile (Louis, 2026-09-01): fewer than four saved links
+// in the open stories and nothing is generated, by hand or by the cron.
+export const MIN_SOURCES_PER_EPISODE = 4
 // Measured, not assumed, per narrator. French: the 2026-08-29 episode ran
 // 1973 words in 842.8s = 140.4 wpm. English (Eric): 67 words in 24.79s on the
 // 2026-09-01 listening test = 162 wpm. Used for the estimated_sec metric.

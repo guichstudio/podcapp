@@ -20,10 +20,10 @@
 "1 source" = "1 source";
 "1 was rewritten" = "1 was rewritten";
 "12 min read" = "12 min read";
-"15 min" = "15 min";
 "150 s here, 90 s there: named cuts" = "150 s here, 90 s there: named cuts";
 "28 min to watch" = "28 min to watch";
 "40-post thread" = "40-post thread";
+"5 min max" = "5 min max";
 "A tap under your finger on tabs, playback and chapters." = "A tap under your finger on tabs, playback and chapters.";
 "ANALYSED" = "ANALYSED";
 "API token" = "API token";
@@ -34,6 +34,8 @@
 "All" = "All";
 "All episodes" = "All episodes";
 "Already saved: counted once." = "Already saved: counted once.";
+"An episode needs at least %lld saved links. Share %lld more." = "An episode needs at least %lld saved links. Share %lld more.";
+"An episode needs at least %lld saved links. Share 1 more." = "An episode needs at least %lld saved links. Share 1 more.";
 "Analysed" = "Analysed";
 "Analysed and attached to a story." = "Analysed and attached to a story.";
 "Analysed, waiting to be grouped." = "Analysed, waiting to be grouped.";
@@ -272,7 +274,7 @@
 "“You loved subprime, you are going to love the private credit crisis”" = "“You loved subprime, you are going to love the private credit crisis”";
 "“You loved subprime…”" = "“You loved subprime…”";
 "↓ TRANSLATED · SUMMED UP" = "↓ TRANSLATED · SUMMED UP";
-"≈ 10 min of audio · every morning" = "≈ 10 min of audio · every morning";
+"≈ 5 min of audio · every morning" = "≈ 5 min of audio · every morning";
 "≈1,500 words, documentary register" = "≈1,500 words, documentary register";
 "▶ Listen" = "▶ Listen";
 "✓ Every source, summed up in your language" = "✓ Every source, summed up in your language";

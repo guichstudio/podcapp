@@ -3,8 +3,9 @@
 Votre radio quotidienne : sourcée par vous, vérifiée par nous.
 
 Podcapp transforme ce que vous n'avez pas eu le temps de lire ou de regarder
-(articles, vidéos, threads, PDF, newsletters) en un briefing audio d'environ
-10 minutes, en français, avec chaque phrase vérifiée contre ses sources. Les
+(articles, vidéos, threads, PDF, newsletters) en un briefing audio de cinq
+minutes au plus, dans votre langue, avec chaque phrase vérifiée contre ses
+sources. Il faut au moins quatre liens pour qu'un épisode soit fabriqué. Les
 épisodes arrivent dans votre application de podcast habituelle via un flux RSS
 privé, et dans l'app iOS Podcapp.
 
@@ -71,7 +72,8 @@ capture → extract → analyze → embed → cluster (stories)
 Modèles (voir `src/config.ts`) : DeepSeek V4 Flash/Pro sur l'analyse, l'arbitrage
 de clustering, la vérification et l'éditorial ; **Claude Sonnet à l'écriture**
 (le rédacteur reste frontier-class, c'est une règle du projet) ; embeddings
-Jina ; voix ElevenLabs `eleven_multilingual_v2`. Épisodes plafonnés à 10 min.
+Jina ; voix ElevenLabs `eleven_multilingual_v2` (Eric en anglais). Épisodes
+plafonnés à 5 min, et jamais avec moins de 4 liens (`MIN_SOURCES_PER_EPISODE`).
 
 ## Opérations
 
@@ -119,14 +121,17 @@ vérification vit sur la ligne `episodes.grounding` en base, pas sur le bucket :
 le bucket est public par nécessité (les apps de podcast téléchargent l'audio
 sans auth). Les runs cloud se lisent sur cloud.trigger.dev.
 
-## Coûts (ordre de grandeur, par épisode de 10 min)
+## Coûts (ordre de grandeur, par épisode de 5 min)
 
 | Poste | Coût |
 |---|---|
-| LLM (analyse + éditorial + écriture + vérification) | ~0,15 $ |
-| ElevenLabs TTS multilingual_v2 | ~0,85 $ |
+| LLM (analyse + éditorial + écriture + vérification) | ~0,12 $ |
+| ElevenLabs TTS multilingual_v2 | ~0,45 $ |
 | Calcul Trigger.dev | ~0,01 $ |
-| **Total** | **~1 $** |
+| **Total** | **~0,6 $** |
+
+(Mesuré à ~1 $ pour 10 min avant le plafond du 2026-09-01 ; la voix domine et
+son coût est proportionnel à la durée, le LLM l'est un peu moins.)
 
 La voix domine. Toute optimisation de coût future se joue là (et jamais sur le
 modèle rédacteur).

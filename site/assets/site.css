@@ -38,7 +38,7 @@
   --shadow-card: 0 24px 60px rgba(50, 42, 110, 0.14);
   --shadow-nav: 0 18px 44px rgba(50, 42, 110, 0.14);
   --blur: blur(28px);
-  --shell: 1120px;
+  --shell: 1200px;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -168,7 +168,7 @@ img { max-width: 100%; display: block; }
 .hero-visual { display: flex; justify-content: center; padding: 20px 0; position: relative; }
 .phone-wrap { position: relative; display: inline-block; }
 .phone {
-  width: 234px; height: 482px;
+  width: 276px; height: 532px;
   background: linear-gradient(160deg, #111014, #0b0a0e);
   border-radius: 40px; padding: 22px 20px 26px;
   box-shadow: 0 40px 90px rgba(28, 27, 34, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.09);
@@ -236,7 +236,7 @@ img { max-width: 100%; display: block; }
 .float-stats i { display: block; font-size: 7.5px; font-style: normal; color: #6e6c78; }
 .float-stats span + span { border-left: 1px solid rgba(28, 27, 34, 0.1); padding-left: 13px; }
 .float-claim {
-  left: 715px; top: 143px; transform: rotate(-6deg); width: 172px;
+  left: 60px; top: -18px; transform: rotate(-6deg); width: 200px;
   background: var(--glass-strong);
   backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
   border: 1px solid var(--glass-edge); border-radius: 14px; padding: 11px 13px;
@@ -366,7 +366,7 @@ img { max-width: 100%; display: block; }
 .post-date { font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; color: var(--violet); }
 .post-read { font-size: 11.5px; font-weight: 500; color: var(--ink-4); }
 .post-card h2 { font-size: 25px; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; text-wrap: pretty; }
-.post-card p { font-size: 14.5px; line-height: 1.55; font-weight: 300; color: var(--ink-3); margin-top: 10px; text-wrap: pretty; }
+.post-card p { font-size: 14.5px; line-height: 1.55; font-weight: 300; color: var(--ink-3); margin-top: 10px; max-width: 62ch; text-wrap: pretty; }
 .post-more { display: inline-block; margin-top: 14px; font-size: 13px; font-weight: 700; color: var(--violet); }
 
 /* Article --------------------------------------------------------------- */
@@ -411,9 +411,12 @@ img { max-width: 100%; display: block; }
 @media (max-width: 1060px) {
   .hero { grid-template-columns: 1fr; gap: 40px; padding: 72px 0 64px; }
   .hero-copy { align-items: flex-start; }
-  .hero-visual { justify-content: center; }
-  .float-claim { left: auto; right: -10px; top: 60px; }
-  .float-stats { left: auto; right: -20px; top: auto; bottom: 40px; }
+  /* Le téléphone est centré : les cartes flottantes sortent au-dessus et
+     en dessous plutôt que par-dessus le titre et les commandes. */
+  .hero-visual { justify-content: center; padding: 92px 0 74px; }
+  .float-claim { left: 0; right: auto; top: 0; }
+  .float-stats { left: auto; right: 0; top: auto; bottom: 0; }
+  .float-capture { left: -26px; top: auto; bottom: -16px; }
   .translate { grid-template-columns: 1fr; gap: 36px; }
   .translate-copy { order: -1; }
   .features { grid-template-columns: 1fr 1fr; }
@@ -448,9 +451,10 @@ img { max-width: 100%; display: block; }
   .hero h1 { font-size: 38px; }
   .hero-actions { width: 100%; }
   .hero-actions a { flex: 1 1 auto; justify-content: center; text-align: center; }
-  .float-capture { left: -14px; top: 340px; }
-  .float-stats { right: -8px; bottom: 20px; }
-  .float-claim { right: -4px; top: 30px; width: 154px; }
+  .hero-visual { padding: 84px 0 70px; }
+  .float-capture { left: -18px; }
+  .float-claim { width: 182px; }
+  .float-stats { padding: 9px 12px; gap: 11px; }
   .nav-cta { padding: 10px 16px; font-size: 12.5px; }
   .nav-links { font-size: 13px; }
 }

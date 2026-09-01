@@ -3,7 +3,9 @@ import { and, eq, inArray, ne } from 'drizzle-orm'
 import { z } from 'zod'
 import { createDb, type Db } from '../db/client.js'
 import { episodes, stories, users } from '../db/schema.js'
+import { MAX_TARGET_MINUTES } from '../config.js'
 import { deleteAccount } from '../jobs/deleteAccount.js'
+import { countAvailableSources, hasEnoughSources } from '../jobs/material.js'
 import { generateEpisode } from '../jobs/generateEpisode.js'
 import { processSource } from '../jobs/processSource.js'
 import { publishEpisode } from '../jobs/publishEpisode.js'
@@ -175,12 +177,10 @@ async function queueBriefing(
   db: Db,
   user: { id: string; targetMinutes: number; outputLanguage: string },
 ): Promise<BriefingOutcome> {
-  const open = await db
-    .select({ id: stories.id })
-    .from(stories)
-    .where(and(eq(stories.userId, user.id), eq(stories.status, 'open')))
-    .limit(1)
-  if (open.length === 0) return { userId: user.id, skipped: 'no open stories' }
+  // Same rule as POST /episodes: a morning with three links gets no episode,
+  // and the reason is readable in the run.
+  const available = await countAvailableSources(db, user.id)
+  if (!hasEnoughSources(available)) return { userId: user.id, skipped: `only ${available} source(s) in open stories` }
 
   const staleBefore = new Date(Date.now() - 30 * 60 * 1000)
   const actives = await db
@@ -198,7 +198,7 @@ async function queueBriefing(
 
   // users.target_minutes is written outside this task, so it gets the same
   // bounds POST /episodes applies rather than being trusted.
-  const targetSec = Math.min(10, Math.max(1, user.targetMinutes)) * 60
+  const targetSec = Math.min(MAX_TARGET_MINUTES, Math.max(1, user.targetMinutes)) * 60
   // The partial unique index episodes_one_active_per_user closes the race
   // between this insert and a concurrent POST /episodes from the user.
   let row: { id: string } | undefined

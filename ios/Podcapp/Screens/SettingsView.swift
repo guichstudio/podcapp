@@ -396,7 +396,7 @@ struct SettingsView: View {
                 sub: String(localized: "Scripts and narration"),
                 value: AppLocale.current.localizedString(forLanguageCode: AppLocale.code)?.capitalized ?? AppLocale.code
             ),
-            GenerationRow(label: String(localized: "Target length"), sub: String(localized: "Airtime budget fixed before writing"), value: String(localized: "15 min")),
+            GenerationRow(label: String(localized: "Target length"), sub: String(localized: "Airtime budget fixed before writing"), value: String(localized: "5 min max")),
             GenerationRow(label: String(localized: "Generation"), sub: String(localized: "Every morning at 6:00, or from Today"), value: String(localized: "Daily")),
             // States the fact, not a promise: a token can be stored and still be
             // refused, and only the test above knows whether the server takes it.

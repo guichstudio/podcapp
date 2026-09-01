@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
-import { INTRO_OUTRO_SEC, PROMPT_VERSIONS, wordsPerMinute, writerWordsPerMinute } from '../config.js'
+import { INTRO_OUTRO_SEC, MIN_SOURCES_PER_EPISODE, PROMPT_VERSIONS, wordsPerMinute, writerWordsPerMinute } from '../config.js'
 import { countWords, entityTokens, isCheckable, splitSentences } from '../core/sentences.js'
 import { OutlineSchema, type Claim, type Outline, type Script } from '../core/types.js'
 import type { Db } from '../db/client.js'
@@ -350,6 +350,12 @@ async function runEpisode(
     .where(and(eq(stories.userId, opts.userId), eq(stories.status, 'open')))
     .orderBy(desc(stories.lastSeenAt))
   if (open.length === 0) throw new Error('no open stories to build an episode from')
+  // The API and the cron already refused a thin pile; a queued run that got
+  // this far anyway (a source deleted meanwhile) must not spend writer and TTS.
+  const distinctSources = new Set(open.flatMap((s) => s.sourceIds)).size
+  if (distinctSources < MIN_SOURCES_PER_EPISODE) {
+    throw new Error(`only ${distinctSources} source(s) behind the open stories: ${MIN_SOURCES_PER_EPISODE} needed for an episode`)
+  }
 
   const recent = await db
     .select({ title: episodes.title })

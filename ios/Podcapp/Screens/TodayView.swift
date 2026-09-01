@@ -12,7 +12,7 @@ import UIKit
 struct TodayView: View {
     @State private var phase: Phase = .loading
     @State private var backstage: EpisodeDetail?
-    @State private var targetMinutes = 10
+    @State private var targetMinutes = 5
     // Local only: no endpoint carries an include flag, so a tap never leaves the
     // phone. The line under the row says so.
     @State private var includeOverrides: [String: Bool] = [:]
@@ -116,7 +116,7 @@ struct TodayView: View {
 
             focusSection(data)
 
-            TodayGenerateCard(readySourceCount: data.readyCount, targetMinutes: $targetMinutes)
+            TodayGenerateCard(readySourceCount: data.available ?? data.readyCount, minimum: data.minimum ?? 4, targetMinutes: $targetMinutes)
                 .padding(.horizontal, 20)
                 .padding(.top, 18)
 
@@ -225,13 +225,16 @@ struct TodayView: View {
                 guard let newest else { return nil }
                 return try await API.shared.episode(id: newest.id)
             }
-            let sources: [SavedSource]
+            // The batch carries the server's own count of what an episode can be
+            // built from: the card shows that number, never a client-side guess.
+            let batch: API.SourceBatch
             do {
-                sources = try await sourcesCall
+                batch = try await sourcesCall
             } catch {
                 detailTask.cancel()
                 throw error
             }
+            let sources = batch.sources
             var featured: TodayData.Featured?
             if let newest, let detail = try await detailTask.value {
                 featured = TodayData.Featured(episode: newest, detail: detail)
@@ -249,6 +252,8 @@ struct TodayView: View {
                     past: episodes.filter { $0.id != featured?.episode.id },
                     focus: focus,
                     readyCount: focus.filter { $0.status == "ready" }.count,
+                    available: batch.available,
+                    minimum: batch.minimum,
                     newTodayCount: focus.filter { Calendar.current.isDateInToday($0.capturedAt) }.count
                 )
             )
@@ -275,6 +280,9 @@ struct TodayView: View {
         let past: [EpisodeSummary]
         let focus: [SavedSource]
         let readyCount: Int
+        // The server's count of sources behind open stories, and its minimum.
+        let available: Int?
+        let minimum: Int?
         let newTodayCount: Int
     }
 }
@@ -473,7 +481,10 @@ private struct TodayFocusCard: View {
 
 private struct TodayGenerateCard: View {
     let readySourceCount: Int
+    let minimum: Int
     @Binding var targetMinutes: Int
+
+    private var shortBy: Int { max(0, minimum - readySourceCount) }
 
     @State private var isGenerating = false
     @State private var outcome: Outcome?
@@ -509,12 +520,23 @@ private struct TodayGenerateCard: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 13)
                         .background(
-                            Palette.ink.opacity(isGenerating ? 0.55 : 1),
+                            Palette.ink.opacity(isGenerating || shortBy > 0 ? 0.55 : 1),
                             in: RoundedRectangle(cornerRadius: 13, style: .continuous)
                         )
                 }
                 .buttonStyle(.plain)
-                .disabled(isGenerating)
+                .disabled(isGenerating || shortBy > 0)
+
+                // The server refuses below the minimum anyway; saying so here
+                // spares a round trip that ends in the same sentence.
+                if shortBy > 0 {
+                    Text(shortBy == 1
+                        ? String(localized: "An episode needs at least \(minimum) saved links. Share 1 more.")
+                        : String(localized: "An episode needs at least \(minimum) saved links. Share \(shortBy) more."))
+                        .typo(Typo.metaSmall)
+                        .foregroundStyle(Palette.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
                 switch outcome {
                 case .queued:
@@ -559,7 +581,7 @@ private struct TodayGenerateCard: View {
 
     private var lengthPicker: some View {
         HStack(spacing: 0) {
-            ForEach([5, 8, 10], id: \.self) { minutes in
+            ForEach([3, 4, 5], id: \.self) { minutes in
                 Button {
                     if minutes != targetMinutes { Feedback.select() }
                     targetMinutes = minutes

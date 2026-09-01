@@ -267,7 +267,7 @@ struct LibraryView: View {
 
     private func load() async {
         do {
-            sources = try await API.shared.sources()
+            sources = try await API.shared.sources().sources
             phase = .loaded
         } catch {
             phase = .failed(error.localizedDescription)

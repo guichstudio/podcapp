@@ -5,6 +5,8 @@ import { Hono } from 'hono'
 import { handle } from 'hono/vercel'
 import { z } from 'zod'
 import { ScriptSchema, type Script } from '../src/core/types.js'
+import { MAX_TARGET_MINUTES, MIN_SOURCES_PER_EPISODE } from '../src/config.js'
+import { countAvailableSources, hasEnoughSources, shortageMessage } from '../src/jobs/material.js'
 import { privacyHtml } from '../src/legal/privacy.js'
 import * as schema from '../src/db/schema.js'
 
@@ -51,7 +53,7 @@ const IngestSchema = z.union([
 ])
 
 const EpisodeRequestSchema = z.object({
-  target_min: z.number().int().min(1).max(10).optional(),
+  target_min: z.number().int().min(1).max(MAX_TARGET_MINUTES).optional(),
 })
 
 // Every status generateEpisode moves through before landing on ready or failed.
@@ -343,7 +345,7 @@ authed.post('/episodes', async (c) => {
 
   // A missing body means "use my defaults", so it parses as {}.
   const parsed = EpisodeRequestSchema.safeParse(await c.req.json().catch(() => ({})))
-  if (!parsed.success) return c.json({ error: 'expected { target_min?: 1..10 }' }, 400)
+  if (!parsed.success) return c.json({ error: `expected { target_min?: 1..${MAX_TARGET_MINUTES} }` }, 400)
 
   const conn = c.get('conn')
   const userId = c.get('userId')
@@ -353,6 +355,13 @@ authed.post('/episodes', async (c) => {
     .from(users)
     .where(eq(users.id, userId))
   if (!user) return c.json({ error: 'internal error' }, 500)
+
+  // The rule before the queue: a thin pile is refused with the count, not
+  // turned into a two-minute episode.
+  const available = await countAvailableSources(conn, userId)
+  if (!hasEnoughSources(available)) {
+    return c.json({ error: shortageMessage(user.outputLanguage, available), available, minimum: MIN_SOURCES_PER_EPISODE }, 422)
+  }
 
   // An active row only blocks while its run can still be alive: maxDuration is
   // 900s, so anything older than 30 minutes died without reaching its catch
@@ -378,7 +387,7 @@ authed.post('/episodes', async (c) => {
 
   // users.target_minutes is written outside this route, so it gets the same
   // bounds as the request body rather than being trusted.
-  const targetMin = Math.min(10, Math.max(1, parsed.data.target_min ?? user.targetMinutes))
+  const targetMin = Math.min(MAX_TARGET_MINUTES, Math.max(1, parsed.data.target_min ?? user.targetMinutes))
   const targetSec = targetMin * 60
   // The select-based guard above gives the friendly message; the partial
   // unique index episodes_one_active_per_user makes it correct under two
@@ -664,11 +673,14 @@ authed.get('/sources', async (c) => {
       .orderBy(desc(sources.capturedAt))
       .limit(100),
     conn
-      .select({ sourceIds: stories.sourceIds })
+      .select({ sourceIds: stories.sourceIds, status: stories.status })
       .from(stories)
       .where(eq(stories.userId, userId)),
   ])
   const clustered = new Set(storyRows.flatMap((s) => s.sourceIds))
+  // Same definition as the generation rule, so the app's counter and the
+  // server's refusal can never disagree.
+  const available = new Set(storyRows.filter((s) => s.status === 'open').flatMap((s) => s.sourceIds)).size
 
   return c.json({
     sources: rows.map((s) => ({
@@ -684,6 +696,8 @@ authed.get('/sources', async (c) => {
       capturedAt: s.capturedAt.toISOString(),
       inStory: clustered.has(s.id),
     })),
+    available,
+    minimum: MIN_SOURCES_PER_EPISODE,
   })
 })
 

@@ -29,8 +29,8 @@ Team ID (dix caractères). Le remplacer, puis `xcodegen generate --spec project.
 **Description bêta :**
 
 > Podcapp transforme ce que vous n'avez pas eu le temps de lire — articles,
-> vidéos, newsletters — en un briefing audio d'une dizaine de minutes, en
-> français, chaque matin. Vous partagez un lien depuis n'importe quelle app, il
+> vidéos, newsletters — en un briefing audio de cinq minutes au plus, dans
+> votre langue, chaque matin. Vous partagez un lien depuis n'importe quelle app, il
 > rejoint le prochain épisode.
 >
 > Ce qui distingue Podcapp d'un résumé automatique : chaque phrase est vérifiée

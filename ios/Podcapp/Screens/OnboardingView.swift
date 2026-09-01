@@ -687,7 +687,7 @@ private struct ListenPage: View {
             Text("↓").font(.system(size: 16)).foregroundStyle(Onbo.pagerChevron)
             AppMark(size: 58)
                 .shadow(color: Onbo.floatShadow.opacity(0.28), radius: 18, y: 16)
-            Text("≈ 10 min of audio · every morning")
+            Text("≈ 5 min of audio · every morning")
                 .fs(11, .semibold)
                 .foregroundStyle(.white)
                 .padding(.vertical, 9)
