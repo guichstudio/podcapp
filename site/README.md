@@ -1,10 +1,12 @@
 # site — landing podcapp.fr
 
 Statique, sans build. HTML + une feuille de style, police Inter Tight auto-hébergée.
+L'anglais est la langue par défaut, servi à la racine ; `/en/` redirige vers `/` en 308.
+Le blog n'existe qu'en français pour l'instant.
 
 ```
-index.html                  landing FR
-en/index.html               landing EN
+index.html                  landing EN (langue par defaut)
+fr/index.html               landing FR
 blog/index.html             liste des articles
 blog/<slug>/index.html      un article
 assets/site.css             toute la mise en forme

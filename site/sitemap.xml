@@ -3,14 +3,16 @@
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://podcapp.fr/</loc>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/en/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/fr/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://podcapp.fr/"/>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://podcapp.fr/en/</loc>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/en/"/>
+    <loc>https://podcapp.fr/fr/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/fr/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://podcapp.fr/"/>
     <priority>0.8</priority>
   </url>
   <url><loc>https://podcapp.fr/blog/</loc><priority>0.8</priority></url>
