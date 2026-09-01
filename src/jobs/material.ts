@@ -12,11 +12,11 @@ type AnyDb = PgDatabase<PgQueryResultHKT, typeof schema>
 // the pipeline itself: the distinct saved sources behind the user's OPEN
 // stories — what an episode is actually built from. Kept free of heavy imports
 // so the edge function can share it.
-export async function countAvailableSources(db: AnyDb, userId: string): Promise<number> {
+export async function countAvailableSources(db: AnyDb, userId: string, category?: string): Promise<number> {
   const open = await db
     .select({ sourceIds: stories.sourceIds })
     .from(stories)
-    .where(and(eq(stories.userId, userId), eq(stories.status, 'open')))
+    .where(and(eq(stories.userId, userId), eq(stories.status, 'open'), ...(category ? [eq(stories.category, category)] : [])))
   return new Set(open.flatMap((s) => s.sourceIds)).size
 }
 

@@ -11,7 +11,7 @@ import { extractWeb } from '../extract/web.js'
 import { addCost, callStructured, embed, type CostLedger } from '../llm/index.js'
 import { logger } from '../log.js'
 import { ADJUDICATE_V2_SYSTEM, adjudicateV2User } from '../prompts/adjudicate.v2.js'
-import { ANALYZER_V1_SYSTEM, analyzerV1User } from '../prompts/analyzer.v1.js'
+import { ANALYZER_V2_SYSTEM, analyzerV2User } from '../prompts/analyzer.v2.js'
 
 type SourceRow = typeof sources.$inferSelect
 
@@ -91,6 +91,7 @@ async function createStory(db: Db, row: SourceRow, analysis: SourceAnalysis, emb
       userId: row.userId,
       headline,
       topic: analysis.topics[0] ?? null,
+      category: analysis.category,
       sourceIds: [row.id],
       claims: analysis.claims,
       embedding,
@@ -174,8 +175,8 @@ export async function processSource(
       SourceAnalysisSchema,
       {
         maxTokens: 8192,
-        system: ANALYZER_V1_SYSTEM,
-        user: analyzerV1User({
+        system: ANALYZER_V2_SYSTEM,
+        user: analyzerV2User({
           title: row.title ?? ext.title ?? null,
           url: row.url,
           captured_at: row.capturedAt.toISOString(),
@@ -186,7 +187,7 @@ export async function processSource(
     )
     cache?.set(analyzeKey, analysis)
   }
-  await db.update(sources).set({ analysis, status: 'analyzed' }).where(eq(sources.id, row.id))
+  await db.update(sources).set({ analysis, category: analysis.category, status: 'analyzed' }).where(eq(sources.id, row.id))
 
   // 4. embed (summary + topics + head of text: what clustering should compare)
   const embedInput = `${analysis.summary}\ntopics: ${analysis.topics.join(', ')}\n${ext.clean_text.slice(0, 4000)}`

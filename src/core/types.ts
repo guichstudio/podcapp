@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { CATEGORIES } from '../config.js'
 
 // Domain types + zod schemas. Every LLM output is validated against these.
 
@@ -17,6 +18,9 @@ export const SourceAnalysisSchema = z.object({
   claims: z.array(ClaimSchema),
   importance: z.number().min(0).max(1),
   novelty: z.number().min(0).max(1),
+  // Strict: the cache is keyed by prompt version, so no v1 analysis (without a
+  // category) is ever read through this schema.
+  category: z.enum(CATEGORIES),
 })
 export type SourceAnalysis = z.infer<typeof SourceAnalysisSchema>
 

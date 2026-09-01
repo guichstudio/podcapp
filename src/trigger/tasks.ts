@@ -67,6 +67,7 @@ const GenerateEpisodePayload = z.object({
   // generation the product never allows.
   targetSec: z.number().int().min(60).max(MAX_TARGET_MINUTES * 60),
   language: z.string().min(2),
+  category: z.string().optional(),
 })
 
 // generateEpisode leaves the row status alone when it throws (it persists run
@@ -118,7 +119,7 @@ export const generateEpisodeTask = schemaTask({
       await generateEpisode(db, {
         userId: payload.userId,
         targetSec: payload.targetSec,
-        language: payload.language,
+        language: payload.language, category: payload.category,
         episodeId: payload.episodeId,
         storage,
       })

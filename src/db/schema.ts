@@ -60,6 +60,9 @@ export const sources = pgTable(
     raw: jsonb('raw'),
     cleanText: text('clean_text'),
     analysis: jsonb('analysis'),
+    // One of config.CATEGORIES, written by the analyzer. Null on rows analysed
+    // before it existed; the library files those under no shelf.
+    category: text('category'),
     embedding: vector('embedding'),
     extractionQuality: real('extraction_quality'),
     status: text('status').notNull().default('received'),
@@ -75,6 +78,9 @@ export const stories = pgTable('stories', {
     .references(() => users.id),
   headline: text('headline').notNull(),
   topic: text('topic'),
+  // The category of the first source that opened the story; a category-scoped
+  // episode selects on it.
+  category: text('category'),
   sourceIds: uuid('source_ids').array().notNull(),
   claims: jsonb('claims').notNull().default([]),
   embedding: vector('embedding'),

@@ -54,7 +54,7 @@ export function writerWordsPerMinute(language: string): number {
 export const INTRO_OUTRO_SEC = 60
 
 export const PROMPT_VERSIONS = {
-  analyzer: 'v1',
+  analyzer: 'v2',
   adjudicate: 'v2',
 } as const
 
@@ -69,6 +69,12 @@ export const PRICING: Record<string, { in: number; out: number }> = {
   'text-embedding-3-small': { in: 0.02, out: 0 },
   'jina-embeddings-v5-text-small': { in: 0.02, out: 0 },
 }
+
+// The five shelves of the library, plus the one for everything else. Fixed on
+// purpose: analysis tags are free text and cannot be filtered on; a category
+// is a choice among these, made once by the analyzer and never re-derived.
+export const CATEGORIES = ['tech', 'politics', 'history', 'science', 'finance', 'other'] as const
+export type Category = (typeof CATEGORIES)[number]
 
 // The narrator per output language. users.voice_id overrides this per user;
 // ELEVENLABS_VOICE_ID (set in the Trigger.dev env, where the French voice lives)

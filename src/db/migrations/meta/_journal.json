@@ -29,6 +29,13 @@
       "when": 1788236966723,
       "tag": "0003_fearless_living_lightning",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788298696404,
+      "tag": "0004_bent_wilson_fisk",
+      "breakpoints": true
     }
   ]
 }

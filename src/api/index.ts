@@ -11,7 +11,7 @@ import { generateEpisode } from '../jobs/generateEpisode.js'
 import { processSource } from '../jobs/processSource.js'
 import { chapterKey, episodeAudioKey, publishEpisode } from '../jobs/publishEpisode.js'
 import { RUN_ARTIFACTS, runArtifactKey } from '../jobs/runArtifacts.js'
-import { MAX_TARGET_MINUTES, MIN_SOURCES_PER_EPISODE, VOICE_OPTIONS, voiceFor } from '../config.js'
+import { CATEGORIES, MAX_TARGET_MINUTES, MIN_SOURCES_PER_EPISODE, VOICE_OPTIONS, voiceFor } from '../config.js'
 import { countAvailableSources, hasEnoughSources, shortageMessage } from '../jobs/material.js'
 import { privacyHtml } from '../legal/privacy.js'
 import { logger } from '../log.js'
@@ -44,6 +44,7 @@ const IngestSchema = z.union([
 
 const CreateEpisodeSchema = z.object({
   target_min: z.number().int().min(1).max(MAX_TARGET_MINUTES).optional(),
+  category: z.enum(CATEGORIES).optional(),
 })
 
 function isUuid(value: string): boolean {
@@ -332,7 +333,7 @@ authed.post('/episodes', async (c) => {
     .from(users)
     .where(eq(users.id, userId))
   if (!user) return c.json({ error: 'user not found' }, 404)
-  const available = await countAvailableSources(db, userId)
+  const available = await countAvailableSources(db, userId, parsed.data.category)
   if (!hasEnoughSources(available)) {
     return c.json({ error: shortageMessage(user.outputLanguage, available), available, minimum: MIN_SOURCES_PER_EPISODE }, 422)
   }
@@ -351,7 +352,7 @@ authed.post('/episodes', async (c) => {
 
   const episodeId = row.id
   void (async () => {
-    await generateEpisode(db, { userId, targetSec, language: user.outputLanguage, episodeId, storage })
+    await generateEpisode(db, { userId, targetSec, language: user.outputLanguage, category: parsed.data.category, episodeId, storage })
     await publishEpisode(db, storage, episodeId)
   })().catch(async (err: unknown) => {
     logger.error({ episodeId, err: String(err) }, 'episode run failed')

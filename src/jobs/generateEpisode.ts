@@ -309,7 +309,7 @@ function artifactsFrom(run: RunState, targetSec: number, language: string, ledge
 // everything the debug endpoint and the eval runner need.
 export async function generateEpisode(
   db: Db,
-  opts: { userId: string; targetSec: number; language?: string; episodeId?: string; storage?: Storage },
+  opts: { userId: string; targetSec: number; language?: string; category?: string | undefined; episodeId?: string; storage?: Storage },
   ledger: CostLedger = {},
 ): Promise<EpisodeArtifacts> {
   const run: RunState = {
@@ -339,7 +339,7 @@ export async function generateEpisode(
 
 async function runEpisode(
   db: Db,
-  opts: { userId: string; targetSec: number; language?: string; episodeId?: string; storage?: Storage },
+  opts: { userId: string; targetSec: number; language?: string; category?: string | undefined; episodeId?: string; storage?: Storage },
   ledger: CostLedger,
   run: RunState,
 ): Promise<EpisodeArtifacts> {
@@ -347,7 +347,9 @@ async function runEpisode(
   const open = await db
     .select()
     .from(stories)
-    .where(and(eq(stories.userId, opts.userId), eq(stories.status, 'open')))
+    // A category-scoped episode sees one shelf; the four-link rule then applies
+    // to that shelf alone, which is what makes "Make a Finance episode" honest.
+    .where(and(eq(stories.userId, opts.userId), eq(stories.status, 'open'), ...(opts.category ? [eq(stories.category, opts.category)] : [])))
     .orderBy(desc(stories.lastSeenAt))
   if (open.length === 0) throw new Error('no open stories to build an episode from')
   // The API and the cron already refused a thin pile; a queued run that got

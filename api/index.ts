@@ -5,7 +5,7 @@ import { Hono } from 'hono'
 import { handle } from 'hono/vercel'
 import { z } from 'zod'
 import { ScriptSchema, type Script } from '../src/core/types.js'
-import { MAX_TARGET_MINUTES, MIN_SOURCES_PER_EPISODE, VOICE_OPTIONS, voiceFor } from '../src/config.js'
+import { CATEGORIES, MAX_TARGET_MINUTES, MIN_SOURCES_PER_EPISODE, VOICE_OPTIONS, voiceFor } from '../src/config.js'
 import { feedKey } from '../src/rss/feed.js'
 import { countAvailableSources, hasEnoughSources, shortageMessage } from '../src/jobs/material.js'
 import { privacyHtml } from '../src/legal/privacy.js'
@@ -55,6 +55,8 @@ const IngestSchema = z.union([
 
 const EpisodeRequestSchema = z.object({
   target_min: z.number().int().min(1).max(MAX_TARGET_MINUTES).optional(),
+  // One shelf of the library; the four-link rule then applies to that shelf.
+  category: z.enum(CATEGORIES).optional(),
 })
 
 // Every status generateEpisode moves through before landing on ready or failed.
@@ -427,9 +429,10 @@ authed.post('/episodes', async (c) => {
 
   // The rule before the queue: a thin pile is refused with the count, not
   // turned into a two-minute episode.
-  const available = await countAvailableSources(conn, userId)
+  const category = parsed.data.category
+  const available = await countAvailableSources(conn, userId, category)
   if (!hasEnoughSources(available)) {
-    return c.json({ error: shortageMessage(user.outputLanguage, available), available, minimum: MIN_SOURCES_PER_EPISODE }, 422)
+    return c.json({ error: shortageMessage(user.outputLanguage, available), available, minimum: MIN_SOURCES_PER_EPISODE, category: category ?? null }, 422)
   }
 
   // An active row only blocks while its run can still be alive: maxDuration is
@@ -481,7 +484,7 @@ authed.post('/episodes', async (c) => {
   try {
     await triggerTask(
       'generate-episode',
-      { episodeId: row.id, userId, targetSec, language: user.outputLanguage },
+      { episodeId: row.id, userId, targetSec, language: user.outputLanguage, ...(category ? { category } : {}) },
       // Keyed on the row: if the ack was lost but the run was accepted, a retry
       // reuses it instead of paying writer and TTS twice.
       `episode-${row.id}`,
@@ -733,6 +736,7 @@ authed.get('/sources', async (c) => {
         type: sources.type,
         lang: sources.lang,
         status: sources.status,
+        category: sources.category,
         extractionQuality: sources.extractionQuality,
         error: sources.error,
         capturedAt: sources.capturedAt,
@@ -760,6 +764,7 @@ authed.get('/sources', async (c) => {
       type: s.type,
       lang: s.lang,
       status: s.status,
+      category: s.category,
       extractionQuality: s.extractionQuality,
       error: s.error,
       capturedAt: s.capturedAt.toISOString(),
@@ -767,6 +772,7 @@ authed.get('/sources', async (c) => {
     })),
     available,
     minimum: MIN_SOURCES_PER_EPISODE,
+    categories: CATEGORIES,
   })
 })
 
