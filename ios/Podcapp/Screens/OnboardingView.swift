@@ -20,34 +20,46 @@ import SwiftUI
 struct OnboardingView: View {
     let onDone: () -> Void
 
-    @State private var page = 0
     @State private var token = ""
     @State private var status: ConnectStatus = .idle
     @FocusState private var tokenFocused: Bool
 
     enum ConnectStatus: Equatable { case idle, checking, failed(String) }
 
-    private static let pageCount = 5
 
     var body: some View {
         ZStack {
             OnboardingBackground()
             VStack(spacing: 0) {
                 header
-                TabView(selection: $page) {
-                    ListenPage().tag(0)
-                    SharePage().tag(1)
-                    FormatsPage().tag(2)
-                    BuiltPage().tag(3)
-                    ReadPage().tag(4)
-                    connectPage.tag(Self.pageCount)
+                // A native paging ScrollView rather than the page TabView: the
+                // UIKit pager re-applies the home-indicator inset to its pages
+                // no matter what the hierarchy ignores, which pinned a strip of
+                // background under the bezel. This one is plain SwiftUI layout.
+                GeometryReader { geo in
+                    ScrollView(.horizontal) {
+                        LazyHStack(spacing: 0) {
+                            Group {
+                                ListenPage()
+                                SharePage()
+                                FormatsPage()
+                                BuiltPage()
+                                ReadPage()
+                                connectPage
+                            }
+                            .frame(width: geo.size.width, height: geo.size.height)
+                        }
+                        .scrollTargetLayout()
+                    }
+                    .scrollTargetBehavior(.paging)
+                    .scrollIndicators(.hidden)
                 }
-                .tabViewStyle(.page(indexDisplayMode: .never))
-                dots
-                footer
             }
-            .padding(.bottom, 28)
         }
+        // At the ROOT: the pager is a scroll view and clips at its own bounds,
+        // so it must physically reach the bottom edge for the bezel to bleed
+        // off-screen. Anything less leaves a strip of background under the cut.
+        .ignoresSafeArea(edges: .bottom)
         // Keyboard avoidance squeezed the whole shell when the token field took
         // focus: the headline slid under the header, texts truncated, the dots
         // overlapped the button. The shell keeps its geometry; the connect page
@@ -62,52 +74,13 @@ struct OnboardingView: View {
             Text("Podcapp")
                 .typo(TypoStyle(size: 16, weight: .semibold))
                 .foregroundStyle(Palette.ink)
+            Text("b" + (Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"))
+                .typo(Typo.metaTiny)
+                .foregroundStyle(Palette.ink.opacity(0.2))
         }
         .padding(.top, 26)
         .frame(maxWidth: .infinity)
     }
-
-    private var dots: some View {
-        HStack(spacing: 6) {
-            ForEach(0...Self.pageCount, id: \.self) { i in
-                Capsule()
-                    .fill(i == page ? Palette.accentDeep : Palette.ink.opacity(0.16))
-                    .frame(width: i == page ? 18 : 6, height: 6)
-                    .animation(.snappy(duration: 0.25), value: page)
-            }
-        }
-        .padding(.top, 10)
-        .padding(.bottom, 16)
-    }
-
-    @ViewBuilder private var footer: some View {
-        if page < Self.pageCount {
-            HStack(spacing: 12) {
-                Button("Passer") { page = Self.pageCount }
-                    .typo(Typo.buttonMedium)
-                    .foregroundStyle(Palette.muted)
-                // Settles "which build am I looking at" without a debugger.
-                Text("b" + (Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"))
-                    .typo(Typo.metaTiny)
-                    .foregroundStyle(Palette.ink.opacity(0.25))
-                Spacer()
-                Button {
-                    withAnimation(.snappy(duration: 0.3)) { page += 1 }
-                } label: {
-                    Text("Continuer")
-                        .typo(Typo.buttonLarge)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 30)
-                        .padding(.vertical, 15)
-                        .background(Capsule().fill(Palette.ink))
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, 28)
-        }
-    }
-
-    // MARK: - Screen 05, Connexion
 
     private var connectPage: some View {
         ScrollView(showsIndicators: false) {
