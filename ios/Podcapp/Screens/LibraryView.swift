@@ -6,6 +6,12 @@ import SwiftUI
 
 struct LibraryView: View {
     @State private var sources: [SavedSource] = []
+    // The shelves the server files sources under, and the one being looked at.
+    // "all" is not a shelf; it is the absence of a filter.
+    @State private var categories: [String] = ["tech", "politics", "history", "science", "finance", "other"]
+    @State private var category: String?
+    @State private var generation: GenerationTarget?
+    @State private var generationError: String?
     @State private var phase: Phase = .loading
     @State private var filter: LibraryFilter = .all
     @State private var expanded: String?
@@ -31,6 +37,8 @@ struct LibraryView: View {
 
                 captureField
                 filterPills
+                categoryPills
+                categoryGenerate
                 content
             }
             .padding(.horizontal, 20)
@@ -41,6 +49,102 @@ struct LibraryView: View {
         .background(ScreenBackground())
         .refreshable { await load() }
         .task { await load() }
+    }
+
+    // MARK: - Shelves
+
+    private static func categoryLabel(_ key: String) -> String {
+        switch key {
+        case "tech": return String(localized: "Technology")
+        case "politics": return String(localized: "Politics")
+        case "history": return String(localized: "History")
+        case "science": return String(localized: "Science")
+        case "finance": return String(localized: "Finance")
+        case "other": return String(localized: "Other")
+        default: return key.capitalized
+        }
+    }
+
+    private func count(in shelf: String) -> Int { sources.filter { $0.category == shelf }.count }
+
+    private var categoryPills: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 8) {
+                shelfPill(nil, label: String(localized: "All"), count: sources.count)
+                ForEach(categories, id: \.self) { shelf in
+                    let n = count(in: shelf)
+                    shelfPill(shelf, label: Self.categoryLabel(shelf), count: n)
+                        .opacity(n == 0 ? 0.45 : 1)
+                }
+            }
+        }
+        .scrollIndicators(.hidden)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
+    }
+
+    private func shelfPill(_ shelf: String?, label: String, count: Int) -> some View {
+        let selected = shelf == category
+        return Button {
+            if shelf != category { Feedback.select() }
+            category = shelf
+        } label: {
+            Text(count > 0 && shelf != nil ? "\(label) · \(count)" : label)
+                .typo(Typo.buttonSmall)
+                .foregroundStyle(selected ? Palette.onDark : Palette.body)
+                .padding(.horizontal, 13)
+                .padding(.vertical, 8)
+                .background(selected ? Palette.ink : Palette.cardFill, in: Capsule())
+                .overlay(Capsule().strokeBorder(Palette.cardBorder, lineWidth: selected ? 0 : 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// "Make a Finance episode": only on a shelf with something on it. The
+    /// server applies the four-link rule to that shelf and words the refusal.
+    @ViewBuilder
+    private var categoryGenerate: some View {
+        if let shelf = category, count(in: shelf) > 0 {
+            VStack(alignment: .leading, spacing: 6) {
+                Button {
+                    Task { await generate(shelf: shelf) }
+                } label: {
+                    HStack(spacing: 9) {
+                        Text("▶").typo(Typo.buttonSmall)
+                        Text(String(localized: "Make a \(Self.categoryLabel(shelf)) episode")).typo(Typo.buttonMedium)
+                    }
+                    .foregroundStyle(Palette.onDark)
+                    .padding(.vertical, 11)
+                    .padding(.horizontal, 18)
+                    .background(Palette.ink, in: Capsule())
+                }
+                .buttonStyle(.plain)
+                if let generationError {
+                    Text(generationError)
+                        .typo(Typo.metaSmall)
+                        .foregroundStyle(Palette.danger)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(.top, 10)
+            .sheet(item: $generation) { target in GenerationSheet(episodeId: target.id) }
+        }
+    }
+
+    @MainActor
+    private func generate(shelf: String) async {
+        generationError = nil
+        do {
+            let id = try await API.shared.generateEpisode(targetMin: 5, category: shelf)
+            generation = GenerationTarget(id: id)
+            Feedback.launched()
+        } catch APIError.http(_, let message) where !message.isEmpty {
+            generationError = message
+            Feedback.refused()
+        } catch {
+            generationError = error.localizedDescription
+            Feedback.refused()
+        }
     }
 
     // MARK: - Capture
@@ -244,8 +348,14 @@ struct LibraryView: View {
 
     // MARK: - Data
 
+    /// The rows on the shelf being looked at; every row when none is.
+    private var shelved: [SavedSource] {
+        guard let category else { return sources }
+        return sources.filter { $0.category == category }
+    }
+
     private var sections: [LibrarySection] {
-        let visible = sources.filter { filter.keeps(LibraryStatus.of($0)) }
+        let visible = shelved.filter { filter.keeps(LibraryStatus.of($0)) }
         let problems = visible.filter { LibraryStatus.of($0).isProblem }
         let healthy = visible.filter { !LibraryStatus.of($0).isProblem }
         let calendar = Calendar.current
@@ -267,7 +377,9 @@ struct LibraryView: View {
 
     private func load() async {
         do {
-            sources = try await API.shared.sources().sources
+            let batch = try await API.shared.sources()
+            sources = batch.sources
+            if let shelves = batch.categories { categories = shelves }
             phase = .loaded
         } catch {
             phase = .failed(error.localizedDescription)

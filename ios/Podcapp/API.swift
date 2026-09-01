@@ -111,6 +111,9 @@ struct SavedSource: Decodable, Identifiable, Sendable {
     // True once the source has been clustered into a story on the laptop, so it
     // is a candidate for the next episode.
     let inStory: Bool
+    // One of the server's shelves (config.CATEGORIES); nil on sources analysed
+    // before the shelves existed.
+    let category: String?
 
     let url: String?
     var link: URL? { url.flatMap(URL.init(string:)) }
@@ -199,8 +202,10 @@ actor API {
     /// Asks the server to queue a briefing. Returns the id of the queued
     /// episode; a refusal (409 double generation, 503 cloud not wired) arrives
     /// as APIError.http carrying the server's French message.
-    func generateEpisode(targetMin: Int) async throws -> String {
-        try await post("/episodes", body: GenerateBody(target_min: targetMin), as: GenerateAck.self).episode_id
+    /// A category scopes the episode to one shelf; the four-link rule then
+    /// applies to that shelf alone, server side.
+    func generateEpisode(targetMin: Int, category: String? = nil) async throws -> String {
+        try await post("/episodes", body: GenerateBody(target_min: targetMin, category: category), as: GenerateAck.self).episode_id
     }
 
     /// Tells the server which language to write and speak the next episodes in.
@@ -280,8 +285,10 @@ actor API {
         // Older servers send neither; the card then shows the list count alone.
         let available: Int?
         let minimum: Int?
+        // The shelves, in the server's order. Absent on older servers.
+        let categories: [String]?
     }
-    private struct GenerateBody: Encodable { let target_min: Int }
+    private struct GenerateBody: Encodable { let target_min: Int; let category: String? }
     private struct GenerateAck: Decodable { let episode_id: String }
 
     private func get<T: Decodable>(_ path: String, as type: T.Type) async throws -> T {

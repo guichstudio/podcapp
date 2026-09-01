@@ -114,6 +114,7 @@
 "Extraction quality " = "Extraction quality ";
 "FAILED" = "FAILED";
 "Failed" = "Failed";
+"Finance" = "Finance";
 "Forward newsletters here" = "Forward newsletters here";
 "Four short sounds: saved, refused, generation queued, next chapter." = "Four short sounds: saved, refused, generation queued, next chapter.";
 "From Safari, YouTube, Mail, X…" = "From Safari, YouTube, Mail, X…";
@@ -126,6 +127,7 @@
 "Give it about ten minutes: the briefing lands in the feed and at the top of this screen as soon as it is ready." = "Give it about ten minutes: the briefing lands in the feed and at the top of this screen as soon as it is ready.";
 "HOW TO SHARE" = "HOW TO SHARE";
 "Haptics" = "Haptics";
+"History" = "History";
 "How it was made" = "How it was made";
 "How this episode was made →" = "How this episode was made →";
 "How to share a link in Podcapp" = "How to share a link in Podcapp";
@@ -153,6 +155,7 @@
 "Loading your briefings…" = "Loading your briefings…";
 "Loading your sources…" = "Loading your sources…";
 "Low quality" = "Low quality";
+"Make a %@ episode" = "Make a %@ episode";
 "Manual" = "Manual";
 "Minimum reached" = "Minimum reached";
 "NEEDS A LOOK" = "NEEDS A LOOK";
@@ -187,12 +190,14 @@
 "OK" = "OK";
 "On" = "On";
 "Open a briefing from the Today tab to listen to it here." = "Open a briefing from the Today tab to listen to it here.";
+"Other" = "Other";
 "Outline" = "Outline";
 "Output language" = "Output language";
 "Paste a link or some text…" = "Paste a link or some text…";
 "Paste your token" = "Paste your token";
 "Pick Podcapp" = "Pick Podcapp";
 "Pipeline" = "Pipeline";
+"Politics" = "Politics";
 "Previous chapter" = "Previous chapter";
 "Privacy policy" = "Privacy policy";
 "Private RSS feed" = "Private RSS feed";
@@ -217,6 +222,7 @@
 "Saved" = "Saved";
 "Saved. It will join your next briefing." = "Saved. It will join your next briefing.";
 "Saving" = "Saving";
+"Science" = "Science";
 "Script not written yet." = "Script not written yet.";
 "Scripts and narration" = "Scripts and narration";
 "Selecting" = "Selecting";
@@ -246,6 +252,7 @@
 "Tap Share" = "Tap Share";
 "Target length" = "Target length";
 "Target set before writing" = "Target set before writing";
+"Technology" = "Technology";
 "Testing" = "Testing";
 "That’s it: you stay in your app." = "That’s it: you stay in your app.";
 "The Echo · Markets · 28 August 2026" = "The Echo · Markets · 28 August 2026";

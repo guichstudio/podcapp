@@ -114,6 +114,7 @@
 "Extraction quality " = "Qualité d’extraction ";
 "FAILED" = "ÉCHEC";
 "Failed" = "Échec";
+"Finance" = "Finance";
 "Forward newsletters here" = "Transférez vos newsletters ici";
 "Four short sounds: saved, refused, generation queued, next chapter." = "Quatre sons courts : enregistré, refusé, génération lancée, chapitre suivant.";
 "From Safari, YouTube, Mail, X…" = "Depuis Safari, YouTube, Mail, X…";
@@ -126,6 +127,7 @@
 "Give it about ten minutes: the briefing lands in the feed and at the top of this screen as soon as it is ready." = "Comptez une dizaine de minutes : le briefing apparaîtra dans le flux et en haut de cet écran dès qu’il sera prêt.";
 "HOW TO SHARE" = "COMMENT PARTAGER";
 "Haptics" = "Vibrations";
+"History" = "Histoire";
 "How it was made" = "Comment c’est fabriqué";
 "How this episode was made →" = "Comment cet épisode a été fabriqué →";
 "How to share a link in Podcapp" = "Partager un lien dans Podcapp";
@@ -153,6 +155,7 @@
 "Loading your briefings…" = "Chargement de vos briefings…";
 "Loading your sources…" = "Chargement des sources…";
 "Low quality" = "Qualité faible";
+"Make a %@ episode" = "Générer un épisode %@";
 "Manual" = "Manuelle";
 "Minimum reached" = "Minimum atteint";
 "NEEDS A LOOK" = "À TRAITER";
@@ -187,12 +190,14 @@
 "OK" = "OK";
 "On" = "Activé";
 "Open a briefing from the Today tab to listen to it here." = "Ouvrez un briefing depuis l’onglet Aujourd’hui pour l’écouter ici.";
+"Other" = "Autres";
 "Outline" = "Plan";
 "Output language" = "Langue de sortie";
 "Paste a link or some text…" = "Coller un lien ou un texte…";
 "Paste your token" = "Collez votre jeton";
 "Pick Podcapp" = "Choisissez Podcapp";
 "Pipeline" = "Pipeline";
+"Politics" = "Politique";
 "Previous chapter" = "Chapitre précédent";
 "Privacy policy" = "Politique de confidentialité";
 "Private RSS feed" = "Flux RSS privé";
@@ -217,6 +222,7 @@
 "Saved" = "Sauvegardé";
 "Saved. It will join your next briefing." = "Enregistré. Il rejoindra votre prochain briefing.";
 "Saving" = "Enregistrement";
+"Science" = "Science";
 "Script not written yet." = "Script pas encore écrit.";
 "Scripts and narration" = "Scripts et narration";
 "Selecting" = "Sélection";
@@ -246,6 +252,7 @@
 "Tap Share" = "Touchez Partager";
 "Target length" = "Durée cible";
 "Target set before writing" = "Cible fixée avant l’écriture";
+"Technology" = "Technologie";
 "Testing" = "Test en cours";
 "That’s it: you stay in your app." = "C’est tout : vous restez sur votre app.";
 "The Echo · Markets · 28 August 2026" = "L’Echo · Marchés · 28 août 2026";
