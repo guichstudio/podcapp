@@ -1,12 +1,12 @@
 import SwiftUI
 
 // The App Store onboarding from ios/design/onboarding-layout.html (the FR
-// screens of the 2026-08-31 export), as the first run of the app. The design's
-// artboards are full 393x852 device screens, so every element carries the
-// html's absolute coordinates: pages lay out header, headline and pager bar in
-// flow, then an ArtboardCanvas positions the phone mock and its floats at the
-// design's own x/y. Page order follows the export: Écoutez, Tous les formats,
-// Construit, Partagez, Lisez, Connexion.
+// screens of the "vfinal" 2026-08-31 export), as the first run of the app. The
+// design's artboards are full 393x852 device screens, so every element carries
+// the html's absolute coordinates: pages lay out header, headline and pager
+// bar in flow, then an ArtboardCanvas positions the design's blocks at their
+// own x/y. Page order follows the export: Écoutez, Construit, Tous les
+// formats, Partagez, Lisez, Connexion.
 //
 // The design's sixth screen offers "Continuer avec Apple" and "Continuer avec
 // Google". Neither exists: the product authenticates with a per-user token that
@@ -38,8 +38,8 @@ struct OnboardingView: View {
                         LazyHStack(spacing: 0) {
                             Group {
                                 ListenPage()
-                                FormatsPage()
                                 BuiltPage()
+                                FormatsPage()
                                 SharePage()
                                 ReadPage()
                                 connectPage
@@ -503,173 +503,83 @@ private struct ListenPage: View {
     var body: some View {
         VStack(spacing: 0) {
             OnboardingHeadline(
-                first: "Trop à lire ?", second: "Écoutez.",
+                first: "Votre morning", second: "recap.",
                 left: Sparkle("✦", 14, Onbo.accent, x: 20, y: -8),
                 right: Sparkle("✧", 10, Palette.ink, x: 22, y: 26)
             )
             .padding(.top, 20)
             PagerBar(fill: 0.17)
-            ArtboardCanvas(fitBottom: Onbo.closedBottom) {
-                PhoneFrame(height: Onbo.phoneHeight, screenFill: AnyShapeStyle(Color(hex: 0xFAFAF8))) {
-                    homeScreen
-                }
-                .artboardCentered(y: Onbo.phoneTop)
-                // The html nests this float inside the phone div (left -19,
-                // top 420 of the phone), so its artboard position is the
-                // phone's origin (45.5, 252) plus those offsets.
-                briefingFloat
-                    .artboard(x: 26.5, y: 672)
-                speedFloat
-                    .artboardTrailing(right: 14, y: 706)
+            ArtboardCanvas {
+                subtitle
+                    .artboardCentered(y: 300)
+                mediaCard(glyph: "¶", title: "Article", sub: "12 min de lecture")
+                    .rotationEffect(.degrees(-5))
+                    .artboard(x: 40, y: 402)
+                mediaCard(glyph: "▶", title: "Vidéo", sub: "28 min à regarder")
+                    .rotationEffect(.degrees(3))
+                    .artboardTrailing(right: 40, y: 478)
+                mediaCard(glyph: "↗", title: "Lien", sub: "thread de 40 posts")
+                    .rotationEffect(.degrees(-2))
+                    .artboard(x: 40, y: 554)
+                bottomStack
+                    .artboardCentered(y: 668)
             }
         }
     }
 
-    private var homeScreen: some View {
-        ZStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    HStack(spacing: 6) {
-                        AppMark(size: 20)
-                        Text("Podcapp").fs(13, .semibold).foregroundStyle(Palette.ink)
-                    }
-                    Spacer()
-                    Text("LUN. 31 AOÛT").fs(9, .semibold, track: 0.08).foregroundStyle(Palette.muted)
-                }
-                heroCard
-                Text("Demain").fs(12, .semibold).foregroundStyle(Palette.ink)
-                HStack(alignment: .top, spacing: 6) {
-                    tomorrowCard(title: "Contagion du crédit privé", sub: "2 sources")
-                    tomorrowCard(title: "L'économie des agents", sub: "Extraction…")
-                }
-                Text("Précédents").fs(12, .semibold).foregroundStyle(Palette.ink)
-                    .padding(.top, 2)
-                prevRow(title: "Briefing de jeudi", sub: "27 août · 4 chapitres", time: "14:36", divider: true)
-                prevRow(title: "Briefing de mercredi", sub: "26 août · 5 chapitres", time: "15:02", divider: false)
-            }
-            .frame(width: 250, alignment: .leading)
-            .padding(.top, 46)
-            // The html pins this at y 530 because its artboard crops the
-            // interior at 590; with the phone closed the bar belongs at the
-            // interior's real bottom edge.
-            tabBar
-                .offset(y: 602)
-        }
+    // Inline weight changes need Text concatenation, so this one bypasses
+    // .typo() and uses the faces directly (600 maps to the Bold face, like
+    // Typo's semibold).
+    private var subtitle: some View {
+        (Text("Tout ce que vous n’avez pas eu le temps de ")
+            + Text("lire").font(.custom("InterTight-Bold", size: 19)).foregroundColor(Palette.ink)
+            + Text(" ou de ")
+            + Text("regarder").font(.custom("InterTight-Bold", size: 19)).foregroundColor(Palette.ink)
+            + Text("."))
+            .font(.custom("InterTight-Light", size: 19))
+            .foregroundColor(Color(hex: 0x3B3945))
+            .multilineTextAlignment(.center)
+            .lineSpacing(6)
+            .frame(width: 289)
     }
 
-    private var heroCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("DERNIER BRIEFING · VEN. 28 AOÛT")
-                .fs(8, .semibold, track: 0.1)
-                .foregroundStyle(Palette.accentDeep)
-            Text("Le cafard de Wall Street, Claude passe des ordres, les douze fins de l'IA…")
-                .fs(14.5, .semibold, lh: 1.2)
-                .foregroundStyle(Palette.ink)
-            HStack(spacing: 8) {
-                Text("▶ Écouter")
-                    .fs(10.5, .semibold)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 7)
-                    .background(Capsule().fill(Palette.ink))
-                Text("10:05 · 4 chapitres").fs(9.5).foregroundStyle(Palette.accentMuted)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(13)
-        .background(RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .fill(LinearGradient(
-                stops: [
-                    .init(color: Color(hex: 0x7C6CDC, opacity: 0.3), location: 0),
-                    .init(color: Color(hex: 0x7C6CDC, opacity: 0.12), location: 0.42),
-                    .init(color: .white.opacity(0.65), location: 1),
-                ],
-                startPoint: .topLeading, endPoint: .bottomTrailing
-            )))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .strokeBorder(Color(hex: 0x6C5CC8, opacity: 0.28)))
-    }
-
-    private func tomorrowCard(title: String, sub: String) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text(title).fs(9, .semibold, lh: 1.3).foregroundStyle(Palette.ink)
-            Text(sub).fs(9, lh: 1.3).foregroundStyle(Palette.muted)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(8)
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(.white.opacity(0.8)))
-        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Palette.cardBorder))
-    }
-
-    private func prevRow(title: String, sub: String, time: String, divider: Bool) -> some View {
-        HStack(spacing: 8) {
-            AppMark(size: 26)
+    private func mediaCard(glyph: String, title: String, sub: String) -> some View {
+        HStack(spacing: 12) {
+            Text(glyph)
+                .font(.system(size: 14))
+                .foregroundStyle(.white)
+                .frame(width: 36, height: 36)
+                .background(RoundedRectangle(cornerRadius: 11, style: .continuous).fill(Palette.ink))
             VStack(alignment: .leading, spacing: 1) {
-                Text(title).fs(10, .semibold, lh: 1.25).foregroundStyle(Palette.ink)
-                Text(sub).fs(8.5).foregroundStyle(Palette.muted2)
+                Text(title).fs(14, .semibold, lh: 1.25).foregroundStyle(Palette.ink)
+                Text(sub).fs(10).foregroundStyle(Palette.muted2)
             }
-            Spacer()
-            Text(time).fs(9).foregroundStyle(Palette.muted2)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Text("✓")
+                .fs(11, .semibold)
+                .foregroundStyle(Onbo.accent)
+                .padding(.vertical, 4)
+                .padding(.horizontal, 9)
+                .background(Capsule().fill(Color(hex: 0x7C6CDC, opacity: 0.16)))
         }
-        .padding(.vertical, 6)
-        .overlay(alignment: .bottom) {
-            if divider {
-                Rectangle().fill(Palette.ink.opacity(0.07)).frame(height: 1)
-            }
-        }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 15)
+        .frame(width: 246)
+        .glassFloat(radius: 18)
     }
 
-    private var tabBar: some View {
-        VStack(spacing: 0) {
-            Rectangle().fill(Palette.ink.opacity(0.08)).frame(height: 1)
-            HStack(spacing: 0) {
-                tab("●", "Aujourd’hui", active: true)
-                tab("¶", "Lire", active: false)
-                tab("☰", "Sources", active: false)
-                tab("⚙", "Réglages", active: false)
-            }
-            .padding(.top, 8)
-            .padding(.horizontal, 4)
-            .padding(.bottom, 26)
+    private var bottomStack: some View {
+        VStack(spacing: 11) {
+            Text("↓").font(.system(size: 16)).foregroundStyle(Onbo.pagerChevron)
+            AppMark(size: 58)
+                .shadow(color: Onbo.floatShadow.opacity(0.28), radius: 18, y: 16)
+            Text("≈ 10 min d’audio · chaque matin")
+                .fs(11, .semibold)
+                .foregroundStyle(.white)
+                .padding(.vertical, 9)
+                .padding(.horizontal, 16)
+                .darkPill()
         }
-        .background(Color(hex: 0xFAFAF8, opacity: 0.9))
-    }
-
-    private func tab(_ glyph: String, _ label: String, active: Bool) -> some View {
-        VStack(spacing: 2) {
-            Text(glyph).font(.system(size: 11))
-            Text(label).fs(7, .semibold)
-        }
-        .foregroundStyle(active ? Palette.ink : Palette.faint)
-        .frame(maxWidth: .infinity)
-    }
-
-    private var briefingFloat: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                AppMark(size: 26)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Briefing de vendredi").fs(11, .semibold, lh: 1.2).foregroundStyle(Palette.ink)
-                    Text("10:05 · ✓ 42 phrases vérifiées").fs(9).foregroundStyle(Palette.muted)
-                }
-            }
-            MockProgress(fraction: 0.38, height: 3, tint: Onbo.accent, track: Palette.ink.opacity(0.1))
-        }
-        .padding(.vertical, 11)
-        .padding(.horizontal, 13)
-        .frame(width: 180, alignment: .leading)
-        .glassFloat(radius: 14)
-        .rotationEffect(.degrees(-7))
-    }
-
-    private var speedFloat: some View {
-        Text("1,2× ▸▸ +15")
-            .fs(11, .semibold)
-            .foregroundStyle(.white)
-            .padding(.vertical, 9)
-            .padding(.horizontal, 14)
-            .darkPill()
-            .rotationEffect(.degrees(5))
     }
 }
 
@@ -684,7 +594,7 @@ private struct FormatsPage: View {
                 right: Sparkle("✦", 14, Onbo.accent, x: 22, y: 26)
             )
             .padding(.top, 20)
-            PagerBar(fill: 0.33)
+            PagerBar(fill: 0.5)
             ArtboardCanvas {
                 formatsCard
                     .artboardCentered(y: 290)
@@ -797,7 +707,7 @@ private struct BuiltPage: View {
                 right: Sparkle("✧", 10, Palette.ink, x: 22, y: -8)
             )
             .padding(.top, 20)
-            PagerBar(fill: 0.5)
+            PagerBar(fill: 0.33)
             ArtboardCanvas(fitBottom: Onbo.closedBottom) {
                 PhoneFrame(height: Onbo.phoneHeight, screenFill: AnyShapeStyle(LinearGradient(
                     stops: [
@@ -1221,110 +1131,102 @@ private struct ReadPage: View {
             )
             .padding(.top, 20)
             PagerBar(fill: 0.83)
-            ArtboardCanvas(fitBottom: Onbo.closedBottom) {
-                PhoneFrame(height: Onbo.phoneHeight, screenFill: AnyShapeStyle(Color(hex: 0xFAFAF8))) {
-                    readerScreen
-                }
-                .artboardCentered(y: Onbo.phoneTop)
-                quiverFloat
-                    .artboard(x: 14, y: 680)
+            ArtboardCanvas {
+                modeRow
+                    .artboardCentered(y: 302)
+                translationCard
+                    .rotationEffect(.degrees(-2))
+                    .artboardCentered(y: 398)
+                Text("✓ Chaque source, résumée dans votre langue")
+                    .fs(11, .semibold)
+                    .foregroundStyle(.white)
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 16)
+                    .darkPill()
+                    .rotationEffect(.degrees(2))
+                    .artboardCentered(y: 640)
             }
         }
     }
 
-    private var readerScreen: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("‹ Tous les épisodes").fs(9, .semibold).foregroundStyle(Palette.accentDeep)
-            Text("BRIEFING DU VENDREDI · 28 AOÛT")
-                .fs(7.5, .semibold, track: 0.1)
-                .foregroundStyle(Palette.accentMuted)
-            Text("Le cafard de Wall Street, Claude passe des ordres, les douze fins de l'IA…")
-                .fs(14.5, .semibold, lh: 1.2)
-                .foregroundStyle(Palette.ink)
-            Text("10:05 · 4 sources · ✓ vérifié")
-                .fs(8.5)
-                .foregroundStyle(Palette.muted2)
-                .padding(.bottom, 6)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .overlay(alignment: .bottom) {
-                    Rectangle().fill(Palette.ink.opacity(0.09)).frame(height: 1)
-                }
-            chapterRow("01", "Crédit privé, le cafard de Wall Street", "2:30")
-            Text("On commence à Wall Street, où un mot revient avec insistance : cafard. La formule est de Jamie Dimon, le patron de JP Morgan : quand on en voit un, c'est qu'il y en a probablement d'autres. Le cafard en question, c'est le crédit privé, un marché estimé à plus de mille huit cents milliards de dollars…")
-                .fs(9.5, .light, lh: 1.65)
-                .foregroundStyle(Palette.prose)
-            HStack(spacing: 7) {
-                Text("▶ Écouter ici")
-                    .fs(8, .semibold)
+    private var modeRow: some View {
+        HStack(spacing: 12) {
+            modePill("▶ Écoutez")
+            Text("⇄")
+                .font(.system(size: 15))
+                .foregroundStyle(.white)
+                .frame(width: 40, height: 40)
+                .background(Circle().fill(Palette.ink))
+                .shadow(color: Palette.ink.opacity(0.35), radius: 13, y: 11)
+            modePill("¶ Lisez")
+        }
+    }
+
+    private func modePill(_ label: String) -> some View {
+        Text(label)
+            .fs(13, .semibold)
+            .foregroundStyle(Palette.ink)
+            .padding(.vertical, 11)
+            .padding(.horizontal, 18)
+            .background(Capsule().fill(.white.opacity(0.58)))
+            .overlay(Capsule().strokeBorder(.white.opacity(0.75)))
+            .shadow(color: Onbo.floatShadow.opacity(0.18), radius: 15, y: 12)
+    }
+
+    private var translationCard: some View {
+        VStack(spacing: 0) {
+            // The markup's dashes are replaced per the house punctuation rule.
+            langRow(code: "EN", badge: Onbo.pagerChevron) {
+                Text("“Private credit is showing its first cracks: Blue Owl down 40%…”")
+                    .fs(12.5, lh: 1.45)
+                    .foregroundStyle(Onbo.caption)
+            }
+            HStack(spacing: 10) {
+                dividerLine
+                Text("↓ TRADUIT · RÉSUMÉ")
+                    .fs(9.5, .semibold, track: 0.08)
+                    .foregroundStyle(Onbo.accent)
+                    .fixedSize()
+                dividerLine
+            }
+            .padding(.vertical, 13)
+            langRow(code: "FR", badge: Onbo.accent) {
+                Text("Le crédit privé montre ses premières fissures : Blue Owl à −40 %.")
+                    .fs(13.5, .semibold, lh: 1.4)
                     .foregroundStyle(Palette.ink)
-                    .padding(.vertical, 5)
-                    .padding(.horizontal, 9)
-                    .background(Capsule().fill(Palette.ink.opacity(0.04)))
-                    .overlay(Capsule().strokeBorder(Palette.ink.opacity(0.14)))
-                Text("Source : L'ECHO")
-                    .underline()
-                    .fs(8, .semibold)
-                    .foregroundStyle(Palette.accentDeep)
             }
-            chapterRow("02", "Claude passe des ordres de bourse", "2:10")
-                .padding(.top, 4)
-            Text("Quiver Quantitative a publié ce vendredi une démonstration qui résume bien le moment…")
-                .fs(9.5, .light, lh: 1.65)
-                .foregroundStyle(Palette.prose)
-            chapterRow("03", "Les douze fins possibles de l'IA", "3:00")
-                .padding(.top, 4)
-            Text("Selon une enquête de janvier 2024, le chercheur moyen estime à une chance sur six la probabilité que l'IA anéantisse l'humanité…")
-                .fs(9.5, .light, lh: 1.65)
-                .foregroundStyle(Palette.prose)
-            chapterRow("04", "The Space Between Us", "1:30")
-                .padding(.top, 4)
-        }
-        .frame(width: 250, alignment: .leading)
-        .padding(.top, 48)
-    }
-
-    private func chapterRow(_ number: String, _ title: String, _ time: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 7) {
-            Text(number).fs(8.5, .semibold).foregroundStyle(Palette.accentMid)
-            Text(title)
-                .fs(11.5, .semibold)
-                .foregroundStyle(Palette.ink)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Text(time).fs(8).foregroundStyle(Palette.muted2)
-        }
-    }
-
-    private var quiverFloat: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("QUIVER QUANTITATIVE").fs(8, .semibold).foregroundStyle(Palette.body)
-            Text("Claude passe des ordres via les données du Congrès")
-                .fs(10, .semibold, lh: 1.3)
-                .foregroundStyle(Palette.ink)
-                .padding(.top, 5)
-            Text("vidéo + post · EN")
-                .fs(8)
+            Text("Sources en anglais ? Votre recap reste en français.")
+                .fs(10.5)
                 .foregroundStyle(Palette.muted2)
-                .padding(.top, 3)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 12)
+                .overlay(alignment: .top) {
+                    Rectangle().fill(Palette.ink.opacity(0.08)).frame(height: 1)
+                }
+                .padding(.top, 14)
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 12)
-        .frame(width: 217, alignment: .leading)
-        .glassFloat(radius: 13)
-        .overlay(alignment: .topLeading) {
-            readPill
-                .offset(x: 121, y: 63)
-        }
-        .rotationEffect(.degrees(-7))
+        .padding(18)
+        .frame(width: 296)
+        .glassFloat(radius: 22)
     }
 
-    private var readPill: some View {
-        Text("¶ Lire l'article")
-            .fs(11, .semibold)
-            .foregroundStyle(.white)
-            .padding(.vertical, 9)
-            .padding(.horizontal, 14)
-            .darkPill()
-            .rotationEffect(.degrees(4))
+    private func langRow(code: String, badge: Color, @ViewBuilder text: () -> some View) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Text(code)
+                .fs(9, .semibold, track: 0.06)
+                .foregroundStyle(.white)
+                .padding(.vertical, 4)
+                .padding(.horizontal, 7)
+                .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(badge))
+            text()
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var dividerLine: some View {
+        Rectangle().fill(Palette.ink.opacity(0.1)).frame(height: 1)
     }
 }
 
