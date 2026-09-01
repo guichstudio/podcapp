@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
-import { INTRO_OUTRO_SEC, PROMPT_VERSIONS, WORDS_PER_MINUTE } from '../config.js'
+import { INTRO_OUTRO_SEC, PROMPT_VERSIONS, wordsPerMinute, writerWordsPerMinute } from '../config.js'
 import { countWords, entityTokens, isCheckable, splitSentences } from '../core/sentences.js'
 import { OutlineSchema, type Claim, type Outline, type Script } from '../core/types.js'
 import type { Db } from '../db/client.js'
@@ -10,7 +10,8 @@ import { logger } from '../log.js'
 import { BLOCKLIST_STRIP, EDIT_V1_SYSTEM, blocklistHits, editV1User } from '../prompts/edit.v1.js'
 import { EDITORIAL_V1_SYSTEM, editorialV1User, type EditorialStoryDigest } from '../prompts/editorial.v1.js'
 import { GROUNDING_V1_SYSTEM, groundingV1User } from '../prompts/grounding.v1.js'
-import { INTRO_OUTRO_V1_SYSTEM, WRITER_V1_SYSTEM, introOutroV1User, writerV1User } from '../prompts/writer.v1.js'
+import { INTRO_OUTRO_V1_SYSTEM, introOutroV1User } from '../prompts/writer.v1.js'
+import { writerV2System, writerV2User } from '../prompts/writer.v2.js'
 import type { Storage } from '../storage/index.js'
 import { persistRunArtifacts } from './runArtifacts.js'
 
@@ -279,7 +280,7 @@ interface RunState {
   editsRejected: number
 }
 
-function artifactsFrom(run: RunState, targetSec: number, ledger: CostLedger, error?: string): EpisodeArtifacts {
+function artifactsFrom(run: RunState, targetSec: number, language: string, ledger: CostLedger, error?: string): EpisodeArtifacts {
   const script = run.script ?? { chapters: [] }
   const fullText = script.chapters.map((c) => c.text).join('\n\n')
   const words = countWords(fullText)
@@ -290,7 +291,7 @@ function artifactsFrom(run: RunState, targetSec: number, ledger: CostLedger, err
     script,
     metrics: {
       target_sec: targetSec,
-      estimated_sec: Math.round((words / WORDS_PER_MINUTE) * 60),
+      estimated_sec: Math.round((words / wordsPerMinute(language)) * 60),
       words,
       sentences_checked: run.sentencesChecked,
       unsupported_found: run.unsupportedFound,
@@ -327,7 +328,7 @@ export async function generateEpisode(
     // otherwise lose the only record of the most expensive failures.
     if (opts.episodeId && opts.storage) {
       try {
-        await persistRunArtifacts(opts.storage, opts.episodeId, artifactsFrom(run, opts.targetSec, ledger, String(err)))
+        await persistRunArtifacts(opts.storage, opts.episodeId, artifactsFrom(run, opts.targetSec, opts.language ?? 'fr', ledger, String(err)))
       } catch (persistErr) {
         logger.error({ episodeId: opts.episodeId, err: String(persistErr) }, 'could not persist a failed run')
       }
@@ -420,8 +421,9 @@ async function runEpisode(
       TextSchema,
       {
         maxTokens: 4096,
-        system: WRITER_V1_SYSTEM,
-        user: writerV1User({
+        system: writerV2System(writerWordsPerMinute(language)),
+        user: writerV2User({
+          words_per_minute: writerWordsPerMinute(language),
           language,
           angle: section.angle,
           why_it_matters: section.why_it_matters,
@@ -661,7 +663,7 @@ async function runEpisode(
       entities: chapter.story_id ? entitiesOf(claimsOf(chapter.story_id)) : frameEntities,
     })),
   )
-  const artifacts = artifactsFrom(run, opts.targetSec, ledger)
+  const artifacts = artifactsFrom(run, opts.targetSec, language, ledger)
 
   // Feeds show it, and the editorial stage reads recent titles to avoid serving
   // the same angle twice, so it has to say what this episode actually covered.
@@ -681,7 +683,7 @@ async function runEpisode(
         cost: ledger,
         // On the row, not on the bucket: the bucket is public by necessity.
         grounding: artifacts.grounding,
-        promptVersions: { ...PROMPT_VERSIONS, editorial: 'v1', writer: 'v1', grounding: 'v1', edit: 'v1' },
+        promptVersions: { ...PROMPT_VERSIONS, editorial: 'v1', writer: 'v2', grounding: 'v1', edit: 'v1' },
       })
       .where(eq(episodes.id, opts.episodeId))
     if (opts.storage) await persistRunArtifacts(opts.storage, opts.episodeId, artifacts)

@@ -29,9 +29,24 @@ export const DEFAULT_TARGET_MINUTES = 10
 // Hard ceiling (Louis, 2026-08-31): TTS is the cost driver, and a briefing
 // should be dense rather than long.
 export const MAX_TARGET_MINUTES = 10
-// Measured, not assumed: the 2026-08-29 episode ran 1973 words in 842.8s of
-// ElevenLabs multilingual_v2 French speech = 140.4 wpm.
-export const WORDS_PER_MINUTE = 140
+// Measured, not assumed, per narrator. French: the 2026-08-29 episode ran
+// 1973 words in 842.8s = 140.4 wpm. English (Eric): 67 words in 24.79s on the
+// 2026-09-01 listening test = 162 wpm. Used for the estimated_sec metric.
+export const WORDS_PER_MINUTE = { fr: 140, en: 162 } satisfies Record<string, number>
+export function wordsPerMinute(language: string): number {
+  const code = language.trim().toLowerCase().slice(0, 2)
+  return (WORDS_PER_MINUTE as Record<string, number | undefined>)[code] ?? WORDS_PER_MINUTE.fr
+}
+
+// What the writer is ASKED for, which is not what is measured: v1 asked 150
+// and the French voice delivered 140, and that gap is baked into the 4/5
+// rubric, so French keeps its number. English asks the measured pace with the
+// same slack on top.
+export const WRITER_WORDS_PER_MINUTE = { fr: 150, en: 165 } satisfies Record<string, number>
+export function writerWordsPerMinute(language: string): number {
+  const code = language.trim().toLowerCase().slice(0, 2)
+  return (WRITER_WORDS_PER_MINUTE as Record<string, number | undefined>)[code] ?? WRITER_WORDS_PER_MINUTE.fr
+}
 export const INTRO_OUTRO_SEC = 60
 
 export const PROMPT_VERSIONS = {
@@ -53,11 +68,11 @@ export const PRICING: Record<string, { in: number; out: number }> = {
 
 // The narrator per output language. users.voice_id overrides this per user;
 // ELEVENLABS_VOICE_ID (set in the Trigger.dev env, where the French voice lives)
-// is the fallback for a language with no entry here. `en` is provisional: a
-// safe American narration voice so an English briefing never ships with the
-// French narrator's accent, until Louis picks on a listening test.
+// is the fallback for a language with no entry here. `en` was picked by Louis
+// on a listening test of five voices over the same passage (2026-09-01), as a
+// provisional choice: smooth, American, the closest to the "Jarvis-like" brief.
 export const DEFAULT_VOICES: Record<string, string> = {
-  en: 'nPczCjzI2devNBz1zQrb', // Brian — deep, resonant, American
+  en: 'cjVigY5qzO86Huf0OWal', // Eric — smooth, trustworthy, American
 }
 
 export function voiceFor(language: string, override: string | null | undefined): string | undefined {

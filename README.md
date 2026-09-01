@@ -149,8 +149,11 @@ modèle rédacteur).
    démonstration (l'app ne montre rien sans jeton). La politique de
    confidentialité existe : `GET /privacy` sur l'API, liée depuis l'écran
    Réglages de l'app — elle part en ligne au prochain déploiement.
-3. **Voix** : remplacer la voix Phase 0 par une voix plus fluide, type Jarvis
-   (choix sur test d'écoute).
+3. **Voix** : la voix suit désormais la langue de l'épisode (`DEFAULT_VOICES`
+   dans `src/config.ts`, `users.voice_id` en surcharge). Anglais : Eric, choisi
+   provisoirement sur test d'écoute le 2026-09-01. Français : toujours la voix
+   Phase 0 via l'env Trigger.dev — à remplacer par une voix plus fluide, type
+   Jarvis, même méthode.
 4. Cosmétique et robustesse listées dans CLAUDE.md (heuristique d'extraction
    sur les pages de section, fallback Playwright non nécessaire à ce jour).
 
