@@ -286,19 +286,21 @@ private struct OnboardingHeadline: View {
 
 // MARK: - Mock scaffolding
 
-/// The zone under a headline: takes whatever height the page has left and clips
-/// its overflow, the same crop the design's 380x800 frames apply. Children are
-/// positioned against the top with offsets; the closure receives the zone size
-/// so the phone can be drawn tall enough to bleed past the bottom edge.
+/// The zone under a headline: fits the design artboard, phone mock closed,
+/// into whatever space the page has left, scaling down as one block so the
+/// html's proportions survive on any screen. The closure receives the design
+/// size (its height is the closed phone's height).
 private struct MockCanvas<Content: View>: View {
-    // The mocks are laid out at the design's 380pt width and the whole canvas
-    // scales to the screen width, like the design bundle's own zoom: absolute
-    // x offsets always land where the design put them, on any device. Height is
-    // handed to the content in design points so the phone bezel can overshoot
-    // the bottom edge and get cropped by the page, exactly like the design's
-    // 800pt frames crop their phones. The crop mask reaches ABOVE the canvas so
-    // the bezel's soft shadow never ends in a hard horizontal seam.
+    // The mocks keep the design's own proportions: a 380pt-wide artboard
+    // holding the CLOSED 302x680 phone of onboarding-layout.html (the html
+    // crops it at the artboard edge only because its cards are 800pt tall).
+    // The whole artboard scales uniformly, down only, to fit both screen
+    // dimensions, so the full bezel is visible and nothing is stretched.
     private let designWidth: CGFloat = 380
+    // Headroom above the bezel rings + closed phone + breathing room so the
+    // bezel bottom clears the home indicator.
+    private let phoneHeight: CGFloat = 680
+    private let designHeight: CGFloat = 14 + 680 + 44
     private let content: (CGSize) -> Content
 
     init(@ViewBuilder content: @escaping (CGSize) -> Content) {
@@ -307,14 +309,12 @@ private struct MockCanvas<Content: View>: View {
 
     var body: some View {
         GeometryReader { geo in
-            let scale = geo.size.width / designWidth
+            let scale = min(1, geo.size.width / designWidth, geo.size.height / designHeight)
             ZStack(alignment: .top) {
-                content(CGSize(width: designWidth, height: geo.size.height / scale))
+                content(CGSize(width: designWidth, height: phoneHeight))
             }
-            // Headroom inside the crop: the bezel's rings and what remains of
-            // its shadow spread fade well before the canvas edge.
             .padding(.top, 14)
-            .frame(width: designWidth, height: geo.size.height / scale, alignment: .top)
+            .frame(width: designWidth, height: designHeight, alignment: .top)
             .scaleEffect(scale, anchor: .top)
             .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
         }
@@ -324,7 +324,7 @@ private struct MockCanvas<Content: View>: View {
 
 /// The dark phone frame the mocks live in: bezel gradient, three concentric
 /// rings, side buttons, dynamic island and a screen clipped at radius 35. The
-/// height is oversized by the caller so the bottom edge never shows.
+/// height is the design's closed 680pt body.
 private struct PhoneFrame<Screen: View>: View {
     let height: CGFloat
     let screenFill: AnyShapeStyle
@@ -454,7 +454,7 @@ private struct ListenPage: View {
             )
             .padding(.top, 14)
             MockCanvas { size in
-                PhoneFrame(height: size.height + 60, screenFill: AnyShapeStyle(Color(hex: 0xFAFAF8))) {
+                PhoneFrame(height: size.height, screenFill: AnyShapeStyle(Color(hex: 0xFAFAF8))) {
                     homeScreen
                 }
                 briefingFloat
@@ -565,7 +565,7 @@ private struct SharePage: View {
             )
             .padding(.top, 14)
             MockCanvas { size in
-                PhoneFrame(height: size.height + 60, screenFill: AnyShapeStyle(Color(hex: 0xFAFAF8))) {
+                PhoneFrame(height: size.height, screenFill: AnyShapeStyle(Color(hex: 0xFAFAF8))) {
                     ZStack(alignment: .top) {
                         articleContent
                         Color(hex: 0x14121E, opacity: 0.38)
@@ -577,9 +577,8 @@ private struct SharePage: View {
                             .offset(x: 130, y: 228)
                     }
                 }
-                // Fixed height, not maxHeight: the canvas ZStack is stretched
-                // by the oversized phone, so a flexible frame would grow with
-                // it and push these bars past the clip edge.
+                // Anchored to the phone's bottom edge, like the html pins its
+                // sheet to the screen bottom.
                 VStack(spacing: 10) {
                     actionBar
                     shareSheet
@@ -916,7 +915,7 @@ private struct BuiltPage: View {
             )
             .padding(.top, 14)
             MockCanvas { size in
-                PhoneFrame(height: size.height + 60, screenFill: AnyShapeStyle(LinearGradient(
+                PhoneFrame(height: size.height, screenFill: AnyShapeStyle(LinearGradient(
                     stops: [
                         .init(color: Color(hex: 0xE4DFF5), location: 0),
                         .init(color: Color(hex: 0xF4F3EF), location: 0.6),
@@ -939,7 +938,7 @@ private struct BuiltPage: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .offset(x: 174, y: 348)
-                // Fixed height for the same reason as the SharePage bars.
+                // Anchored to the phone's bottom edge.
                 statsFloat
                     .frame(height: size.height - 20, alignment: .bottom)
                     .frame(maxWidth: .infinity)
@@ -1055,7 +1054,7 @@ private struct ReadPage: View {
             )
             .padding(.top, 14)
             MockCanvas { size in
-                PhoneFrame(height: size.height + 60, screenFill: AnyShapeStyle(Color(hex: 0xFAFAF8))) {
+                PhoneFrame(height: size.height, screenFill: AnyShapeStyle(Color(hex: 0xFAFAF8))) {
                     readerScreen
                 }
                 quiverFloat
