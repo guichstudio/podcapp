@@ -181,6 +181,7 @@ Session prompt: "Wire `POST /ingest` + Postmark inbound + per-user auth tokens; 
 
 - Writer model: `claude-sonnet-5` vs `claude-opus-5`
 - TTS voice: replace Phase 0 voice with a smoother, Jarvis-like one (Louis's feedback 2026-08-29); browse ElevenLabs library, pick on listening test
+- **Voix par langue (Louis, 2026-09-01, à faire) :** la voix est choisie une fois pour toutes (`users.voice_id`, sinon `ELEVENLABS_VOICE_ID`) et c'est une voix FRANÇAISE. `eleven_multilingual_v2` la fera parler anglais, avec un accent français : inacceptable pour le marché US. Il faut une voix par langue, choisie automatiquement sur `users.output_language` que l'app renseigne désormais — donc un défaut anglophone à côté du défaut français, et le choix se fait sur test d'écoute, pas sur une fiche produit.
 - Similarity thresholds (0.86 merge / 0.70 review) tuning
 - First beta: daily cron vs on-demand only
 

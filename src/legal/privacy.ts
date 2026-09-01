@@ -8,6 +8,7 @@
 
 export const PRIVACY_CONTACT = 'guich.studio@gmail.com'
 export const PRIVACY_UPDATED = '1er septembre 2026'
+export const PRIVACY_UPDATED_EN = '1 September 2026'
 
 const STYLE = `
 :root{color-scheme:dark}
@@ -29,7 +30,7 @@ li b{color:#e9e9ec;font-weight:600}
 footer{margin-top:48px;color:#8a8a94;font-size:.85rem}
 `
 
-const BODY = `
+const BODY_FR = `
 <h1>Politique de confidentialité</h1>
 <p class="sub">Podcapp · dernière mise à jour le ${PRIVACY_UPDATED} · version bêta</p>
 
@@ -120,17 +121,125 @@ nature des données collectées vous sera annoncé par email.</p>
 
 <footer>Podcapp — <a href="mailto:${PRIVACY_CONTACT}">${PRIVACY_CONTACT}</a></footer>
 `
+const BODY_EN = `
+<h1>Privacy policy</h1>
+<p class="sub">Podcapp · last updated ${PRIVACY_UPDATED_EN} · beta</p>
 
-export const PRIVACY_HTML = `<!doctype html>
-<html lang="fr">
+<p class="lede">Podcapp keeps what you send it — links, text, forwarded newsletters —
+to turn it into your daily audio briefing. That content is passed to AI providers that
+extract it, analyse it, check it and read it aloud. It is not sold, not used for
+advertising, and not used to profile you.</p>
+
+<h2>Who is responsible</h2>
+<p>Louis Guichard, an individual, in France. Podcapp is a personal project in closed
+beta. Any question or request: <a href="mailto:${PRIVACY_CONTACT}">${PRIVACY_CONTACT}</a>.</p>
+
+<h2>What Podcapp keeps</h2>
+<ul>
+<li><b>Your email address</b> — it identifies your account, and it is what recognises the
+newsletters you forward.</li>
+<li><b>Two tokens</b> — one for the app, one for your private RSS feed.</li>
+<li><b>What you capture</b> — the page address, the extracted text, the title, author,
+publisher and publication date, plus the analysis and the vector derived from them.</li>
+<li><b>Your episodes</b> — the outline, the script, the sentence-by-sentence verification
+report, what it cost to make, and the audio file.</li>
+<li><b>Your settings</b> — language, voice, target length.</li>
+<li><b>A technical log</b> — a rejected inbound email, a failed extraction: enough to
+understand why something did not work.</li>
+</ul>
+<p>The iOS app carries no analytics, no advertising tracker and no third-party kit. It
+reads neither your contacts, nor your location, nor your browsing history: it only ever
+sees what you explicitly share with it.</p>
+
+<h2>What leaves, and to whom</h2>
+<p>Making an episode means sending the content of your sources to specialist providers.
+Each one receives only what it needs:</p>
+<ul>
+<li><b>Jina AI</b> — receives the shared address and the text of the page, to extract the
+content and compute similarity vectors.</li>
+<li><b>DeepSeek</b> — receives the text of the sources, then the sentences of the script,
+for analysis, grouping into stories, editorial selection and verification.</li>
+<li><b>Anthropic</b> — receives the retained facts and the draft, to write and edit the
+script.</li>
+<li><b>ElevenLabs</b> — receives the final script, to turn it into a voice.</li>
+<li><b>Postmark</b> — receives the newsletters you forward, and the address you forward
+them from, to handle inbound mail.</li>
+</ul>
+<p>Postmark aside, whose job it is, none of these providers receives your email address or
+your tokens: they only see the content to be processed.</p>
+<p>The infrastructure itself runs on Neon (database), Cloudflare R2 (audio, feed and build
+artifacts), Vercel (the API) and Trigger.dev (long-running work). These companies are
+mostly established in the United States, so your data is transferred there under their own
+contractual commitments.</p>
+
+<h2>What is public, and what is not</h2>
+<div class="note">
+<p>Your RSS feed and your audio files sit in public storage, because a podcast app has to
+download them without authenticating. Their address contains an unguessable token that
+acts as the key: <b>whoever gets that address can listen to your episodes</b>. Do not share
+it. Your email address does not appear in it.</p>
+</div>
+<p>The rest — your sources, their text, the verification report, your settings — lives in
+the database, reachable only with your app token.</p>
+
+<h2>How long</h2>
+<p>As long as your account exists. There is no automatic purge today: deletion happens on
+request, by hand, within a few days.</p>
+
+<h2>Your rights</h2>
+<p>You can ask for access to your data, its correction, its erasure, its portability, or
+object to its processing, by writing to
+<a href="mailto:${PRIVACY_CONTACT}">${PRIVACY_CONTACT}</a>. An answer comes within thirty
+days. An erasure removes the account, the sources, the stories, the episodes, the audio and
+the feed: it is final and nothing is kept. If you are in the EU you may also complain to
+your data protection authority; in France, the CNIL.</p>
+
+<h2>Security</h2>
+<p>Everything travels over HTTPS, and every account has its own tokens. One acknowledged
+limit of the beta: forwarding newsletters recognises a user by the sending address, which
+can be spoofed. Messages that fail SPF authentication are refused, and every refusal is
+logged.</p>
+
+<h2>TestFlight</h2>
+<p>During the beta the app is distributed through TestFlight. Apple collects install and
+crash information of its own, under its own privacy policy, and may pass us crash reports
+if you allow it.</p>
+
+<h2>Children</h2>
+<p>Podcapp is not intended for people under sixteen.</p>
+
+<h2>Changes</h2>
+<p>Any change to this text will be published here, with its date. A change to the nature of
+the data collected will be announced to you by email.</p>
+
+<footer>Podcapp — <a href="mailto:${PRIVACY_CONTACT}">${PRIVACY_CONTACT}</a></footer>
+`
+
+
+/// English by default: the product is aimed at the US market, and the French
+/// page is what a French reader gets instead. Which one is served follows the
+/// browser, the same way the app follows the phone.
+export function privacyHtml(language: string | null | undefined): string {
+  const french = wantsFrench(language)
+  return `<!doctype html>
+<html lang="${french ? 'fr' : 'en'}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Politique de confidentialité — Podcapp</title>
+<title>${french ? 'Politique de confidentialité — Podcapp' : 'Privacy policy — Podcapp'}</title>
 <meta name="theme-color" content="#0d0d0f">
 <meta name="robots" content="noindex">
 <style>${STYLE}</style>
 </head>
-<body>${BODY}</body>
+<body>${french ? BODY_FR : BODY_EN}</body>
 </html>
 `
+}
+
+/// Reads only the first, highest-priority tag of an Accept-Language header:
+/// anything else would serve French to a reader who merely lists it as a
+/// fallback. No header at all means English.
+export function wantsFrench(header: string | null | undefined): boolean {
+  const first = (header ?? '').split(',')[0]?.trim().toLowerCase() ?? ''
+  return first.startsWith('fr')
+}

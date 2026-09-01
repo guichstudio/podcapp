@@ -10,7 +10,7 @@ import { generateEpisode } from '../jobs/generateEpisode.js'
 import { processSource } from '../jobs/processSource.js'
 import { chapterKey, episodeAudioKey, publishEpisode } from '../jobs/publishEpisode.js'
 import { RUN_ARTIFACTS, runArtifactKey } from '../jobs/runArtifacts.js'
-import { PRIVACY_HTML } from '../legal/privacy.js'
+import { privacyHtml } from '../legal/privacy.js'
 import { logger } from '../log.js'
 import { buildFeed, COVER_KEYS, type FeedEpisode } from '../rss/feed.js'
 import { createStorage } from '../storage/index.js'
@@ -120,7 +120,11 @@ app.get('/health', (c) => c.json({ ok: true }))
 // Public and unauthenticated on purpose: App Store Connect asks for this URL and
 // Beta App Review opens it without any credential.
 app.get('/privacy', (c) =>
-  c.html(PRIVACY_HTML, 200, { 'Cache-Control': 'public, max-age=3600' }),
+  c.html(privacyHtml(c.req.header('accept-language')), 200, {
+    // Vary, or a cache would hand the French page to an English reader.
+    'Cache-Control': 'public, max-age=3600',
+    Vary: 'Accept-Language',
+  }),
 )
 
 app.get('/rss/:token', async (c) => {
