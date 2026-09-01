@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nothing unsourced goes on air — Podcapp</title>
+<meta name="description" content="Every factual sentence in the script has to produce a verbatim quote from its source, or it gets rewritten or cut. How the grounding step works.">
+<link rel="alternate" hreflang="en" href="https://podcapp.fr/blog/nothing-unsourced-on-air/">
+<link rel="alternate" hreflang="fr" href="https://podcapp.fr/fr/blog/zero-affirmation-non-sourcee/">
+<link rel="canonical" href="https://podcapp.fr/blog/nothing-unsourced-on-air/">
+<link rel="icon" href="/assets/logo.png" type="image/png">
+<link rel="apple-touch-icon" href="/assets/logo.png">
+<meta name="theme-color" content="#EAE5F8">
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_GB">
+<meta property="og:site_name" content="Podcapp">
+<meta property="og:title" content="Nothing unsourced goes on air">
+<meta property="og:description" content="Every factual sentence in the script has to produce a verbatim quote from its source, or it gets rewritten or cut.">
+<meta property="og:url" content="https://podcapp.fr/blog/nothing-unsourced-on-air/">
+<meta property="og:image" content="https://podcapp.fr/assets/logo.png">
+<meta property="article:published_time" content="2026-08-29">
+<meta name="twitter:card" content="summary">
+<link rel="preload" href="/assets/fonts/inter-tight-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+<div class="page">
+  <span class="halo halo-1"></span>
+  <span class="halo halo-2"></span>
+
+  <div class="shell">
+
+    <header class="nav">
+      <a class="nav-brand" href="/">
+        <img src="/assets/logo.png" alt="Podcapp" width="32" height="32">
+        <span>Podcapp</span>
+      </a>
+      <nav class="nav-links">
+        <a href="/#features">Features</a>
+        <a href="/#formats">Formats</a>
+        <a href="/blog/" aria-current="page" style="color:#1C1B22">Blog</a>
+      </nav>
+      <span class="nav-lang">
+        <a href="/fr/blog/zero-affirmation-non-sourcee/" hreflang="fr">FR</a>
+        <span class="is-active" aria-current="true">EN</span>
+      </span>
+      <a class="nav-cta" href="/#download">Download</a>
+    </header>
+
+    <article class="article">
+      <a class="article-back" href="/blog/">← The Notebook</a>
+      <div class="article-head">
+        <h1>Nothing unsourced goes on air</h1>
+        <p class="article-sub"><span>29 August 2026</span><span>·</span><span>6 min read</span></p>
+      </div>
+
+      <div class="article-body">
+        <p>A language model that writes well also writes false things, and it writes them with exactly the same poise as the true ones. In a text read aloud, nothing marks the difference. No link to hover, no footnote, no shift in tone. The listener is walking, the screen is off, and they have no way of knowing which sentence holds up.</p>
+
+        <p>That is the central problem of a generated audio briefing. We handled it with a separate step, placed <strong>after</strong> the writing and <strong>before</strong> the speech synthesis.</p>
+
+        <h2>Writing and checking are not the same job</h2>
+
+        <p>The obvious move is to tell the writer to invent nothing. It does not work: the same passage that produces a good line also produces the approximate figure that makes the line good. A model busy finding the right rhythm is in no position to contradict itself.</p>
+
+        <p>So we split the finished script into sentences, and every sentence carrying a fact goes to an independent check that did not write the text. The question is narrow, and deliberately awkward:</p>
+
+        <blockquote>Is this sentence supported by a literal extract from one of the supplied sources? If so, which one, word for word?</blockquote>
+
+        <p>A paraphrase does not count. "It is consistent with the rest" does not count. It has to be a quote you could highlight in the original document. Without a quote, the sentence is not defensible, and it does not pass.</p>
+
+        <h2>Three outcomes, never four</h2>
+
+        <p>A sentence leaving the check has exactly three possible destinations:</p>
+
+        <ul>
+          <li><strong>Checked.</strong> The quote exists and says what the sentence claims. It goes to the edit as written, carrying its source identifier.</li>
+          <li><strong>Rewritten.</strong> The source says something weaker, older or narrower. We tighten the sentence until it matches. Figures rounded off in the air become the figures in the document.</li>
+          <li><strong>Cut.</strong> No source carries it. The sentence disappears, even when it was the best one in the chapter.</li>
+        </ul>
+
+        <p>The fourth outcome, the one where a doubtful sentence airs with a hedge attached, does not exist. A briefing that hesitates on air does not get a second listen.</p>
+
+        <h2>What that looks like on a real episode</h2>
+
+        <p>On the pilot episode, roughly thirteen hundred words, four chapters, five saved sources:</p>
+
+        <figure>
+          <figcaption>VERIFICATION REPORT · PILOT EPISODE</figcaption>
+          <table>
+            <thead>
+              <tr><th>Outcome</th><th>Sentences</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Checked, untouched</td><td>38</td></tr>
+              <tr><td>Rewritten to match the source</td><td>4</td></tr>
+              <tr><td>Cut for lack of a source</td><td>0</td></tr>
+              <tr><td>Unsourced, aired</td><td>0</td></tr>
+            </tbody>
+          </table>
+        </figure>
+
+        <p>The four rewrites are the instructive part, because none of them was a lie. They were slippages: an order of magnitude turned into a precise figure, a forecast turned into an observation, a special case turned into a trend. Exactly the kind of error a quick human read-through lets through, and the kind a listener remembers.</p>
+
+        <h2>The trade, made on purpose</h2>
+
+        <p>This step costs compute and stretches the time it takes to build each episode. It also shortens the scripts: some elegant transitions do not survive the check, because they connected two ideas nobody had connected before us.</p>
+
+        <p>It is a trade we make again every morning. A shorter briefing where every sentence holds is more useful than a brilliant one you cannot calibrate your trust against. The project's hierarchy is written down and does not move: <strong>editorial quality, then accuracy, then everything else.</strong></p>
+
+        <p>In the app, each chapter keeps the list of sources that fed it. While listening, one gesture is enough to see where what you just heard came from. It is the same requirement, seen from the other end.</p>
+      </div>
+
+      <div class="article-next">
+        <a class="btn-glass" href="/blog/the-airtime-budget/">← The airtime budget</a>
+        <a class="btn-glass" href="/blog/the-source-we-could-not-read/">The source we couldn't read →</a>
+      </div>
+    </article>
+
+    <footer class="foot">
+      <span class="foot-brand"><img src="/assets/logo.png" alt="" width="20" height="20">Podcapp · your daily radio, sourced by you, checked by us.</span>
+      <span class="foot-links">
+        <a href="/">Home</a>
+        <a href="/blog/">Blog</a>
+        <a href="https://podcapp.vercel.app/privacy">Privacy</a>
+      </span>
+    </footer>
+
+  </div>
+</div>
+</body>
+</html>

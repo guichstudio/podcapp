@@ -12,11 +12,60 @@
     <loc>https://podcapp.fr/fr/</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/fr/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://podcapp.fr/"/>
     <priority>0.8</priority>
   </url>
-  <url><loc>https://podcapp.fr/blog/</loc><priority>0.8</priority></url>
-  <url><loc>https://podcapp.fr/blog/zero-affirmation-non-sourcee/</loc><lastmod>2026-08-29</lastmod><priority>0.6</priority></url>
-  <url><loc>https://podcapp.fr/blog/le-budget-d-antenne/</loc><lastmod>2026-08-21</lastmod><priority>0.6</priority></url>
-  <url><loc>https://podcapp.fr/blog/la-source-qu-on-n-a-pas-pu-lire/</loc><lastmod>2026-08-12</lastmod><priority>0.6</priority></url>
+  <url>
+    <loc>https://podcapp.fr/blog/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/blog/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/fr/blog/"/>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://podcapp.fr/fr/blog/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/blog/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/fr/blog/"/>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://podcapp.fr/blog/nothing-unsourced-on-air/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/blog/nothing-unsourced-on-air/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/fr/blog/zero-affirmation-non-sourcee/"/>
+    <lastmod>2026-08-29</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://podcapp.fr/fr/blog/zero-affirmation-non-sourcee/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/blog/nothing-unsourced-on-air/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/fr/blog/zero-affirmation-non-sourcee/"/>
+    <lastmod>2026-08-29</lastmod>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://podcapp.fr/blog/the-airtime-budget/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/blog/the-airtime-budget/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/fr/blog/le-budget-d-antenne/"/>
+    <lastmod>2026-08-21</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://podcapp.fr/fr/blog/le-budget-d-antenne/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/blog/the-airtime-budget/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/fr/blog/le-budget-d-antenne/"/>
+    <lastmod>2026-08-21</lastmod>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://podcapp.fr/blog/the-source-we-could-not-read/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/blog/the-source-we-could-not-read/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/fr/blog/la-source-qu-on-n-a-pas-pu-lire/"/>
+    <lastmod>2026-08-12</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://podcapp.fr/fr/blog/la-source-qu-on-n-a-pas-pu-lire/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/blog/the-source-we-could-not-read/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/fr/blog/la-source-qu-on-n-a-pas-pu-lire/"/>
+    <lastmod>2026-08-12</lastmod>
+    <priority>0.5</priority>
+  </url>
 </urlset>

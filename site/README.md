@@ -2,13 +2,14 @@
 
 Statique, sans build. HTML + une feuille de style, police Inter Tight auto-hébergée.
 L'anglais est la langue par défaut, servi à la racine ; `/en/` redirige vers `/` en 308.
-Le blog n'existe qu'en français pour l'instant.
+Le blog existe dans les deux langues, chaque article pointe vers sa traduction.
 
 ```
 index.html                  landing EN (langue par defaut)
 fr/index.html               landing FR
-blog/index.html             liste des articles
-blog/<slug>/index.html      un article
+blog/index.html             liste des articles EN
+blog/<slug>/index.html      un article EN
+fr/blog/                    les memes en francais, slugs francais
 assets/site.css             toute la mise en forme
 assets/fonts/*.woff2        Inter Tight variable (latin, latin-ext)
 ```
@@ -25,8 +26,9 @@ Déploiement (projet Vercel `podcapp-site`, séparé du projet API `podcapp`) :
 cd site && vercel --prod
 ```
 
-Ajouter un article : dupliquer un dossier de `blog/`, changer le contenu, puis ajouter
-la carte dans `blog/index.html` et l'URL dans `sitemap.xml`.
+Ajouter un article : dupliquer un dossier de `blog/` ET son equivalent `fr/blog/`,
+changer le contenu, croiser les `hreflang` et la bascule de langue entre les deux,
+puis ajouter la carte dans les deux `index.html` et les URL dans `sitemap.xml`.
 
 La mise en page reprend telle quelle l'artboard Claude Design (`Podcapp Landing FR`) :
 couleurs, rayons, ombres et tailles sont identiques au-dessus de 1060 px de large.

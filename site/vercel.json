@@ -17,6 +17,21 @@
       "source": "/en/:path+",
       "destination": "/:path+",
       "permanent": true
+    },
+    {
+      "source": "/blog/zero-affirmation-non-sourcee/",
+      "destination": "/fr/blog/zero-affirmation-non-sourcee/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/le-budget-d-antenne/",
+      "destination": "/fr/blog/le-budget-d-antenne/",
+      "permanent": true
+    },
+    {
+      "source": "/blog/la-source-qu-on-n-a-pas-pu-lire/",
+      "destination": "/fr/blog/la-source-qu-on-n-a-pas-pu-lire/",
+      "permanent": true
     }
   ],
   "headers": [
