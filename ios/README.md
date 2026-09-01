@@ -28,10 +28,10 @@ descriptions drift apart:
 xcodegen generate --spec ios/project.yml
 ```
 
-Use **XcodeGen 2.42.x** (the binary lives in `/tmp/xcodegen/v242/` after a
-`curl` of the GitHub release, and `/tmp` is wiped on reboot). From 2.44 it
-writes project format 77, which Xcode 15.4 cannot open at all. Once this Mac
-runs Xcode 26 — required for any TestFlight upload — any version will do.
+Any XcodeGen version works (the binary lives in `/tmp/xcodegen/` after a `curl`
+of the GitHub release, and `/tmp` is wiped on reboot). The 2.42 pin this file
+used to carry existed only because newer releases write project format 77,
+which Xcode 15.4 could not open; this Mac has run Xcode 26 since 2026-09-01.
 
 `project.yml` also generates both `Info.plist` files: editing them by hand looks
 like it works until the next `xcodegen generate` silently reverts it. Version
@@ -61,18 +61,22 @@ says whether the two can see the same storage.
 
 ## TestFlight
 
-### 1. The upgrade chain (do this in order, nothing else works before it)
+### 1. The upgrade chain (done on this Mac, kept for the next one)
 
-1. **macOS 15.6 or later.** Xcode 26 refuses to install below it, and 26.5+
-   wants macOS Tahoe 26.2. Free, but it is an OS upgrade — plan an hour.
-2. **Xcode 26 or later.** Since 2026-04-28 App Store Connect rejects any upload
-   not built with the iOS 26 SDK. `testflight.sh` checks this before archiving
-   so the rejection does not arrive after a ten-minute build.
-3. **Apple Developer Program**, 99 USD/year, at developer.apple.com/programs.
-   Individual enrolment is usually validated within a day or two.
-4. **Update the team id.** The program creates a NEW team: `DEVELOPMENT_TEAM`
-   in `project.yml` still holds `V7BMDJS5C7`, the free personal team. Replace it
-   with the program team id (App Store Connect > Membership) and regenerate.
+1. ~~**macOS 15.6 or later.**~~ Done: macOS 26.6.2 since 2026-09-01. Xcode 26
+   refuses to install below 15.6, and 26.5+ wants macOS Tahoe 26.2.
+2. ~~**Xcode 26 or later.**~~ Done: Xcode 26.6, iOS 26.5 SDK. Since 2026-04-28
+   App Store Connect rejects any upload not built with the iOS 26 SDK, and
+   `testflight.sh` checks it before archiving so the rejection does not arrive
+   after a ten-minute build. Note that Xcode 26 ships without the iOS platform:
+   `xcodebuild -downloadPlatform iOS` fetches it (8.5 GB) and nothing compiles
+   until it has.
+3. ~~**Apple Developer Program**, 99 USD/year.~~ Done 2026-09-01.
+4. **Update the team id — still open.** The program creates a NEW team:
+   `DEVELOPMENT_TEAM` in `project.yml` still holds `V7BMDJS5C7`, the free
+   personal team, and it is the only signing identity on this Mac. Replace it
+   with the program team id (developer.apple.com/account > Membership) and
+   regenerate. Everything below waits on this.
 
 ### 2. One-time setup in App Store Connect
 

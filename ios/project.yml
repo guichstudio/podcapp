@@ -1,7 +1,7 @@
 # Generated project: edit this file, then `xcodegen generate --spec project.yml`.
-# Generate with XcodeGen 2.42.x. From 2.44 it writes project format 77, which
-# only Xcode 16+ can open, and this Mac still runs Xcode 15.4. Once it runs
-# Xcode 26 (required for any TestFlight upload), any version will do.
+# Any XcodeGen version does now. The 2.42 pin existed because newer releases
+# write project format 77, unreadable by Xcode 15.4; this Mac runs Xcode 26
+# since 2026-09-01.
 name: Podcapp
 options:
   bundleIdPrefix: com.louisguichard
@@ -48,6 +48,12 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.louisguichard.podcapp
+        # iPhone only, and it has to be set PER TARGET: XcodeGen's own setting
+        # presets write "1,2" at target level, which beats anything here at
+        # project level. Left universal, App Review holds a portrait-only app
+        # drawn on 393x852 artboards to the iPad rules: every orientation
+        # supported, iPad screenshots in the listing.
+        TARGETED_DEVICE_FAMILY: "1"
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_CFBundleDisplayName: Podcapp
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -80,4 +86,5 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.louisguichard.podcapp.share
+        TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_ENTITLEMENTS: ShareExtension/ShareExtension.entitlements

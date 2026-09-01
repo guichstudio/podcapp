@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -209,6 +209,8 @@
 				75D49CE941CB2A4980E01DDB /* PBXTargetDependency */,
 			);
 			name = Podcapp;
+			packageProductDependencies = (
+			);
 			productName = Podcapp;
 			productReference = 86E4A5996FA6350FC608E2E1 /* Podcapp.app */;
 			productType = "com.apple.product-type.application";
@@ -225,6 +227,8 @@
 			dependencies = (
 			);
 			name = ShareExtension;
+			packageProductDependencies = (
+			);
 			productName = ShareExtension;
 			productReference = 05A68A6D722F833D01F68802 /* ShareExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -249,7 +253,6 @@
 				};
 			};
 			buildConfigurationList = DF58CBC9877B92B2D1B4764F /* Build configuration list for PBXProject "Podcapp" */;
-			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -257,6 +260,9 @@
 				en,
 			);
 			mainGroup = AE4A590A0A54F76A19A1E50E;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = E70CB9679EC26EA206893E9F /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -349,7 +355,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.louisguichard.podcapp.share;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -427,7 +433,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.louisguichard.podcapp.share;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -447,7 +453,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.louisguichard.podcapp;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -467,7 +473,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.louisguichard.podcapp;
 				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
