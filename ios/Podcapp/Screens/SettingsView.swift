@@ -403,7 +403,7 @@ struct SettingsView: View {
             GenerationRow(
                 label: String(localized: "Share extension"),
                 sub: String(localized: "Share a link from Safari, then pick Podcapp"),
-                value: isConfigured ? "Token saved" : "Token needed"
+                value: isConfigured ? String(localized: "Token saved") : String(localized: "Token needed")
             ),
             GenerationRow(label: String(localized: "Private RSS feed"), sub: String(localized: "Apple Podcasts, Overcast"), value: String(localized: "Published")),
         ]
