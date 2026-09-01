@@ -1,5 +1,5 @@
 import { and, eq, inArray, ne } from 'drizzle-orm'
-import { TTS_USD_PER_1K_CHARS } from '../config.js'
+import { TTS_USD_PER_1K_CHARS, voiceFor } from '../config.js'
 import { assemble } from '../audio/assemble.js'
 import { entityTokens } from '../core/sentences.js'
 import { ScriptSchema } from '../core/types.js'
@@ -111,12 +111,14 @@ export async function publishEpisode(
 
     stage = 'tts'
     const [user] = await db
-      .select({ voiceId: users.voiceId })
+      .select({ voiceId: users.voiceId, outputLanguage: users.outputLanguage })
       .from(users)
       .where(eq(users.id, episode.userId))
-    const voiceId = user?.voiceId ?? process.env.ELEVENLABS_VOICE_ID
+    // The narrator follows the language the script was written in. A French
+    // voice reading English gets there — with an accent nobody asked for.
+    const voiceId = voiceFor(user?.outputLanguage ?? 'fr', user?.voiceId)
     if (!voiceId) {
-      throw new Error(`no voice for episode ${episodeId}: set users.voice_id or ELEVENLABS_VOICE_ID`)
+      throw new Error(`no voice for episode ${episodeId}: set users.voice_id, DEFAULT_VOICES or ELEVENLABS_VOICE_ID`)
     }
 
     // Empty chapters are refused rather than skipped: a chapter's index is its

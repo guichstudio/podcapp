@@ -51,6 +51,19 @@ export const PRICING: Record<string, { in: number; out: number }> = {
   'jina-embeddings-v5-text-small': { in: 0.02, out: 0 },
 }
 
+// The narrator per output language. users.voice_id overrides this per user;
+// ELEVENLABS_VOICE_ID (set in the Trigger.dev env, where the French voice lives)
+// is the fallback for a language with no entry here. `en` is provisional: a
+// safe American narration voice so an English briefing never ships with the
+// French narrator's accent, until Louis picks on a listening test.
+export const DEFAULT_VOICES: Record<string, string> = {
+  en: 'nPczCjzI2devNBz1zQrb', // Brian — deep, resonant, American
+}
+
+export function voiceFor(language: string, override: string | null | undefined): string | undefined {
+  return override ?? DEFAULT_VOICES[language.trim().toLowerCase().slice(0, 2)] ?? process.env.ELEVENLABS_VOICE_ID
+}
+
 // ElevenLabs multilingual_v2 list price. TTS dominates the cost of an episode
 // (§6), so its characters and dollars are recorded next to the LLM breakdown.
 export const TTS_USD_PER_1K_CHARS = 0.15
