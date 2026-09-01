@@ -75,7 +75,7 @@ struct TodayView: View {
     private func errorState(_ message: String) -> some View {
         PlainCard(cornerRadius: 18, padding: 16) {
             VStack(alignment: .leading, spacing: 10) {
-                Overline(text: String(localized: "Chargement impossible"), color: Palette.danger)
+                Overline(text: String(localized: "Could not load"), color: Palette.danger)
                 Text(message)
                     .typo(Typo.detail)
                     .foregroundStyle(Palette.body)
@@ -138,7 +138,7 @@ struct TodayView: View {
     private var noEpisodeCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 12) {
-                Overline(text: String(localized: "Aucun briefing"), color: Palette.accentDeep)
+                Overline(text: String(localized: "No briefing"), color: Palette.accentDeep)
                 Text("Nothing to listen to yet.")
                     .typo(Typo.heroTitle)
                     .foregroundStyle(Palette.ink)
@@ -422,7 +422,7 @@ private struct TodayHeroCard: View {
         let cited = Set(detail.chapters.flatMap(\.sourceIds))
         let resolved = Set(detail.chapters.flatMap { $0.sources.map(\.id) })
         let missing = cited.count - resolved.count
-        var line = TodayText.plural(detail.chapters.count, "chapitre", "chapitres")
+        var line = TodayText.plural(detail.chapters.count, String(localized: "chapter"), String(localized: "chapters"))
             + " · " + TodayText.plural(cited.count, String(localized: "source cited"), String(localized: "sources cited"))
         if missing > 0 {
             line += " · " + TodayText.plural(missing, "source introuvable", "sources introuvables")
@@ -449,7 +449,7 @@ private struct TodayFocusCard: View {
                         .lineLimit(1)
                     Spacer(minLength: 4)
                     Button(action: onToggle) {
-                        Text(isIncluded ? "Inclus" : "Exclu")
+                        Text(isIncluded ? String(localized: "Included") : String(localized: "Excluded"))
                             .typo(Typo.chip)
                             .foregroundStyle(isIncluded ? Palette.onDark : Palette.muted)
                             .padding(.vertical, 4)
@@ -640,7 +640,7 @@ private struct TodayPastRow: View {
     private var meta: String {
         let date = TodayText.dayMonth(episode.createdAt)
         guard !episode.chapters.isEmpty else { return date }
-        return date + " · " + TodayText.plural(episode.chapters.count, "chapitre", "chapitres")
+        return date + " · " + TodayText.plural(episode.chapters.count, String(localized: "chapter"), String(localized: "chapters"))
     }
 }
 
@@ -655,7 +655,7 @@ private struct TodayBackstageSheet: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .firstTextBaseline) {
-                    Overline(text: String(localized: "Comment c’est fabriqué"), color: Palette.accentDeep)
+                    Overline(text: String(localized: "How it was made"), color: Palette.accentDeep)
                     Spacer(minLength: 8)
                     Button("Close") { dismiss() }
                         .typo(Typo.navButton)

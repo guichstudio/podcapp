@@ -839,14 +839,14 @@ private struct BuiltPage: View {
                 .artboardCentered(y: Onbo.phoneTop)
                 claimFloat(
                     chip: "VRAI", color: Palette.success, fill: Palette.successBg,
-                    text: String(localized: "Blue Owl −40 % · marché ≈ 1 800 Md$ · défaut First Brands"),
+                    text: String(localized: "Blue Owl −40% · market ≈ $1.8tn · First Brands default"),
                     width: 196
                 )
                 .rotationEffect(.degrees(-6))
                 .artboard(x: 11, y: 582)
                 claimFloat(
                     chip: "FAKE", color: Palette.warning, fill: Palette.warningBg,
-                    text: String(localized: "«sur la semaine» → «en une semaine» date non établie"),
+                    text: String(localized: "“over the week” → “in one week” date not established"),
                     width: 190
                 )
                 .rotationEffect(.degrees(5))

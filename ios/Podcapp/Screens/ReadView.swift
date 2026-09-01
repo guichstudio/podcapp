@@ -116,7 +116,7 @@ struct ReadView: View {
         var parts = [Format.day(episode.createdAt)]
         if let seconds = episode.actualSec { parts.append(Format.clock(seconds)) }
         let count = episode.chapters.count
-        if count > 0 { parts.append(count > 1 ? "\(count) chapitres" : "1 chapitre") }
+        if count > 0 { parts.append(count > 1 ? String(localized: "\(count) chapters") : String(localized: "1 chapter")) }
         return parts.joined(separator: " · ")
     }
 

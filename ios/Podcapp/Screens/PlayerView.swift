@@ -961,7 +961,7 @@ private struct PlayerSourcesSheet: View {
                         .lineSpacing(3)
                 }
             } else {
-                PlayerEmptyLine(text: String(localized: "Aucun chapitre en lecture."))
+                PlayerEmptyLine(text: String(localized: "No chapter playing."))
             }
 
             Button {
@@ -1042,7 +1042,7 @@ private struct PlayerTranscriptSheet: View {
                     .padding(.top, 4)
             }
         } else {
-            PlayerEmptyLine(text: String(localized: "Pas de texte pour ce chapitre : l’épisode n’a pas encore de script lisible."))
+            PlayerEmptyLine(text: String(localized: "No text for this chapter: the episode has no readable script yet."))
         }
     }
 }
@@ -1054,7 +1054,7 @@ private struct PlayerBackstageSheet: View {
         if let episode = player.episode {
             EpisodeBackstage(detail: episode)
         } else {
-            PlayerEmptyLine(text: String(localized: "Aucun épisode en lecture."))
+            PlayerEmptyLine(text: String(localized: "Nothing playing."))
         }
     }
 }

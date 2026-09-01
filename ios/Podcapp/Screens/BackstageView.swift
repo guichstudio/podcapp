@@ -36,7 +36,7 @@ struct EpisodeBackstage: View {
     // point of showing it: the plan is what makes the cuts explicable.
     private func budget(_ episode: EpisodeDetail) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Overline(text: String(localized: "Budget d’antenne, fixé avant l’écriture"))
+            Overline(text: String(localized: "Airtime budget, set before writing"))
             if episode.budget.isEmpty {
                 Text("The editorial plan for this episode was not kept.")
                     .typo(Typo.metaSmall)
@@ -85,7 +85,7 @@ struct EpisodeBackstage: View {
     // and what never reached the audio.
     private func stats(_ episode: EpisodeDetail) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Overline(text: String(localized: "Passe de vérification"))
+            Overline(text: String(localized: "Verification pass"))
             if let v = episode.verification, v.checked > 0 {
                 HStack(spacing: 8) {
                     PlayerStat(value: v.checked, label: String(localized: "sentences checked"))

@@ -31,6 +31,7 @@
 "Add your token in Settings to load your briefings." = "Ajoutez votre jeton dans les réglages pour charger vos briefings.";
 "Add your token in the Podcapp app before sharing." = "Ajoutez votre jeton dans l’app Podcapp avant de partager.";
 "Airtime budget fixed before writing" = "Budget d’antenne fixé avant l’écriture";
+"Airtime budget, set before writing" = "Budget d’antenne, fixé avant l’écriture";
 "All" = "Tout";
 "All episodes" = "Tous les épisodes";
 "Already saved: counted once." = "Déjà enregistré : compté une seule fois.";
@@ -40,10 +41,12 @@
 "Analysed and attached to a story." = "Analysé et rattaché à un sujet.";
 "Analysed, waiting to be grouped." = "Analysé, en attente de regroupement.";
 "Anything goes in." = "Tout y passe.";
+"Apple Podcasts, Overcast" = "Apple Podcasts, Overcast";
 "Article" = "Article";
 "Assembling" = "Assemblage";
 "Audio only" = "Audio seul";
 "Blocklist: zero tics on air" = "Blocklist : zéro tic à l’antenne";
+"Blue Owl −40% · market ≈ $1.8tn · First Brands default" = "Blue Owl −40 % · marché ≈ 1 800 Md$ · défaut First Brands";
 "Blue Owl, First Brands: the dominoes" = "Blue Owl, First Brands : les dominos";
 "Briefing" = "Briefing";
 "Briefing failed · %@" = "Briefing en échec · %@";
@@ -92,6 +95,7 @@
 "Every morning at 6:00, or from Today" = "Chaque matin à 6 h, ou depuis Aujourd’hui";
 "Every sentence against its source" = "Chaque phrase face à sa source";
 "Everything you never had time to " = "Tout ce que vous n’avez pas eu le temps de ";
+"Excluded" = "Exclu";
 "Extracting" = "Extraction";
 "Extracting…" = "Extraction…";
 "Extraction failed, with no detail from the server." = "Extraction échouée, sans détail renvoyé par le serveur.";
@@ -109,6 +113,7 @@
 "How this episode was made →" = "Comment cet épisode a été fabriqué →";
 "In or out stays on this iPhone: the selection is not sent to the server yet." = "Inclus ou exclu reste sur cet iPhone : la sélection n’est pas encore envoyée au serveur.";
 "In progress" = "En cours";
+"Included" = "Inclus";
 "Interface and narration follow your phone. Change it in iOS Settings." = "L’interface et la narration suivent votre téléphone. Changez-la dans les Réglages iOS.";
 "Intro/outro: no external fact." = "Intro/outro : aucun fait externe.";
 "Invalid server address." = "Adresse du serveur invalide.";
@@ -133,12 +138,15 @@
 "Next briefing" = "Prochain briefing";
 "Next chapter" = "Chapitre suivant";
 "No audio for this episode yet (%@)." = "Pas encore d’audio pour cet épisode (%@).";
+"No briefing" = "Aucun briefing";
 "No briefing yet." = "Aucun briefing pour l’instant.";
+"No chapter playing." = "Aucun chapitre en lecture.";
 "No extraction metadata" = "Aucune métadonnée d’extraction";
 "No password · private RSS feed included" = "Aucun mot de passe · flux RSS privé inclus";
 "No sentence in this chapter carried a number, a quote or a name to check." = "Aucune phrase de ce chapitre ne portait de chiffre, de citation ni de nom à vérifier.";
 "No source" = "Aucune source";
 "No source saved yet." = "Aucune source enregistrée.";
+"No text for this chapter: the episode has no readable script yet." = "Pas de texte pour ce chapitre : l’épisode n’a pas encore de script lisible.";
 "No token yet. Add one to load your briefings and share links." = "Aucun jeton. Ajoutez-le pour charger vos briefings et partager des liens.";
 "No verification report for this episode." = "Aucun rapport de vérification pour cet épisode.";
 "Not found on the server." = "Introuvable sur le serveur.";
@@ -147,13 +155,16 @@
 "Nothing in this filter." = "Rien dans ce filtre.";
 "Nothing new since the last briefing. Share a link to Podcapp, from Safari or any app, to feed the next one." = "Rien de neuf depuis le dernier briefing. Partagez un lien vers Podcapp, depuis Safari ou n’importe quelle app, pour nourrir le prochain épisode.";
 "Nothing playing" = "Aucun épisode en lecture";
+"Nothing playing." = "Aucun épisode en lecture.";
 "Nothing to listen to yet." = "Rien à écouter pour l’instant.";
 "Nothing to save." = "Rien à sauvegarder.";
+"OK" = "OK";
 "Open a briefing from the Today tab to listen to it here." = "Ouvrez un briefing depuis l’onglet Aujourd’hui pour l’écouter ici.";
 "Outline" = "Plan";
 "Output language" = "Langue de sortie";
 "Paste a link or some text…" = "Coller un lien ou un texte…";
 "Paste your token" = "Collez votre jeton";
+"Pipeline" = "Pipeline";
 "Previous chapter" = "Chapitre précédent";
 "Privacy policy" = "Politique de confidentialité";
 "Private RSS feed" = "Flux RSS privé";
@@ -170,6 +181,7 @@
 "Ready for the next briefing." = "Prêt pour le prochain briefing.";
 "Really, anything." = "Vraiment tout.";
 "Received" = "Reçu";
+"SOURCE" = "SOURCE";
 "Save a few sources, then generate a briefing from the Today tab." = "Enregistrez des sources, puis générez un briefing depuis l’onglet Aujourd’hui.";
 "Save and test" = "Enregistrer et tester";
 "Saved" = "Sauvegardé";
@@ -229,6 +241,7 @@
 "Unsupported" = "Non pris en charge";
 "Unsupported content type." = "Type de contenu non pris en charge.";
 "Untitled" = "Sans titre";
+"Verification pass" = "Passe de vérification";
 "Verified" = "Vérifiée";
 "Video" = "Vidéo";
 "Videos transcribed automatically · newsletters by forward" = "Vidéos transcrites automatiquement · newsletters par transfert";
@@ -241,6 +254,8 @@
 "Your sources, briefings, audio and feed are erased for good. Nothing is kept." = "Vos sources, briefings, audio et flux sont effacés pour de bon. Rien n’est conservé.";
 "assembling" = "en assemblage";
 "attached to a story" = "rattaché à un sujet";
+"chapter" = "chapitre";
+"chapters" = "chapitres";
 "checked" = "vérifiées";
 "checked by us." = "vérifié par nous.";
 "cut before air" = "coupées avant l’antenne";
@@ -273,6 +288,7 @@
 "¶ Read" = "¶ Lisez";
 "“You loved subprime, you are going to love the private credit crisis”" = "«Vous avez aimé les subprimes, vous allez adorer la crise des crédits privés»";
 "“You loved subprime…”" = "«Vous avez aimé les subprimes…»";
+"“over the week” → “in one week” date not established" = "«sur la semaine» → «en une semaine» date non établie";
 "↓ TRANSLATED · SUMMED UP" = "↓ TRADUIT · RÉSUMÉ";
 "≈ 5 min of audio · every morning" = "≈ 5 min d’audio · chaque matin";
 "≈1,500 words, documentary register" = "≈1 500 mots, registre documentaire";

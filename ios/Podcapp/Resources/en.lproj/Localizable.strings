@@ -31,6 +31,7 @@
 "Add your token in Settings to load your briefings." = "Add your token in Settings to load your briefings.";
 "Add your token in the Podcapp app before sharing." = "Add your token in the Podcapp app before sharing.";
 "Airtime budget fixed before writing" = "Airtime budget fixed before writing";
+"Airtime budget, set before writing" = "Airtime budget, set before writing";
 "All" = "All";
 "All episodes" = "All episodes";
 "Already saved: counted once." = "Already saved: counted once.";
@@ -40,10 +41,12 @@
 "Analysed and attached to a story." = "Analysed and attached to a story.";
 "Analysed, waiting to be grouped." = "Analysed, waiting to be grouped.";
 "Anything goes in." = "Anything goes in.";
+"Apple Podcasts, Overcast" = "Apple Podcasts, Overcast";
 "Article" = "Article";
 "Assembling" = "Assembling";
 "Audio only" = "Audio only";
 "Blocklist: zero tics on air" = "Blocklist: zero tics on air";
+"Blue Owl −40% · market ≈ $1.8tn · First Brands default" = "Blue Owl −40% · market ≈ $1.8tn · First Brands default";
 "Blue Owl, First Brands: the dominoes" = "Blue Owl, First Brands: the dominoes";
 "Briefing" = "Briefing";
 "Briefing failed · %@" = "Briefing failed · %@";
@@ -92,6 +95,7 @@
 "Every morning at 6:00, or from Today" = "Every morning at 6:00, or from Today";
 "Every sentence against its source" = "Every sentence against its source";
 "Everything you never had time to " = "Everything you never had time to ";
+"Excluded" = "Excluded";
 "Extracting" = "Extracting";
 "Extracting…" = "Extracting…";
 "Extraction failed, with no detail from the server." = "Extraction failed, with no detail from the server.";
@@ -109,6 +113,7 @@
 "How this episode was made →" = "How this episode was made →";
 "In or out stays on this iPhone: the selection is not sent to the server yet." = "In or out stays on this iPhone: the selection is not sent to the server yet.";
 "In progress" = "In progress";
+"Included" = "Included";
 "Interface and narration follow your phone. Change it in iOS Settings." = "Interface and narration follow your phone. Change it in iOS Settings.";
 "Intro/outro: no external fact." = "Intro/outro: no external fact.";
 "Invalid server address." = "Invalid server address.";
@@ -133,12 +138,15 @@
 "Next briefing" = "Next briefing";
 "Next chapter" = "Next chapter";
 "No audio for this episode yet (%@)." = "No audio for this episode yet (%@).";
+"No briefing" = "No briefing";
 "No briefing yet." = "No briefing yet.";
+"No chapter playing." = "No chapter playing.";
 "No extraction metadata" = "No extraction metadata";
 "No password · private RSS feed included" = "No password · private RSS feed included";
 "No sentence in this chapter carried a number, a quote or a name to check." = "No sentence in this chapter carried a number, a quote or a name to check.";
 "No source" = "No source";
 "No source saved yet." = "No source saved yet.";
+"No text for this chapter: the episode has no readable script yet." = "No text for this chapter: the episode has no readable script yet.";
 "No token yet. Add one to load your briefings and share links." = "No token yet. Add one to load your briefings and share links.";
 "No verification report for this episode." = "No verification report for this episode.";
 "Not found on the server." = "Not found on the server.";
@@ -147,13 +155,16 @@
 "Nothing in this filter." = "Nothing in this filter.";
 "Nothing new since the last briefing. Share a link to Podcapp, from Safari or any app, to feed the next one." = "Nothing new since the last briefing. Share a link to Podcapp, from Safari or any app, to feed the next one.";
 "Nothing playing" = "Nothing playing";
+"Nothing playing." = "Nothing playing.";
 "Nothing to listen to yet." = "Nothing to listen to yet.";
 "Nothing to save." = "Nothing to save.";
+"OK" = "OK";
 "Open a briefing from the Today tab to listen to it here." = "Open a briefing from the Today tab to listen to it here.";
 "Outline" = "Outline";
 "Output language" = "Output language";
 "Paste a link or some text…" = "Paste a link or some text…";
 "Paste your token" = "Paste your token";
+"Pipeline" = "Pipeline";
 "Previous chapter" = "Previous chapter";
 "Privacy policy" = "Privacy policy";
 "Private RSS feed" = "Private RSS feed";
@@ -170,6 +181,7 @@
 "Ready for the next briefing." = "Ready for the next briefing.";
 "Really, anything." = "Really, anything.";
 "Received" = "Received";
+"SOURCE" = "SOURCE";
 "Save a few sources, then generate a briefing from the Today tab." = "Save a few sources, then generate a briefing from the Today tab.";
 "Save and test" = "Save and test";
 "Saved" = "Saved";
@@ -229,6 +241,7 @@
 "Unsupported" = "Unsupported";
 "Unsupported content type." = "Unsupported content type.";
 "Untitled" = "Untitled";
+"Verification pass" = "Verification pass";
 "Verified" = "Verified";
 "Video" = "Video";
 "Videos transcribed automatically · newsletters by forward" = "Videos transcribed automatically · newsletters by forward";
@@ -241,6 +254,8 @@
 "Your sources, briefings, audio and feed are erased for good. Nothing is kept." = "Your sources, briefings, audio and feed are erased for good. Nothing is kept.";
 "assembling" = "assembling";
 "attached to a story" = "attached to a story";
+"chapter" = "chapter";
+"chapters" = "chapters";
 "checked" = "checked";
 "checked by us." = "checked by us.";
 "cut before air" = "cut before air";
@@ -273,6 +288,7 @@
 "¶ Read" = "¶ Read";
 "“You loved subprime, you are going to love the private credit crisis”" = "“You loved subprime, you are going to love the private credit crisis”";
 "“You loved subprime…”" = "“You loved subprime…”";
+"“over the week” → “in one week” date not established" = "“over the week” → “in one week” date not established";
 "↓ TRANSLATED · SUMMED UP" = "↓ TRANSLATED · SUMMED UP";
 "≈ 5 min of audio · every morning" = "≈ 5 min of audio · every morning";
 "≈1,500 words, documentary register" = "≈1,500 words, documentary register";
