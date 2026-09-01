@@ -730,12 +730,12 @@ private struct FormatsPage: View {
 
     private var formatsCard: some View {
         VStack(spacing: 0) {
-            formatRow("YouTube", "vidéo", divider: true) {
+            formatRow("YouTube", String(localized: "video"), divider: true) {
                 appIcon(AnyShapeStyle(Color(hex: 0xFF0033))) {
                     Text("▶").font(.system(size: 12)).foregroundStyle(.white)
                 }
             }
-            formatRow("Facebook", "vidéo · article", divider: true) {
+            formatRow("Facebook", String(localized: "video · article"), divider: true) {
                 appIcon(AnyShapeStyle(Color(hex: 0x1877F2))) {
                     Text("f").font(.system(size: 18, weight: .bold)).foregroundStyle(.white)
                 }
@@ -918,11 +918,11 @@ private struct BuiltPage: View {
 
     private var statsFloat: some View {
         HStack(spacing: 14) {
-            stat("42", "vérifiées")
+            stat("42", String(localized: "checked"))
             statDivider
-            stat("4", "réécrites")
+            stat("4", String(localized: "rewritten"))
             statDivider
-            stat("0", "non sourcée")
+            stat("0", String(localized: "unsourced"))
         }
         .padding(.vertical, 11)
         .padding(.horizontal, 14)
@@ -1169,7 +1169,7 @@ private struct SharePage: View {
                 shareApp("Messages") { messagesIcon }
                 shareApp("Mail") { mailIcon }
                 shareApp("Podcapp", bold: true) { podcappIcon }
-                shareApp("Copier") { copyIcon }
+                shareApp(String(localized: "Copy")) { copyIcon }
             }
             .padding(.top, 10)
         }
@@ -1265,14 +1265,14 @@ private struct ReadPage: View {
 
     private var modeRow: some View {
         HStack(spacing: 12) {
-            modePill("▶ Écoutez")
+            modePill(String(localized: "▶ Listen"))
             Text("⇄")
                 .font(.system(size: 15))
                 .foregroundStyle(.white)
                 .frame(width: 40, height: 40)
                 .background(Circle().fill(Palette.ink))
                 .shadow(color: Palette.ink.opacity(0.35), radius: 13, y: 11)
-            modePill("¶ Lisez")
+            modePill(String(localized: "¶ Read"))
         }
     }
 

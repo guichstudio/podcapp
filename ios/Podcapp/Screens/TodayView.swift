@@ -369,8 +369,8 @@ private struct TodayHeroCard: View {
 
     private var statusLine: String {
         episode.status == "failed"
-            ? "La génération s’est arrêtée. Relancez-la avec le bouton Générer ci-dessous."
-            : "Statut : \(TodayText.episodeStatusLabel(episode.status).lowercased()). L’audio apparaîtra ici une fois l’assemblage terminé."
+            ? String(localized: "Generation stopped. Start it again with the Generate button below.")
+            : String(localized: "Status: \(TodayText.episodeStatusLabel(episode.status).lowercased()). The audio appears here once assembly is done.")
     }
 
     @ViewBuilder
@@ -415,7 +415,7 @@ private struct TodayHeroCard: View {
         let resolved = Set(detail.chapters.flatMap { $0.sources.map(\.id) })
         let missing = cited.count - resolved.count
         var line = TodayText.plural(detail.chapters.count, "chapitre", "chapitres")
-            + " · " + TodayText.plural(cited.count, "source citée", "sources citées")
+            + " · " + TodayText.plural(cited.count, String(localized: "source cited"), String(localized: "sources cited"))
         if missing > 0 {
             line += " · " + TodayText.plural(missing, "source introuvable", "sources introuvables")
         }
@@ -503,7 +503,7 @@ private struct TodayGenerateCard: View {
                 }
 
                 Button { Task { await generate() } } label: {
-                    Text(isGenerating ? "Envoi en cours…" : "Générer")
+                    Text(isGenerating ? String(localized: "Sending…") : String(localized: "Generate"))
                         .typo(Typo.buttonLarge)
                         .foregroundStyle(Palette.onDark)
                         .frame(maxWidth: .infinity)
@@ -750,7 +750,7 @@ private enum TodayText {
         if let error = source.error, !error.isEmpty { return error }
         var parts: [String] = []
         if let publisher = source.publisher, !publisher.isEmpty { parts.append(publisher) }
-        parts.append(source.inStory ? "rattaché à un sujet" : "pas encore rattaché")
+        parts.append(source.inStory ? String(localized: "attached to a story") : String(localized: "not attached yet"))
         parts.append(stamp(source.capturedAt))
         return parts.joined(separator: " · ")
     }
@@ -765,9 +765,9 @@ private enum TodayText {
         var parts: [String] = []
         if let lang = source.lang, !lang.isEmpty { parts.append(lang.uppercased()) }
         if let quality = source.extractionQuality {
-            parts.append("qualité " + String(format: "%.2f", quality).replacingOccurrences(of: ".", with: ","))
+            parts.append(String(localized: "quality ") + String(format: "%.2f", locale: AppLocale.current, quality))
         }
-        return parts.isEmpty ? "Aucune métadonnée d’extraction" : parts.joined(separator: " · ")
+        return parts.isEmpty ? String(localized: "No extraction metadata") : parts.joined(separator: " · ")
     }
 
     // src/core/types.ts SourceStatus. An unknown value is printed raw rather than

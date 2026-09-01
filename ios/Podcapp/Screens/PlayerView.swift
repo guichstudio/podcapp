@@ -1311,7 +1311,7 @@ private enum PlayerSourceText {
     static func meta(_ source: ChapterSource) -> String? {
         var parts: [String] = []
         if let quality = source.extractionQuality {
-            parts.append("Qualité d’extraction " + PlayerFormat.quality(quality))
+            parts.append(String(localized: "Extraction quality ") + PlayerFormat.quality(quality))
         }
         if let host = source.link?.host { parts.append(host) }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
@@ -1369,7 +1369,7 @@ private struct GroundedSentenceRow: View {
                 StatusChip(
                     // Feminine: the referent is "une phrase", like the sheet's
                     // own copy ("1 a été réécrite").
-                    label: entry.wasCorrected ? "Corrigée" : "Vérifiée",
+                    label: entry.wasCorrected ? String(localized: "Corrected") : String(localized: "Verified"),
                     kind: entry.wasCorrected ? .warning : .success
                 )
                 Spacer(minLength: 0)

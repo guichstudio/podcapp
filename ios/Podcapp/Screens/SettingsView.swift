@@ -168,7 +168,7 @@ struct SettingsView: View {
     private var connectionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
-                fieldLabel("API token")
+                fieldLabel(String(localized: "API token"))
                 // No textContentType: an API token is not a website password, and
                 // declaring one makes iOS offer to save it as a login.
                 SecureField("Paste your token", text: $token)
@@ -176,7 +176,7 @@ struct SettingsView: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                fieldLabel("Server")
+                fieldLabel(String(localized: "Server"))
                 TextField(Config.defaultBaseURL, text: $server)
                     .keyboardType(.URL)
                     .textContentType(.URL)
@@ -223,13 +223,13 @@ struct SettingsView: View {
         case .idle:
             if isConfigured {
                 statusLine(
-                    "Token saved on this device. Test it to check the server still accepts it.",
+                    String(localized: "Token saved on this device. Test it to check the server still accepts it."),
                     icon: "checkmark.seal",
                     color: Palette.muted2
                 )
             } else {
                 statusLine(
-                    "No token yet. Add one to load your briefings and share links.",
+                    String(localized: "No token yet. Add one to load your briefings and share links."),
                     icon: "info.circle",
                     color: Palette.muted2
                 )
