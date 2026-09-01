@@ -103,7 +103,9 @@ duplicate means: bump `CURRENT_PROJECT_VERSION` and re-run.
 within minutes of processing, no review.
 
 **External** (up to 10,000, invited by email or public link): goes through Beta
-App Review. Prepare, in TestFlight > Test Information:
+App Review. The text to paste into every App Store Connect form — beta
+description, review notes, privacy questionnaire — is in
+[docs/testflight.md](../docs/testflight.md). What it comes down to:
 
 - a beta app description and a feedback email — both required before you can
   invite anyone external;
