@@ -190,6 +190,7 @@ Session prompt: "Wire `POST /ingest` + Postmark inbound + per-user auth tokens; 
 | 2026-09-01 | Voix par langue : `en` = Eric (choix provisoire de Louis sur 5 échantillons), `writer.v2` avec le débit en paramètre (fr 150 demandé/140 mesuré, en 165/162) | Le compte de Louis est passé en `en` parce que son iPhone est en anglais : sans ça, le briefing du lendemain sortait en anglais avec la voix française. Le débit est une propriété du narrateur, pas une constante |
 | 2026-09-01 | Final audit (23 confirmed findings, all fixed): partial unique index closes the generate race, runs re-check 'queued', episode list projected in SQL, audio cached on device, feed/console leaks closed, French agreements fixed | Adversarially verified multi-agent review before wrapping the build phase; README.md carries the summary |
 | 2026-09-01 | Le site vitrine est un projet Vercel SÉPARÉ (`podcapp-site`, dossier `site/`), pas une route de l'API | `vercel.json` du projet API réécrit `/(.*)` vers `/api` : y glisser des fichiers statiques demanderait d'ordonner des rewrites autour de chaque page. Deux projets, deux domaines, aucune interférence entre la marque et le flux RSS |
+| 2026-09-01 | L'anglais devient la langue par défaut du site : `/` sert l'anglais, `/fr/` le français, `/en/` redirige en 308 | Même raison que la bascule bilingue de l'app — le produit vise le marché US. Le blog reste français seul, sa bascule de langue renvoie vers la landing anglaise en attendant la traduction des trois articles |
 
 ---
 
