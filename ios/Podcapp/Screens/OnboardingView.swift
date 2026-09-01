@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // The App Store onboarding from ios/design/onboarding-layout.html (the FR
 // screens of the "vfinal" 2026-08-31 export), as the first run of the app. The
@@ -22,6 +23,14 @@ struct OnboardingView: View {
     @State private var status: ConnectStatus = .idle
     @State private var page: Int? = 0
     @FocusState private var tokenFocused: Bool
+    /// How much of the screen the keyboard covers. The shell ignores the
+    /// keyboard safe area to keep the pages at their design geometry, which
+    /// also means nothing here moves on its own: the connect page has to be
+    /// told, or the token field stays under the keyboard with no way to reach
+    /// it — which is exactly what happened.
+    @State private var keyboard: CGFloat = 0
+
+    private static let fieldAnchor = "token-field"
 
     private static let pageCount = 6
 
@@ -92,6 +101,15 @@ struct OnboardingView: View {
         // focus: the headline slid under the header, texts truncated. The shell
         // keeps its geometry; the connect page scrolls instead.
         .ignoresSafeArea(.keyboard, edges: .bottom)
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { note in
+            let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
+            // The page ignores the bottom safe area, so the keyboard's own
+            // height is exactly what it hides. No screen arithmetic needed.
+            withAnimation(.easeOut(duration: 0.25)) { keyboard = frame?.height ?? 0 }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            withAnimation(.easeOut(duration: 0.25)) { keyboard = 0 }
+        }
         .onAppear { Config.markOnboardingSeen() }
     }
 
@@ -110,22 +128,35 @@ struct OnboardingView: View {
     }
 
     private var connectPage: some View {
-        ScrollView(showsIndicators: false) {
-            connectContent
-        }
-        .scrollDismissesKeyboard(.interactively)
-        // When the content fits, nothing scrolls, so the drag gesture cannot
-        // dismiss the keyboard: give it an explicit way down.
-        .onTapGesture { tokenFocused = false }
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("OK") { tokenFocused = false }
+        ScrollViewReader { proxy in
+            ScrollView(showsIndicators: false) {
+                connectContent
             }
+            // The inset is what makes this scrollable at all while typing: the
+            // shell holds the page at full height, so without it the content
+            // still fits and the scroll view has nothing to scroll.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Color.clear.frame(height: keyboard)
+            }
+            // Fires on the keyboard, not on the focus: focus arrives first, and
+            // scrolling before the inset exists lands on the same spot.
+            .onChange(of: keyboard) { _, height in
+                guard height > 0, tokenFocused else { return }
+                withAnimation(.easeOut(duration: 0.3)) {
+                    proxy.scrollTo(Self.fieldAnchor, anchor: .center)
+                }
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("OK") { tokenFocused = false }
+                }
+            }
+            // Centers like the fixed layout while content fits; scrolls only
+            // when the keyboard shortens the visible area.
+            .scrollBounceBehavior(.basedOnSize)
         }
-        // Centers like the fixed layout while content fits; scrolls only when
-        // the keyboard shortens the visible area.
-        .scrollBounceBehavior(.basedOnSize)
     }
 
     private var connectContent: some View {
@@ -138,9 +169,9 @@ struct OnboardingView: View {
             .padding(.top, 20)
             PagerBar(fill: 1.0)
 
-            AppMark(size: 96)
+            AppMark(size: tokenFocused ? 64 : 96)
                 .shadow(color: Onbo.floatShadow.opacity(0.28), radius: 27, y: 24)
-                .padding(.top, 87)
+                .padding(.top, tokenFocused ? 24 : 87)
             Text("Bienvenue sur Podcapp")
                 .fs(19, .semibold)
                 .foregroundStyle(Palette.ink)
@@ -158,6 +189,14 @@ struct OnboardingView: View {
             // the design's OAuth buttons: same width, radii and dark treatment.
             VStack(spacing: 11) {
                 SecureField("Jeton d’API", text: $token)
+                    // Inside the horizontal paging ScrollView the field never
+                    // became first responder on its own: the tap died somewhere
+                    // in the nested scroll views, so the token could not be
+                    // typed OR pasted, which is the whole point of this screen.
+                    // Buttons on the same page work, and the same field works in
+                    // Réglages, so the focus is claimed by hand here.
+                    .contentShape(Rectangle())
+                    .onTapGesture { tokenFocused = true }
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .submitLabel(.go)
@@ -192,7 +231,8 @@ struct OnboardingView: View {
                 .disabled(token.isEmpty || status == .checking)
             }
             .frame(width: 272)
-            .padding(.top, 32)
+            .padding(.top, tokenFocused ? 20 : 32)
+            .id(Self.fieldAnchor)
 
             if case let .failed(message) = status {
                 Text(message)
@@ -210,6 +250,15 @@ struct OnboardingView: View {
 
             Spacer(minLength: 0)
         }
+        // Tapping the empty space puts the keyboard away. It has to sit BEHIND
+        // the content: the same gesture on the scroll view covered the token
+        // field as well and won it, so a tap on the field focused and unfocused
+        // it in one go and nothing could ever be typed.
+        .background(
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture { tokenFocused = false }
+        )
     }
 
     // A real round trip: the only honest way to know the token works is to use it.
