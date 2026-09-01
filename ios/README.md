@@ -72,18 +72,20 @@ says whether the two can see the same storage.
    `xcodebuild -downloadPlatform iOS` fetches it (8.5 GB) and nothing compiles
    until it has.
 3. ~~**Apple Developer Program**, 99 USD/year.~~ Done 2026-09-01.
-4. **Update the team id — still open.** The program creates a NEW team:
-   `DEVELOPMENT_TEAM` in `project.yml` still holds `V7BMDJS5C7`, the free
-   personal team, and it is the only signing identity on this Mac. Replace it
-   with the program team id (developer.apple.com/account > Membership) and
-   regenerate. Everything below waits on this.
+4. ~~**Update the team id.**~~ Nothing to change, against expectation: this
+   enrolment kept the same team id, `V7BMDJS5C7`, which `project.yml` already
+   carries. Proven rather than assumed — a free personal team cannot produce an
+   App Store build, and `xcodebuild -exportArchive -exportOptionsPlist` with
+   method `app-store-connect` exported an ipa signed by an "iOS Team Store
+   Provisioning Profile" with no provisioned devices. Run that export whenever
+   a team's status is in doubt: it answers in a minute and uploads nothing.
 
 ### 2. One-time setup in App Store Connect
 
-- Register the two bundle ids under the new team — `com.louisguichard.podcapp`
-  and `com.louisguichard.podcapp.share` — and the App Group
-  `group.com.louisguichard.podcapp`, then add the group to both ids.
-- Create the app record with bundle id `com.louisguichard.podcapp`.
+- The bundle ids and the App Group are already registered under the team:
+  automatic signing created them, and the App Store profile above proves it.
+- Create the app record with bundle id `com.louisguichard.podcapp`. This one is
+  manual, and the upload fails without it.
 - Users and Access > Integrations > App Store Connect API: create a key with
   the **App Manager** role, download the `.p8` **once** (Apple never shows it
   again), and note the key id and issuer id.
