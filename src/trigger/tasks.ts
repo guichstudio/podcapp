@@ -62,10 +62,10 @@ export const processSourceTask = schemaTask({
 const GenerateEpisodePayload = z.object({
   episodeId: z.string().min(1),
   userId: z.string().min(1),
-  // Same bound as POST /episodes and queueBriefing (1..10 minutes), so a
+  // Same bound as POST /episodes and queueBriefing (1..MAX_TARGET_MINUTES minutes), so a
   // manual run from the Trigger.dev dashboard cannot start an oversized
   // generation the product never allows.
-  targetSec: z.number().int().min(60).max(600),
+  targetSec: z.number().int().min(60).max(MAX_TARGET_MINUTES * 60),
   language: z.string().min(2),
 })
 
