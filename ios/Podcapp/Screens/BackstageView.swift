@@ -21,7 +21,7 @@ struct EpisodeBackstage: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text("Construit, pas lu à voix haute.")
+            Text("Built, not read aloud.")
                 .typo(Typo.detail)
                 .foregroundStyle(Palette.body)
 
@@ -38,7 +38,7 @@ struct EpisodeBackstage: View {
         VStack(alignment: .leading, spacing: 8) {
             Overline(text: "Budget d’antenne, fixé avant l’écriture")
             if episode.budget.isEmpty {
-                Text("Le plan éditorial de cet épisode n’a pas été conservé.")
+                Text("The editorial plan for this episode was not kept.")
                     .typo(Typo.metaSmall)
                     .foregroundStyle(Palette.muted2)
             } else {
@@ -68,7 +68,7 @@ struct EpisodeBackstage: View {
             }
             if let first = episode.discarded.first {
                 PlayerFlag(
-                    label: "Écarté",
+                    label: "Set aside",
                     text: {
                         let rest = episode.discarded.count - 1
                         if rest <= 0 { return first }
@@ -89,11 +89,11 @@ struct EpisodeBackstage: View {
             Overline(text: "Passe de vérification")
             if let v = episode.verification, v.checked > 0 {
                 HStack(spacing: 8) {
-                    PlayerStat(value: v.checked, label: "phrases vérifiées")
+                    PlayerStat(value: v.checked, label: "sentences checked")
                     Divider().frame(height: 40).overlay(Palette.cardBorder)
-                    PlayerStat(value: v.corrected, label: "réécrites selon les preuves")
+                    PlayerStat(value: v.corrected, label: "rewritten to match the evidence")
                     Divider().frame(height: 40).overlay(Palette.cardBorder)
-                    PlayerStat(value: v.dropped, label: "coupées avant l’antenne")
+                    PlayerStat(value: v.dropped, label: "cut before air")
                 }
                 .padding(13)
                 .frame(maxWidth: .infinity)
@@ -103,7 +103,7 @@ struct EpisodeBackstage: View {
                         .strokeBorder(Color(hex: 0x1C1B22, opacity: 0.09), lineWidth: 1)
                 )
             } else {
-                Text("Aucun rapport de vérification pour cet épisode.")
+                Text("No verification report for this episode.")
                     .typo(Typo.metaSmall)
                     .foregroundStyle(Palette.muted2)
             }

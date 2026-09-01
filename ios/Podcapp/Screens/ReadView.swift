@@ -31,11 +31,11 @@ struct ReadView: View {
     private var list: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Text("Lire")
+                Text("Read")
                     .typo(Typo.screenTitle)
                     .foregroundStyle(Palette.ink)
                     .padding(.top, 6)
-                Text("Chaque briefing, en article.")
+                Text("Every briefing, as an article.")
                     .typo(Typo.link)
                     .foregroundStyle(Palette.muted)
                     .padding(.top, 2)
@@ -43,17 +43,17 @@ struct ReadView: View {
 
                 switch episodes {
                 case .loading:
-                    StatusPanel(title: "Chargement des briefings…", spinning: true)
+                    StatusPanel(title: "Loading your briefings…", spinning: true)
                 case let .failed(reason):
                     StatusPanel(
-                        title: "Impossible de charger vos briefings.",
+                        title: "Could not load your briefings.",
                         detail: reason,
                         retry: { Task { await loadEpisodes() } }
                     )
                 case let .loaded(rows) where rows.isEmpty:
                     StatusPanel(
-                        title: "Aucun briefing pour l’instant.",
-                        detail: "Enregistrez des sources, puis générez un briefing depuis l’onglet Aujourd’hui."
+                        title: "No briefing yet.",
+                        detail: "Save a few sources, then generate a briefing from the Today tab."
                     )
                 case let .loaded(rows):
                     ForEach(rows) { row($0) }
@@ -102,13 +102,13 @@ struct ReadView: View {
     @ViewBuilder
     private func badge(for episode: EpisodeSummary) -> some View {
         if !episode.chapters.isEmpty {
-            ReadBadge(label: "Lire")
+            ReadBadge(label: "Read")
         } else if episode.status == "failed" {
-            StatusChip(label: "Échec", kind: .danger)
+            StatusChip(label: "Failed", kind: .danger)
         } else if episode.status == "ready" {
-            StatusChip(label: "Audio seul", kind: .aired)
+            StatusChip(label: "Audio only", kind: .aired)
         } else {
-            StatusChip(label: "En cours", kind: .neutral)
+            StatusChip(label: "In progress", kind: .neutral)
         }
     }
 
@@ -146,7 +146,7 @@ private struct ArticleScreen: View {
                     HStack(spacing: 6) {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 11, weight: .semibold))
-                        Text("Tous les épisodes")
+                        Text("All episodes")
                             .typo(Typo.navButton)
                     }
                     .foregroundStyle(Palette.accentDeep)
@@ -156,10 +156,10 @@ private struct ArticleScreen: View {
 
                 switch detail {
                 case .loading:
-                    StatusPanel(title: "Chargement du briefing…", spinning: true)
+                    StatusPanel(title: "Loading the briefing…", spinning: true)
                 case let .failed(reason):
                     StatusPanel(
-                        title: "Impossible d’ouvrir ce briefing.",
+                        title: "Could not open this briefing.",
                         detail: reason,
                         retry: { Task { await load() } }
                     )
@@ -194,7 +194,7 @@ private struct ArticleScreen: View {
 
         if full.chapters.isEmpty {
             StatusPanel(
-                title: "Ce briefing n’a pas encore de texte.",
+                title: "This briefing has no text yet.",
                 detail: missingScript(full.status)
             )
         } else {
@@ -251,7 +251,7 @@ private struct ArticleScreen: View {
         HStack(spacing: 6) {
             Image(systemName: "play.fill")
                 .font(.system(size: 9))
-            Text("Écouter ici")
+            Text("Listen here")
                 .typo(Typo.pillButton)
         }
         .foregroundStyle(Palette.ink)
@@ -274,9 +274,9 @@ private struct ArticleScreen: View {
 
     private func missingScript(_ status: String) -> String {
         switch status {
-        case "failed": return "La génération a échoué avant l’écriture du script."
-        case "ready": return "L’épisode est publié, mais son script est vide."
-        default: return "Le script est en cours d’écriture. Revenez dans quelques minutes."
+        case "failed": return String(localized: "Generation failed before the script was written.")
+        case "ready": return String(localized: "The episode is published, but its script is empty.")
+        default: return String(localized: "The script is still being written. Come back in a few minutes.")
         }
     }
 
@@ -347,7 +347,7 @@ private struct StatusPanel: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let retry {
-                Button("Réessayer", action: retry)
+                Button("Try again", action: retry)
                     .typo(Typo.buttonMedium)
                     .foregroundStyle(Palette.accentDeep)
                     .buttonStyle(.plain)
@@ -403,14 +403,14 @@ private enum Format {
 
     /// "BRIEFING DU VENDREDI · 28 AOÛT 2026", uppercased by Overline.
     static func overline(_ date: Date) -> String {
-        "Briefing du \(weekdayFormatter.string(from: date)) · \(fullDateFormatter.string(from: date))"
+        String(localized: "Briefing of \(weekdayFormatter.string(from: date)) · \(fullDateFormatter.string(from: date))")
     }
 
     /// An episode still being written has no title yet, and its date is the only
     /// honest thing left to name it by.
     static func title(_ title: String?, on date: Date) -> String {
         let trimmed = title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return trimmed.isEmpty ? "Briefing du \(day(date))" : trimmed
+        return trimmed.isEmpty ? String(localized: "Briefing of \(day(date))") : trimmed
     }
 
     static func chapterNumber(_ index: Int) -> String {
@@ -432,13 +432,14 @@ private enum Format {
             return name?.isEmpty == false ? name : nil
         }
         guard let first = names.first else { return nil }
-        return names.count > 1 ? "Source : \(first) +\(names.count - 1)" : "Source : \(first)"
+        return names.count > 1
+            ? String(localized: "Source: \(first) +\(names.count - 1)")
+            : String(localized: "Source: \(first)")
     }
 
-    // The app is French only: these labels must not follow the phone's locale.
     private static func formatter(_ format: String) -> DateFormatter {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "fr_FR")
+        formatter.locale = AppLocale.current
         formatter.dateFormat = format
         return formatter
     }

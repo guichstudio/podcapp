@@ -33,10 +33,10 @@ enum PlayerSheet: String, Identifiable {
 
     var title: String {
         switch self {
-        case .chapters: return "Chapitres"
-        case .sources: return "D’où ça vient"
-        case .transcript: return "Transcription"
-        case .backstage: return "Comment c’est fabriqué"
+        case .chapters: return String(localized: "Chapters")
+        case .sources: return String(localized: "Where it comes from")
+        case .transcript: return String(localized: "Transcript")
+        case .backstage: return String(localized: "How it was made")
         }
     }
 }
@@ -378,12 +378,12 @@ final class EpisodePlayer: ObservableObject {
 
     static func frenchStatus(_ status: String) -> String {
         switch status {
-        case "ready": return "prêt"
-        case "queued": return "en file"
-        case "editing": return "en écriture"
-        case "tts": return "en narration"
-        case "assembling": return "en assemblage"
-        case "failed": return "échec"
+        case "ready": return String(localized: "ready")
+        case "queued": return String(localized: "queued")
+        case "editing": return String(localized: "writing")
+        case "tts": return String(localized: "narrating")
+        case "assembling": return String(localized: "assembling")
+        case "failed": return String(localized: "failed")
         default: return status
         }
     }
@@ -491,22 +491,22 @@ struct PlayerView: View {
             header
             if player.isLoading {
                 PlayerNotice(
-                    title: "Chargement du briefing",
+                    title: "Loading the briefing",
                     detail: nil,
                     kind: .neutral,
                     showsSpinner: true
                 )
             } else if let loadError = player.loadError {
                 PlayerNotice(
-                    title: "Impossible de charger l’épisode",
+                    title: "Could not load the episode",
                     detail: loadError,
                     kind: .danger,
                     showsSpinner: false
                 )
             } else if player.episode == nil {
                 PlayerNotice(
-                    title: "Aucun épisode en lecture",
-                    detail: "Ouvrez un briefing depuis l’onglet Aujourd’hui pour l’écouter ici.",
+                    title: "Nothing playing",
+                    detail: "Open a briefing from the Today tab to listen to it here.",
                     kind: .neutral,
                     showsSpinner: false
                 )
@@ -528,7 +528,7 @@ struct PlayerView: View {
                     .padding(8)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Fermer le lecteur")
+            .accessibilityLabel("Close the player")
 
             Spacer()
             Overline(text: overline, color: Palette.accentMuted)
@@ -543,15 +543,15 @@ struct PlayerView: View {
                     .padding(8)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Comment c’est fabriqué")
+            .accessibilityLabel("How it was made")
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
     }
 
     private var overline: String {
-        guard let episode = player.episode else { return "Briefing" }
-        return "Briefing · " + PlayerFormat.day(episode.createdAt)
+        guard let episode = player.episode else { return String(localized: "Briefing") }
+        return String(localized: "Briefing · ") + PlayerFormat.day(episode.createdAt)
     }
 
     private var transport: some View {
@@ -602,7 +602,7 @@ struct PlayerView: View {
     }
 
     private var chapterOverline: String {
-        guard let current = player.currentChapter else { return "Briefing" }
+        guard let current = player.currentChapter else { return String(localized: "Briefing") }
         return PlayerSourceText.position(current, in: player.chapters)
     }
 
@@ -666,7 +666,7 @@ struct PlayerView: View {
                     .padding(12)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Chapitre précédent")
+            .accessibilityLabel("Previous chapter")
 
             PlayerSkipButton(label: "-15") { Feedback.tap(); player.skip(-15) }
 
@@ -693,7 +693,7 @@ struct PlayerView: View {
                     .padding(12)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Chapitre suivant")
+            .accessibilityLabel("Next chapter")
         }
         .disabled(!player.isPlayable)
         .opacity(player.isPlayable ? 1 : 0.4)
@@ -702,8 +702,8 @@ struct PlayerView: View {
     private var pills: some View {
         HStack(spacing: 8) {
             PlayerPill(label: player.speedLabel) { player.cycleSpeed() }
-            PlayerPill(label: "Chapitres") { player.sheet = .chapters }
-            PlayerPill(label: "Transcription") { player.sheet = .transcript }
+            PlayerPill(label: "Chapters") { player.sheet = .chapters }
+            PlayerPill(label: "Transcript") { player.sheet = .transcript }
         }
     }
 
@@ -739,9 +739,9 @@ struct PlayerView: View {
     }
 
     private var sourceLine: String {
-        guard let current = player.currentChapter else { return "Aucune source" }
+        guard let current = player.currentChapter else { return String(localized: "No source") }
         guard let first = current.sources.first else {
-            return "Éditorial : intro/outro, sans faits externes"
+            return String(localized: "Editorial: intro/outro, no external facts")
         }
         let name = PlayerSourceText.publisher(first)
         let extra = current.sources.count > 1 ? " +\(current.sources.count - 1)" : ""
@@ -764,7 +764,7 @@ private struct PlayerSheetView: View {
                     .typo(Typo.sectionTitle)
                     .foregroundStyle(Palette.ink)
                 Spacer()
-                Button("Fermer") { player.sheet = nil }
+                Button("Close") { player.sheet = nil }
                     .typo(Typo.navButton)
                     .foregroundStyle(Palette.muted)
                     .buttonStyle(.plain)
@@ -864,7 +864,7 @@ private struct PlayerSourcesSheet: View {
                 Overline(text: chapter.title)
 
                 if chapter.sources.isEmpty {
-                    Text("Intro/outro : aucun fait externe.")
+                    Text("Intro/outro: no external fact.")
                         .typo(TypoStyle(size: 13, weight: .regular, lineHeight: 1.5))
                         .foregroundStyle(Palette.muted)
                 }
@@ -876,7 +876,7 @@ private struct PlayerSourcesSheet: View {
                 let missing = chapter.citedCount - chapter.sources.count
                 if missing > 0 {
                     PlayerFlag(
-                        label: "Écarté",
+                        label: "Set aside",
                         text: missing == 1
                             ? "1 source citée n’est plus dans votre bibliothèque : elle est signalée plutôt que reconstituée."
                             : "\(missing) sources citées ne sont plus dans votre bibliothèque : elles sont signalées plutôt que reconstituées."
@@ -899,7 +899,7 @@ private struct PlayerSourcesSheet: View {
                     // which is not the same as nothing having been checked.
                     Overline(text: "Vérifié à l’antenne")
                         .padding(.top, 8)
-                    Text("Aucune phrase de ce chapitre ne portait de chiffre, de citation ni de nom à vérifier.")
+                    Text("No sentence in this chapter carried a number, a quote or a name to check.")
                         .typo(Typo.metaSmall)
                         .foregroundStyle(Palette.muted2)
                         .lineSpacing(3)
@@ -911,7 +911,7 @@ private struct PlayerSourcesSheet: View {
             Button {
                 player.sheet = .backstage
             } label: {
-                Text("Comment cet épisode a été fabriqué →")
+                Text("How this episode was made →")
                     .typo(Typo.buttonMedium)
                     .foregroundStyle(Palette.body)
                     .frame(maxWidth: .infinity)
@@ -980,7 +980,7 @@ private struct PlayerTranscriptSheet: View {
                     .foregroundStyle(Palette.prose)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Divider().overlay(Palette.hairline)
-                Text("✓ vérifié : touchez SOURCE pour la preuve.")
+                Text("✓ checked: tap SOURCE for the evidence.")
                     .typo(Typo.metaSmall)
                     .foregroundStyle(Palette.muted2)
                     .padding(.top, 4)
@@ -1243,13 +1243,13 @@ private enum PlayerSourceText {
     static func publisher(_ source: ChapterSource) -> String {
         if let publisher = source.publisher, !publisher.isEmpty { return publisher }
         if let host = source.link?.host { return host }
-        return "Source"
+        return String(localized: "Source")
     }
 
     static func title(_ source: ChapterSource) -> String {
         if let title = source.title, !title.isEmpty { return title }
         if let url = source.url, !url.isEmpty { return url }
-        return "Titre inconnu"
+        return String(localized: "Unknown title")
     }
 
     static func meta(_ source: ChapterSource) -> String? {
@@ -1266,11 +1266,11 @@ private enum PlayerSourceText {
     static func position(_ chapter: PlayerChapter, in all: [PlayerChapter]) -> String {
         let sourced = all.filter { !$0.sources.isEmpty }
         if let rank = sourced.firstIndex(where: { $0.id == chapter.id }) {
-            return "Chapitre \(rank + 1) sur \(sourced.count)"
+            return String(localized: "Chapter \(rank + 1) of \(sourced.count)")
         }
         if chapter.id == 0 { return "Intro" }
         if chapter.id == all.count - 1 { return "Outro" }
-        return "Chapitre"
+        return String(localized: "Chapter")
     }
 
     static func chapterSubtitle(_ chapter: PlayerChapter, in all: [PlayerChapter]) -> String {
@@ -1280,7 +1280,7 @@ private enum PlayerSourceText {
         }
         if chapter.id == 0 { return "Intro" }
         if chapter.id == all.count - 1 { return "Outro" }
-        return "Éditorial"
+        return String(localized: "Editorial")
     }
 }
 

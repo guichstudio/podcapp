@@ -64,7 +64,7 @@ struct TodayView: View {
     private var loadingState: some View {
         VStack(spacing: 12) {
             ProgressView()
-            Text("Chargement de vos briefings…")
+            Text("Loading your briefings…")
                 .typo(Typo.meta)
                 .foregroundStyle(Palette.muted)
         }
@@ -81,7 +81,7 @@ struct TodayView: View {
                     .foregroundStyle(Palette.body)
                     .fixedSize(horizontal: false, vertical: true)
                 Button { Task { await load() } } label: {
-                    Text("Réessayer")
+                    Text("Try again")
                         .typo(Typo.buttonMedium)
                         .foregroundStyle(Palette.onDark)
                         .padding(.vertical, 10)
@@ -121,7 +121,7 @@ struct TodayView: View {
                 .padding(.top, 18)
 
             if !data.past.isEmpty {
-                Text("Précédents")
+                Text("Earlier")
                     .typo(Typo.sectionTitle)
                     .foregroundStyle(Palette.ink)
                     .padding(.horizontal, 20)
@@ -139,11 +139,11 @@ struct TodayView: View {
         GlassCard {
             VStack(alignment: .leading, spacing: 12) {
                 Overline(text: "Aucun briefing", color: Palette.accentDeep)
-                Text("Rien à écouter pour l’instant.")
+                Text("Nothing to listen to yet.")
                     .typo(Typo.heroTitle)
                     .foregroundStyle(Palette.ink)
                     .fixedSize(horizontal: false, vertical: true)
-                Text("Partagez quelques liens depuis Safari, puis lancez Générer ci-dessous : le premier épisode apparaîtra ici dès qu’il sera prêt.")
+                Text("Share a few links from Safari, then hit Generate below: the first episode shows up here as soon as it is ready.")
                     .typo(Typo.metaSmall)
                     .foregroundStyle(Palette.accentMuted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -154,7 +154,7 @@ struct TodayView: View {
     @ViewBuilder
     private func focusSection(_ data: TodayData) -> some View {
         HStack(alignment: .firstTextBaseline) {
-            Text("Demain")
+            Text("Tomorrow")
                 .typo(Typo.sectionTitle)
                 .foregroundStyle(Palette.ink)
             Spacer(minLength: 8)
@@ -168,7 +168,7 @@ struct TodayView: View {
 
         if data.focus.isEmpty {
             PlainCard {
-                Text("Rien de neuf depuis le dernier briefing. Partagez un lien vers Podcapp, depuis Safari ou n’importe quelle app, pour nourrir le prochain épisode.")
+                Text("Nothing new since the last briefing. Share a link to Podcapp, from Safari or any app, to feed the next one.")
                     .typo(Typo.detail)
                     .foregroundStyle(Palette.body)
                     .fixedSize(horizontal: false, vertical: true)
@@ -191,7 +191,7 @@ struct TodayView: View {
                 .padding(.bottom, 4)
             }
 
-            Text("Inclus ou exclu reste sur cet iPhone : la sélection n’est pas encore envoyée au serveur.")
+            Text("In or out stays on this iPhone: the selection is not sent to the server yet.")
                 .typo(Typo.metaSmall)
                 .foregroundStyle(Palette.muted2)
                 .fixedSize(horizontal: false, vertical: true)
@@ -330,9 +330,9 @@ private struct TodayHeroCard: View {
     private var overline: String {
         let date = TodayText.weekdayDayMonth(episode.createdAt)
         switch episode.status {
-        case "ready": return "Dernier briefing · \(date)"
-        case "failed": return "Briefing en échec · \(date)"
-        default: return "Briefing en cours · \(date)"
+        case "ready": return String(localized: "Latest briefing · \(date)")
+        case "failed": return String(localized: "Briefing failed · \(date)")
+        default: return String(localized: "Briefing in progress · \(date)")
         }
     }
 
@@ -382,7 +382,7 @@ private struct TodayHeroCard: View {
                 Button { EpisodePlayer.shared.open(detail) } label: {
                     HStack(spacing: 9) {
                         Text("▶").typo(Typo.buttonSmall)
-                        Text("Écouter").typo(Typo.buttonLarge)
+                        Text("Listen").typo(Typo.buttonLarge)
                     }
                     .foregroundStyle(Palette.onDark)
                     .padding(.vertical, 12)
@@ -394,7 +394,7 @@ private struct TodayHeroCard: View {
             }
 
             Button(action: onBackstage) {
-                Text("Comment c’est fabriqué")
+                Text("How it was made")
                     .typo(Typo.link)
                     .foregroundStyle(Palette.accentDeep)
                     .underline()
@@ -409,7 +409,7 @@ private struct TodayHeroCard: View {
     // report, so this line states only what the response proves.
     private var footnote: String {
         guard !detail.chapters.isEmpty else {
-            return "Script pas encore écrit."
+            return String(localized: "Script not written yet.")
         }
         let cited = Set(detail.chapters.flatMap(\.sourceIds))
         let resolved = Set(detail.chapters.flatMap { $0.sources.map(\.id) })
@@ -491,10 +491,10 @@ private struct TodayGenerateCard: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .center, spacing: 10) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Prochain briefing")
+                        Text("Next briefing")
                             .typo(Typo.rowTitleStrong)
                             .foregroundStyle(Palette.ink)
-                        Text("\(TodayText.plural(readySourceCount, "source prête", "sources prêtes")) · cible \(targetMinutes) min")
+                        Text("\(TodayText.plural(readySourceCount, String(localized: "source ready"), String(localized: "sources ready"))) · target \(targetMinutes) min")
                             .typo(Typo.meta)
                             .foregroundStyle(Palette.muted)
                     }
@@ -519,10 +519,10 @@ private struct TodayGenerateCard: View {
                 switch outcome {
                 case .queued:
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Épisode en préparation")
+                        Text("Episode in the works")
                             .typo(Typo.rowTitleStrong)
                             .foregroundStyle(Palette.ink)
-                        Text("Comptez une dizaine de minutes : le briefing apparaîtra dans le flux et en haut de cet écran dès qu’il sera prêt.")
+                        Text("Give it about ten minutes: the briefing lands in the feed and at the top of this screen as soon as it is ready.")
                             .typo(Typo.metaSmall)
                             .foregroundStyle(Palette.muted)
                             .fixedSize(horizontal: false, vertical: true)
@@ -635,7 +635,7 @@ private struct TodayBackstageSheet: View {
                 HStack(alignment: .firstTextBaseline) {
                     Overline(text: "Comment c’est fabriqué", color: Palette.accentDeep)
                     Spacer(minLength: 8)
-                    Button("Fermer") { dismiss() }
+                    Button("Close") { dismiss() }
                         .typo(Typo.navButton)
                         .foregroundStyle(Palette.accentDeep)
                 }
@@ -680,7 +680,7 @@ private struct TodayLogo: View {
 // MARK: - Copy and formatting
 
 private enum TodayText {
-    private static let french = Locale(identifier: "fr_FR")
+    private static let french = AppLocale.current
 
     private static let dayMonthFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -727,21 +727,21 @@ private enum TodayText {
 
     static func title(_ title: String?, createdAt: Date) -> String {
         if let title, !title.isEmpty { return title }
-        return "Briefing du " + dayMonth(createdAt)
+        return String(localized: "Briefing of ") + dayMonth(createdAt)
     }
 
     static func newTodayLabel(_ count: Int) -> String {
         switch count {
-        case 0: return "rien de nouveau aujourd’hui"
-        case 1: return "1 nouveau aujourd’hui"
-        default: return "\(count) nouveaux aujourd’hui"
+        case 0: return String(localized: "nothing new today")
+        case 1: return String(localized: "1 new today")
+        default: return String(localized: "\(count) new today")
         }
     }
 
     static func headline(for source: SavedSource) -> String {
         if let title = source.title, !title.isEmpty { return title }
         if let host = source.link?.host { return host }
-        return "Sans titre"
+        return String(localized: "Untitled")
     }
 
     /// The note under a focus card: the failure reason when there is one, since a
@@ -758,7 +758,7 @@ private enum TodayText {
     static func sourceTitle(_ source: ChapterSource) -> String {
         if let title = source.title, !title.isEmpty { return title }
         if let host = source.link?.host { return host }
-        return "Sans titre"
+        return String(localized: "Untitled")
     }
 
     static func sourceMeta(_ source: ChapterSource) -> String {
@@ -774,14 +774,14 @@ private enum TodayText {
     // hidden: a status this app has never heard of is still information.
     static func sourceStatusLabel(_ status: String) -> String {
         switch status {
-        case "received": return "Reçu"
-        case "extracting": return "Extraction"
-        case "analyzed": return "Analysé"
-        case "ready": return "Prêt"
-        case "extraction_failed": return "Échec"
-        case "low_quality": return "Qualité faible"
-        case "unsupported": return "Non pris en charge"
-        case "duplicate": return "Doublon"
+        case "received": return String(localized: "Received")
+        case "extracting": return String(localized: "Extracting")
+        case "analyzed": return String(localized: "Analysed")
+        case "ready": return String(localized: "Ready")
+        case "extraction_failed": return String(localized: "Failed")
+        case "low_quality": return String(localized: "Low quality")
+        case "unsupported": return String(localized: "Unsupported")
+        case "duplicate": return String(localized: "Duplicate")
         default: return status
         }
     }
@@ -800,16 +800,16 @@ private enum TodayText {
     // Episode statuses written by src/jobs/generateEpisode.ts and publishEpisode.ts.
     static func episodeStatusLabel(_ status: String) -> String {
         switch status {
-        case "queued": return "En file"
-        case "selecting": return "Sélection"
-        case "outlining": return "Plan"
-        case "writing": return "Écriture"
-        case "grounding": return "Vérification"
-        case "editing": return "Édition"
-        case "tts": return "Narration"
-        case "assembling": return "Assemblage"
-        case "ready": return "Prêt"
-        case "failed": return "Échec"
+        case "queued": return String(localized: "Queued")
+        case "selecting": return String(localized: "Selecting")
+        case "outlining": return String(localized: "Outline")
+        case "writing": return String(localized: "Writing")
+        case "grounding": return String(localized: "Checking")
+        case "editing": return String(localized: "Editing")
+        case "tts": return String(localized: "Narration")
+        case "assembling": return String(localized: "Assembling")
+        case "ready": return String(localized: "Ready")
+        case "failed": return String(localized: "Failed")
         default: return status
         }
     }

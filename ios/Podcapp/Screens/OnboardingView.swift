@@ -162,7 +162,7 @@ struct OnboardingView: View {
     private var connectContent: some View {
         VStack(spacing: 0) {
             OnboardingHeadline(
-                first: "On commence ?", second: "2 secondes.",
+                first: "Shall we?", second: "Two seconds.",
                 left: Sparkle("✦", 14, Onbo.accent, x: 20, y: -6),
                 right: Sparkle("✧", 10, Palette.ink, x: 22, y: 28)
             )
@@ -172,12 +172,12 @@ struct OnboardingView: View {
             AppMark(size: tokenFocused ? 64 : 96)
                 .shadow(color: Onbo.floatShadow.opacity(0.28), radius: 27, y: 24)
                 .padding(.top, tokenFocused ? 24 : 87)
-            Text("Bienvenue sur Podcapp")
+            Text("Welcome to Podcapp")
                 .fs(19, .semibold)
                 .foregroundStyle(Palette.ink)
                 .padding(.top, 22)
             // The markup's dash is replaced per the house punctuation rule.
-            Text("Votre radio quotidienne : sourcée par vous, vérifiée par nous")
+            Text("Your daily radio: sourced by you, checked by us")
                 .fs(12, lh: 1.55)
                 .foregroundStyle(Palette.muted)
                 .multilineTextAlignment(.center)
@@ -188,7 +188,7 @@ struct OnboardingView: View {
             // The token field and the Continuer button take the exact slot of
             // the design's OAuth buttons: same width, radii and dark treatment.
             VStack(spacing: 11) {
-                SecureField("Jeton d’API", text: $token)
+                SecureField("API token", text: $token)
                     // Inside the horizontal paging ScrollView the field never
                     // became first responder on its own: the tap died somewhere
                     // in the nested scroll views, so the token could not be
@@ -243,7 +243,7 @@ struct OnboardingView: View {
                     .padding(.top, 10)
             }
 
-            Text("Aucun mot de passe · flux RSS privé inclus")
+            Text("No password · private RSS feed included")
                 .fs(10)
                 .foregroundStyle(Palette.faint)
                 .padding(.top, 22)
@@ -617,7 +617,7 @@ private struct ListenPage: View {
     var body: some View {
         VStack(spacing: 0) {
             OnboardingHeadline(
-                first: "Votre morning", second: "recap.",
+                first: "Your morning", second: "recap.",
                 left: Sparkle("✦", 14, Onbo.accent, x: 20, y: -8),
                 right: Sparkle("✧", 10, Palette.ink, x: 22, y: 26)
             )
@@ -626,13 +626,13 @@ private struct ListenPage: View {
             ArtboardCanvas {
                 subtitle
                     .artboardCentered(y: 300)
-                mediaCard(glyph: "¶", title: "Article", sub: "12 min de lecture")
+                mediaCard(glyph: "¶", title: "Article", sub: "12 min read")
                     .rotationEffect(.degrees(-5))
                     .artboard(x: 40, y: 402)
-                mediaCard(glyph: "▶", title: "Vidéo", sub: "28 min à regarder")
+                mediaCard(glyph: "▶", title: "Video", sub: "28 min to watch")
                     .rotationEffect(.degrees(3))
                     .artboardTrailing(right: 40, y: 478)
-                mediaCard(glyph: "↗", title: "Lien", sub: "thread de 40 posts")
+                mediaCard(glyph: "↗", title: "Link", sub: "40-post thread")
                     .rotationEffect(.degrees(-2))
                     .artboard(x: 40, y: 554)
                 bottomStack
@@ -645,10 +645,10 @@ private struct ListenPage: View {
     // .typo() and uses the faces directly (600 maps to the Bold face, like
     // Typo's semibold).
     private var subtitle: some View {
-        (Text("Tout ce que vous n’avez pas eu le temps de ")
-            + Text("lire").font(.custom("InterTight-Bold", size: 19)).foregroundColor(Palette.ink)
-            + Text(" ou de ")
-            + Text("regarder").font(.custom("InterTight-Bold", size: 19)).foregroundColor(Palette.ink)
+        (Text("Everything you never had time to ")
+            + Text("read").font(.custom("InterTight-Bold", size: 19)).foregroundColor(Palette.ink)
+            + Text(" or ")
+            + Text("watch").font(.custom("InterTight-Bold", size: 19)).foregroundColor(Palette.ink)
             + Text("."))
             .font(.custom("InterTight-Light", size: 19))
             .foregroundColor(Color(hex: 0x3B3945))
@@ -687,7 +687,7 @@ private struct ListenPage: View {
             Text("↓").font(.system(size: 16)).foregroundStyle(Onbo.pagerChevron)
             AppMark(size: 58)
                 .shadow(color: Onbo.floatShadow.opacity(0.28), radius: 18, y: 16)
-            Text("≈ 10 min d’audio · chaque matin")
+            Text("≈ 10 min of audio · every morning")
                 .fs(11, .semibold)
                 .foregroundStyle(.white)
                 .padding(.vertical, 9)
@@ -703,7 +703,7 @@ private struct FormatsPage: View {
     var body: some View {
         VStack(spacing: 0) {
             OnboardingHeadline(
-                first: "Tout y passe.", second: "Vraiment tout.",
+                first: "Anything goes in.", second: "Really, anything.",
                 left: Sparkle("✧", 12, Palette.ink, x: 20, y: -4),
                 right: Sparkle("✦", 14, Onbo.accent, x: 22, y: 26)
             )
@@ -712,7 +712,7 @@ private struct FormatsPage: View {
             ArtboardCanvas {
                 formatsCard
                     .artboardCentered(y: 290)
-                Text("✓ Un seul geste : Partager → Podcapp")
+                Text("✓ One gesture: Share → Podcapp")
                     .fs(11, .semibold)
                     .foregroundStyle(.white)
                     .padding(.vertical, 10)
@@ -720,7 +720,7 @@ private struct FormatsPage: View {
                     .darkPill()
                     .rotationEffect(.degrees(-2))
                     .artboardCentered(y: 670, xNudge: -2.5)
-                Text("Vidéos transcrites automatiquement · newsletters par transfert")
+                Text("Videos transcribed automatically · newsletters by forward")
                     .fs(11)
                     .foregroundStyle(Onbo.caption)
                     .artboardCentered(y: 735)
@@ -816,7 +816,7 @@ private struct BuiltPage: View {
     var body: some View {
         VStack(spacing: 0) {
             OnboardingHeadline(
-                first: "Construit par vous,", second: "vérifié par nous.",
+                first: "Built by you,", second: "checked by us.",
                 left: Sparkle("✦", 14, Onbo.accent, x: 20, y: 2),
                 right: Sparkle("✧", 10, Palette.ink, x: 22, y: -8)
             )
@@ -860,10 +860,10 @@ private struct BuiltPage: View {
             AppMark(size: 64)
                 .shadow(color: Onbo.floatShadow.opacity(0.25), radius: 17, y: 14)
                 .padding(.top, 8)
-            Text("CHAPITRE 1 SUR 4")
+            Text("CHAPTER 1 OF 4")
                 .fs(8, .semibold, track: 0.1)
                 .foregroundStyle(Palette.accentMuted)
-            Text("Crédit privé, le cafard de Wall Street")
+            Text("Private credit, Wall Street’s cockroach")
                 .fs(15, .semibold, lh: 1.2)
                 .foregroundStyle(Palette.ink)
                 .multilineTextAlignment(.center)
@@ -901,7 +901,7 @@ private struct BuiltPage: View {
         HStack(spacing: 8) {
             Text("SOURCE").fs(7, .semibold, track: 0.08).foregroundStyle(Palette.accentMuted)
             // The markup's dash is replaced per the house punctuation rule.
-            Text("L’ECHO · «Vous avez aimé les subprimes…»")
+            Text("THE ECHO · “You loved subprime…”")
                 .fs(8.5, .semibold)
                 .foregroundStyle(Palette.ink)
                 .lineLimit(1)
@@ -966,7 +966,7 @@ private struct SharePage: View {
     var body: some View {
         VStack(spacing: 0) {
             OnboardingHeadline(
-                first: "Partagez.", second: "C'est capturé.",
+                first: "Share it.", second: "It’s captured.",
                 left: Sparkle("✧", 12, Palette.ink, x: 20, y: -6),
                 right: Sparkle("✦", 14, Onbo.accent, x: 22, y: 30)
             )
@@ -1010,14 +1010,14 @@ private struct SharePage: View {
                 .padding(.horizontal, 11)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Palette.ink.opacity(0.06)))
-            Text("VOTRE ARTICLE")
+            Text("YOUR ARTICLE")
                 .fs(8, .semibold, track: 0.08)
                 .foregroundStyle(Onbo.accent)
                 .padding(.vertical, 3)
                 .padding(.horizontal, 8)
                 .background(Capsule().fill(Color(hex: 0x7C6CDC, opacity: 0.14)))
                 .overlay(Capsule().strokeBorder(Color(hex: 0x7C6CDC, opacity: 0.3)))
-            Text("«Vous avez aimé les subprimes, vous allez adorer la crise des crédits privés»")
+            Text("“You loved subprime, you are going to love the private credit crisis”")
                 .fs(15, .semibold, lh: 1.22)
                 .foregroundStyle(Palette.ink)
             HStack(spacing: 6) {
@@ -1026,7 +1026,7 @@ private struct SharePage: View {
                     .foregroundStyle(.white)
                     .frame(width: 14, height: 14)
                     .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(Palette.ink))
-                Text("L’Echo · Marchés · 28 août 2026").fs(9).foregroundStyle(Palette.muted2)
+                Text("The Echo · Markets · 28 August 2026").fs(9).foregroundStyle(Palette.muted2)
             }
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(LinearGradient(
@@ -1045,7 +1045,7 @@ private struct SharePage: View {
             skeleton(1)
             skeleton(0.94)
             skeleton(0.88)
-            Text("Blue Owl, First Brands : les dominos")
+            Text("Blue Owl, First Brands: the dominoes")
                 .fs(10, .semibold)
                 .foregroundStyle(Palette.ink)
                 .padding(.top, 2)
@@ -1065,7 +1065,7 @@ private struct SharePage: View {
             stepRow("1", "Touchez Partager")
             stepRow("2", "Choisissez Podcapp")
             // The markup's dash is replaced per the house punctuation rule.
-            Text("C'est tout : vous restez sur votre app.")
+            Text("That’s it: you stay in your app.")
                 .fs(9, lh: 1.35)
                 .foregroundStyle(Palette.muted2)
         }
@@ -1094,7 +1094,7 @@ private struct SharePage: View {
                 .foregroundStyle(.white)
                 .frame(width: 17, height: 17)
                 .background(Circle().fill(Color(hex: 0x3BC55A)))
-            Text("Capturé en 1 s").fs(11.5, .semibold).foregroundStyle(.white)
+            Text("Captured in 1s").fs(11.5, .semibold).foregroundStyle(.white)
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 15)
@@ -1155,7 +1155,7 @@ private struct SharePage: View {
                     .foregroundStyle(.white)
                     .frame(width: 28, height: 28)
                     .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Palette.ink))
-                Text("«Vous avez aimé les subprimes…»")
+                Text("“You loved subprime…”")
                     .fs(10, .semibold)
                     .foregroundStyle(Palette.ink)
                     .lineLimit(1)
@@ -1239,7 +1239,7 @@ private struct ReadPage: View {
     var body: some View {
         VStack(spacing: 0) {
             OnboardingHeadline(
-                first: "Écoutez…", second: "ou lisez.",
+                first: "Listen…", second: "or read.",
                 left: Sparkle("✧", 11, Palette.ink, x: 20, y: -4),
                 right: Sparkle("✦", 14, Onbo.accent, x: 22, y: 24)
             )
@@ -1251,7 +1251,7 @@ private struct ReadPage: View {
                 translationCard
                     .rotationEffect(.degrees(-2))
                     .artboardCentered(y: 398)
-                Text("✓ Chaque source, résumée dans votre langue")
+                Text("✓ Every source, summed up in your language")
                     .fs(11, .semibold)
                     .foregroundStyle(.white)
                     .padding(.vertical, 10)
@@ -1290,26 +1290,26 @@ private struct ReadPage: View {
     private var translationCard: some View {
         VStack(spacing: 0) {
             // The markup's dashes are replaced per the house punctuation rule.
-            langRow(code: "EN", badge: Onbo.pagerChevron) {
-                Text("“Private credit is showing its first cracks: Blue Owl down 40%…”")
+            langRow(code: String(localized: "onboarding.source.lang"), badge: Onbo.pagerChevron) {
+                Text("onboarding.source.quote")
                     .fs(12.5, lh: 1.45)
                     .foregroundStyle(Onbo.caption)
             }
             HStack(spacing: 10) {
                 dividerLine
-                Text("↓ TRADUIT · RÉSUMÉ")
+                Text("↓ TRANSLATED · SUMMED UP")
                     .fs(9.5, .semibold, track: 0.08)
                     .foregroundStyle(Onbo.accent)
                     .fixedSize()
                 dividerLine
             }
             .padding(.vertical, 13)
-            langRow(code: "FR", badge: Onbo.accent) {
-                Text("Le crédit privé montre ses premières fissures : Blue Owl à −40 %.")
+            langRow(code: String(localized: "onboarding.recap.lang"), badge: Onbo.accent) {
+                Text("onboarding.recap.quote")
                     .fs(13.5, .semibold, lh: 1.4)
                     .foregroundStyle(Palette.ink)
             }
-            Text("Sources en anglais ? Votre recap reste en français.")
+            Text("Sources in another language? Your recap stays in yours.")
                 .fs(10.5)
                 .foregroundStyle(Palette.muted2)
                 .multilineTextAlignment(.center)

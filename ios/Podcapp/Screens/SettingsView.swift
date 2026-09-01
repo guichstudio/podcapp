@@ -31,7 +31,7 @@ struct SettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Text("Réglages")
+                Text("Settings")
                     .typo(Typo.screenTitle)
                     .foregroundStyle(Palette.ink)
                     .padding(.top, 6)
@@ -46,7 +46,7 @@ struct SettingsView: View {
                 feedbackCard
                     .padding(.bottom, 12)
 
-                Text("Ces réglages s’affichent seulement, ils se changent sur l’ordinateur qui génère les épisodes.")
+                Text("These are shown, not set: they live on the machine that generates the episodes.")
                     .typo(Typo.metaSmall)
                     .foregroundStyle(Palette.muted2)
                     .padding(.horizontal, 4)
@@ -54,13 +54,13 @@ struct SettingsView: View {
 
                 generationCard
 
-                Text("Le flux RSS reste compatible avec Apple Podcasts, Overcast et les autres.")
+                Text("The RSS feed works in Apple Podcasts, Overcast and the rest.")
                     .typo(Typo.metaSmall)
                     .foregroundStyle(Palette.muted2)
                     .padding(.top, 14)
                     .padding(.horizontal, 4)
 
-                Text("Son adresse contient un jeton que le serveur ne renvoie pas à l’app : copiez-la depuis l’ordinateur qui publie les épisodes.")
+                Text("Its address carries a token the server never sends back to the app: copy it from the machine that publishes the episodes.")
                     .typo(Typo.metaSmall)
                     .foregroundStyle(Palette.muted2)
                     .padding(.top, 6)
@@ -100,7 +100,7 @@ struct SettingsView: View {
             // modifier compiles and does nothing, and a caption-coloured line of
             // text with no affordance does not read as tappable.
             Link(destination: url) {
-                Text("Politique de confidentialité")
+                Text("Privacy policy")
                     .typo(Typo.metaSmall)
                     .underline()
             }
@@ -113,15 +113,15 @@ struct SettingsView: View {
     private var connectionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
-                fieldLabel("Jeton d’API")
+                fieldLabel("API token")
                 // No textContentType: an API token is not a website password, and
                 // declaring one makes iOS offer to save it as a login.
-                SecureField("Collez votre jeton", text: $token)
+                SecureField("Paste your token", text: $token)
                     .inputField()
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                fieldLabel("Serveur")
+                fieldLabel("Server")
                 TextField(Config.defaultBaseURL, text: $server)
                     .keyboardType(.URL)
                     .textContentType(.URL)
@@ -131,7 +131,7 @@ struct SettingsView: View {
             testButton
             connectionStatus
 
-            Text("Le jeton est stocké sur l’appareil et partagé avec l’extension. Il n’est envoyé qu’à votre serveur.")
+            Text("The token stays on this device and is shared with the extension. It is only ever sent to your server.")
                 .typo(Typo.metaSmall)
                 .foregroundStyle(Palette.muted2)
                 .padding(.horizontal, 4)
@@ -142,7 +142,7 @@ struct SettingsView: View {
         Button {
             Task { await saveAndTest() }
         } label: {
-            Text("Enregistrer et tester")
+            Text("Save and test")
                 .typo(Typo.buttonLarge)
                 .foregroundStyle(Palette.onDark)
                 .frame(maxWidth: .infinity)
@@ -168,13 +168,13 @@ struct SettingsView: View {
         case .idle:
             if isConfigured {
                 statusLine(
-                    "Jeton enregistré sur cet appareil. Testez pour vérifier qu’il est toujours accepté.",
+                    "Token saved on this device. Test it to check the server still accepts it.",
                     icon: "checkmark.seal",
                     color: Palette.muted2
                 )
             } else {
                 statusLine(
-                    "Aucun jeton. Ajoutez-le pour charger vos briefings et partager des liens.",
+                    "No token yet. Add one to load your briefings and share links.",
                     icon: "info.circle",
                     color: Palette.muted2
                 )
@@ -183,7 +183,7 @@ struct SettingsView: View {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 ProgressView()
                     .controlSize(.small)
-                Text("Test en cours")
+                Text("Testing")
                     .typo(Typo.metaSmall)
                     .foregroundStyle(Palette.muted2)
                 Spacer(minLength: 0)
@@ -233,8 +233,8 @@ struct SettingsView: View {
         connection = .checking
 
         do {
-            try await Ingest.save(url: nil, text: "Test de connexion depuis l’app Podcapp.")
-            connection = .ok("Connecté. Le partage est prêt.")
+            try await Ingest.save(url: nil, text: "Connection test from the Podcapp app.")
+            connection = .ok(String(localized: "Connected. Sharing is ready."))
             Feedback.saved()
         } catch {
             connection = .failed(error.localizedDescription)
@@ -248,10 +248,10 @@ struct SettingsView: View {
         PlainCard(cornerRadius: 16, padding: 0) {
             HStack(spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Langue de l’app")
+                    Text("Language")
                         .typo(Typo.listTitle)
                         .foregroundStyle(Palette.ink)
-                    Text("Interface et narration en français. L’anglais n’est pas encore traduit.")
+                    Text("Interface and narration follow your phone. Change it in iOS Settings.")
                         .typo(Typo.metaSmall)
                         .foregroundStyle(Palette.muted2)
                 }
@@ -269,14 +269,14 @@ struct SettingsView: View {
         PlainCard(cornerRadius: 16, padding: 0) {
             VStack(spacing: 0) {
                 feedbackRow(
-                    title: "Vibrations",
-                    sub: "Un retour sous le doigt sur les onglets, la lecture et les chapitres.",
+                    title: "Haptics",
+                    sub: "A tap under your finger on tabs, playback and chapters.",
                     isOn: $haptics
                 )
                 Rectangle().fill(Palette.cardBorder).frame(height: 1)
                 feedbackRow(
-                    title: "Sons",
-                    sub: "Quatre sons courts : enregistré, refusé, génération lancée, chapitre suivant.",
+                    title: "Sounds",
+                    sub: "Four short sounds: saved, refused, generation queued, next chapter.",
                     isOn: $sounds
                 )
             }
@@ -302,12 +302,12 @@ struct SettingsView: View {
         .padding(.vertical, 15)
     }
 
-    // Both options are shown as the design draws them, but the app ships one set
-    // of strings: EN stays inert rather than switching to a half-translated UI.
+    // Read-only, and honest about it: the app is localised in both, and iOS —
+    // not this control — decides which one it resolved to.
     private var languagePicker: some View {
         HStack(spacing: 0) {
-            languageOption("FR", selected: true)
-            languageOption("EN", selected: false)
+            languageOption("FR", selected: !AppLocale.isEnglish)
+            languageOption("EN", selected: AppLocale.isEnglish)
         }
         .clipShape(Capsule())
         .overlay(Capsule().strokeBorder(Palette.ink.opacity(0.14), lineWidth: 1))
@@ -336,17 +336,21 @@ struct SettingsView: View {
 
     private var generationRows: [GenerationRow] {
         [
-            GenerationRow(label: "Langue de sortie", sub: "Scripts et narration", value: "Français"),
-            GenerationRow(label: "Durée cible", sub: "Budget d’antenne fixé avant l’écriture", value: "15 min"),
-            GenerationRow(label: "Génération", sub: "Lancée depuis l’ordinateur", value: "Manuelle"),
+            GenerationRow(
+                label: "Output language",
+                sub: "Scripts and narration",
+                value: AppLocale.current.localizedString(forLanguageCode: AppLocale.code)?.capitalized ?? AppLocale.code
+            ),
+            GenerationRow(label: "Target length", sub: "Airtime budget fixed before writing", value: "15 min"),
+            GenerationRow(label: "Generation", sub: "Started from the computer", value: "Manual"),
             // States the fact, not a promise: a token can be stored and still be
             // refused, and only the test above knows whether the server takes it.
             GenerationRow(
-                label: "Extension de partage",
-                sub: "Partagez un lien depuis Safari, puis choisissez Podcapp",
-                value: isConfigured ? "Jeton enregistré" : "Jeton requis"
+                label: "Share extension",
+                sub: "Share a link from Safari, then pick Podcapp",
+                value: isConfigured ? "Token saved" : "Token needed"
             ),
-            GenerationRow(label: "Flux RSS privé", sub: "Apple Podcasts, Overcast", value: "Non affiché"),
+            GenerationRow(label: "Private RSS feed", sub: "Apple Podcasts, Overcast", value: "Not shown"),
         ]
     }
 

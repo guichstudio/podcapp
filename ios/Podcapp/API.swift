@@ -126,21 +126,21 @@ enum APIError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notConfigured:
-            return "Ajoutez votre jeton dans les réglages pour charger vos briefings."
+            return String(localized: "Add your token in Settings to load your briefings.")
         case .badURL:
-            return "Adresse du serveur invalide."
+            return String(localized: "Invalid server address.")
         case let .unreachable(reason):
-            return "Serveur injoignable. \(reason)"
+            return String(localized: "Server unreachable. \(reason)")
         case let .http(code, body):
             // The server always answers with {"error": "..."}; showing it beats a
             // status code the reader cannot act on.
             switch code {
-            case 401: return "Jeton refusé par le serveur."
-            case 404: return "Introuvable sur le serveur."
-            default: return "Erreur \(code). \(body)"
+            case 401: return String(localized: "Token refused by the server.")
+            case 404: return String(localized: "Not found on the server.")
+            default: return String(localized: "Error \(code). \(body)")
             }
         case let .undecodable(reason):
-            return "Réponse du serveur illisible : \(reason)"
+            return String(localized: "Unreadable server response: \(reason)")
         }
     }
 }
@@ -200,7 +200,24 @@ actor API {
         try await post("/episodes", body: GenerateBody(target_min: targetMin), as: GenerateAck.self).episode_id
     }
 
+    /// Tells the server which language to write and speak the next episodes in.
+    /// Only fires when it changed, because nothing else about this is worth a
+    /// round trip on every launch — and a failure is silent by design: an
+    /// episode in the previous language beats an app that refuses to open.
+    func reportLanguageIfChanged() async {
+        let code = AppLocale.code
+        guard Config.isConfigured, Config.reportedLanguage != code else { return }
+        do {
+            _ = try await put("/me/language", body: LanguageBody(language: code), as: LanguageAck.self)
+            Config.reportedLanguage = code
+        } catch {
+            // Left unreported: it retries on the next launch.
+        }
+    }
+
     private struct EpisodeList: Decodable { let episodes: [EpisodeSummary] }
+    private struct LanguageBody: Encodable { let language: String }
+    private struct LanguageAck: Decodable { let language: String }
     private struct SourceList: Decodable { let sources: [SavedSource] }
     private struct GenerateBody: Encodable { let target_min: Int }
     private struct GenerateAck: Decodable { let episode_id: String }
@@ -212,6 +229,14 @@ actor API {
     private func post<T: Decodable, Body: Encodable>(_ path: String, body: Body, as type: T.Type) async throws -> T {
         var request = try makeRequest(for: path)
         request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(body)
+        return try await perform(request, as: type)
+    }
+
+    private func put<T: Decodable, Body: Encodable>(_ path: String, body: Body, as type: T.Type) async throws -> T {
+        var request = try makeRequest(for: path)
+        request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(body)
         return try await perform(request, as: type)

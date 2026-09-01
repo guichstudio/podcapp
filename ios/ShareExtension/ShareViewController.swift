@@ -48,7 +48,7 @@ class ShareViewController: UIViewController {
     private func handleInput() async {
         guard let item = (extensionContext?.inputItems as? [NSExtensionItem])?.first,
               let providers = item.attachments, !providers.isEmpty else {
-            model.state = .failed("Rien à sauvegarder.")
+            model.state = .failed(String(localized: "Nothing to save."))
             return
         }
         do {
@@ -58,7 +58,7 @@ class ShareViewController: UIViewController {
                 return
             }
             guard let text = try await firstText(in: providers) else {
-                model.state = .failed("Type de contenu non pris en charge.")
+                model.state = .failed(String(localized: "Unsupported content type."))
                 return
             }
             // Several apps hand a link over as plain text rather than as a URL
@@ -69,7 +69,7 @@ class ShareViewController: UIViewController {
                 model.state = .saved(url.host ?? trimmed)
             } else {
                 try await Ingest.save(url: nil, text: trimmed)
-                model.state = .saved("Note enregistrée")
+                model.state = .saved(String(localized: "Note saved"))
             }
         } catch {
             model.state = .failed(error.localizedDescription)
@@ -119,18 +119,18 @@ struct ShareView: View {
             switch model.state {
             case .saving:
                 ProgressView()
-                Text("Enregistrement").foregroundStyle(.secondary)
+                Text("Saving").foregroundStyle(.secondary)
             case let .saved(detail):
                 Image(systemName: "checkmark.circle.fill").font(.system(size: 44)).foregroundStyle(.green)
-                Text("Sauvegardé").font(.headline)
+                Text("Saved").font(.headline)
                 Text(detail).font(.footnote).foregroundStyle(.secondary).lineLimit(1)
             case let .failed(message):
                 Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 44)).foregroundStyle(.orange)
-                Text("Échec").font(.headline)
+                Text("Failed").font(.headline)
                 Text(message).font(.footnote).foregroundStyle(.secondary)
                     .multilineTextAlignment(.center).padding(.horizontal)
             }
-            Button("Fermer", action: onDone).padding(.top, 4)
+            Button("Close", action: onDone).padding(.top, 4)
         }
         .padding(28)
         .onChange(of: model.state) { _, new in

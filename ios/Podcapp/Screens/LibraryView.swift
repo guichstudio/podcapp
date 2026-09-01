@@ -48,7 +48,7 @@ struct LibraryView: View {
     private var captureField: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                TextField("Coller un lien ou un texte…", text: $draft, axis: .vertical)
+                TextField("Paste a link or some text…", text: $draft, axis: .vertical)
                     .lineLimit(1...4)
                     .font(Typo.font(size: 13, weight: .regular))
                     .foregroundStyle(Palette.ink)
@@ -71,7 +71,7 @@ struct LibraryView: View {
                         if case .sending = addState {
                             ProgressView().tint(Palette.onDark)
                         } else {
-                            Text("Ajouter")
+                            Text("Add")
                                 .font(Typo.font(size: 13, weight: .semibold))
                         }
                     }
@@ -130,20 +130,20 @@ struct LibraryView: View {
     private var content: some View {
         switch phase {
         case .loading:
-            message(title: "Chargement des sources…", detail: nil, showsSpinner: true)
+            message(title: "Loading your sources…", detail: nil, showsSpinner: true)
         case let .failed(reason):
-            message(title: "Chargement impossible", detail: reason, showsSpinner: false)
+            message(title: "Could not load", detail: reason, showsSpinner: false)
         case .loaded:
             if sources.isEmpty {
                 message(
-                    title: "Aucune source enregistrée.",
-                    detail: "Partagez un lien depuis Safari avec Podcapp, ou collez-le ci-dessus.",
+                    title: "No source saved yet.",
+                    detail: "Share a link from Safari with Podcapp, or paste it above.",
                     showsSpinner: false
                 )
             } else if sections.isEmpty {
                 message(
-                    title: "Rien dans ce filtre.",
-                    detail: "\(sources.count) source(s) enregistrée(s) : touchez Tout pour les voir.",
+                    title: "Nothing in this filter.",
+                    detail: "\(sources.count) saved in total: tap All to see them.",
                     showsSpinner: false
                 )
             } else {
@@ -247,7 +247,7 @@ struct LibraryView: View {
                                             )
                                     }
                                 }
-                                Text("Indisponible : le serveur n’expose pas encore ces actions.")
+                                Text("Unavailable: the server does not expose these actions yet.")
                                     .typo(Typo.metaTiny)
                                     .foregroundStyle(Palette.faint)
                             }
@@ -276,13 +276,13 @@ struct LibraryView: View {
         return [
             LibrarySection(
                 id: "today",
-                title: "AUJOURD’HUI",
+                title: "TODAY",
                 rows: healthy.filter { calendar.isDateInToday($0.capturedAt) }
             ),
-            LibrarySection(id: "issues", title: "À TRAITER", rows: problems),
+            LibrarySection(id: "issues", title: "NEEDS A LOOK", rows: problems),
             LibrarySection(
                 id: "earlier",
-                title: "PRÉCÉDENTS",
+                title: "EARLIER",
                 rows: healthy.filter { !calendar.isDateInToday($0.capturedAt) }
             ),
         ].filter { !$0.rows.isEmpty }
@@ -304,7 +304,7 @@ struct LibraryView: View {
         do {
             try await Ingest.save(url: LibraryRow.link(from: text), text: text)
             draft = ""
-            addState = .done("Enregistré. Il rejoindra votre prochain briefing.")
+            addState = .done(String(localized: "Saved. It will join your next briefing."))
             Feedback.saved()
             await load()
         } catch {
@@ -323,9 +323,9 @@ private enum LibraryFilter: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .all: return "Tout"
-        case .ready: return "Prêt"
-        case .issues: return "Problèmes"
+        case .all: return String(localized: "All")
+        case .ready: return String(localized: "Ready")
+        case .issues: return String(localized: "Issues")
         }
     }
 
@@ -418,7 +418,7 @@ private enum LibraryRow {
     static func title(_ source: SavedSource) -> String {
         if let title = source.title, !title.isEmpty { return title }
         if let url = source.url, !url.isEmpty { return url }
-        return "Sans titre"
+        return String(localized: "Untitled")
     }
 
     static func meta(_ source: SavedSource) -> String {
@@ -437,9 +437,9 @@ private enum LibraryRow {
         if let error = source.error, !error.isEmpty { return error }
         switch source.status {
         case "received":
-            return "En file. L’extraction se lance au prochain traitement."
+            return String(localized: "Queued. Extraction runs at the next pass.")
         case "extracting":
-            return "Extraction…"
+            return String(localized: "Extracting…")
         case "analyzed":
             return source.inStory
                 ? "Analysé et rattaché à un sujet."
@@ -449,11 +449,11 @@ private enum LibraryRow {
                 ? "Prêt, rattaché à un sujet : candidat au prochain briefing."
                 : "Prêt pour le prochain briefing."
         case "duplicate":
-            return "Déjà enregistré : compté une seule fois."
+            return String(localized: "Already saved: counted once.")
         case "extraction_failed", "low_quality", "unsupported":
-            return "Extraction échouée, sans détail renvoyé par le serveur."
+            return String(localized: "Extraction failed, with no detail from the server.")
         default:
-            return "Statut « \(source.status) » inconnu de l’app."
+            return String(localized: "Status “\(source.status)” unknown to the app.")
         }
     }
 
@@ -468,14 +468,14 @@ private enum LibraryRow {
 
     private static let time: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "fr_FR")
+        formatter.locale = AppLocale.current
         formatter.dateFormat = "HH:mm"
         return formatter
     }()
 
     private static let day: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "fr_FR")
+        formatter.locale = AppLocale.current
         formatter.setLocalizedDateFormatFromTemplate("d MMM")
         return formatter
     }()

@@ -288,6 +288,23 @@ authed.post('/ingest', async (c) => {
   return c.json({ source_id: row.id, status: 'received', queued }, 202)
 })
 
+// The app reports the language its interface resolved to, and the pipeline
+// writes and speaks in it from the next episode on. Persisted rather than
+// passed per request: the 06:00 cron generates with no app in the loop.
+const LanguageSchema = z.object({ language: z.string().trim().min(2).max(8) })
+
+authed.put('/me/language', async (c) => {
+  const parsed = LanguageSchema.safeParse(await c.req.json().catch(() => null))
+  if (!parsed.success) return c.json({ error: 'expected { language }' }, 400)
+  // Two letters is what the prompts and the RSS language tag want; a phone
+  // sends en-US or fr-FR.
+  const language = parsed.data.language.slice(0, 2).toLowerCase()
+  if (!/^[a-z]{2}$/.test(language)) return c.json({ error: 'unsupported language' }, 400)
+  const conn = c.get('conn')
+  await conn.update(users).set({ outputLanguage: language }).where(eq(users.id, c.get('userId')))
+  return c.json({ language })
+})
+
 authed.post('/episodes', async (c) => {
   if (!process.env.TRIGGER_SECRET_KEY) {
     return c.json(

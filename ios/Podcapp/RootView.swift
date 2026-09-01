@@ -16,10 +16,10 @@ enum RootTab: String, CaseIterable, Identifiable {
     /// Labels and glyphs from the `tabs` table in ios/design/component.jsx.
     var label: String {
         switch self {
-        case .today: return "Aujourd’hui"
-        case .read: return "Lire"
-        case .sources: return "Sources"
-        case .settings: return "Réglages"
+        case .today: return String(localized: "Today")
+        case .read: return String(localized: "Read")
+        case .sources: return String(localized: "Sources")
+        case .settings: return String(localized: "Settings")
         }
     }
 

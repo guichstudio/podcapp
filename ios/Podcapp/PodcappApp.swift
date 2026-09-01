@@ -26,6 +26,10 @@ private struct Entry: View {
     var body: some View {
         if connected {
             RootView()
+                // The phone's language is the product's language: the interface
+                // follows it on its own, and this is what makes the episodes
+                // follow it too.
+                .task { await API.shared.reportLanguageIfChanged() }
         } else {
             OnboardingView(onDone: { connected = true })
                 .transition(.opacity)

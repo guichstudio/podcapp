@@ -38,6 +38,13 @@ enum Config {
 
     static var isConfigured: Bool { !apiToken.isEmpty }
 
+    /// The language last accepted by the server, so the app does not repeat
+    /// itself on every launch.
+    static var reportedLanguage: String? {
+        get { store.string(forKey: "reportedLanguage") }
+        set { store.set(newValue, forKey: "reportedLanguage") }
+    }
+
     // object(forKey:), not bool(forKey:): an absent key reads as false there,
     // and both of these are on until someone turns them off.
     static var hapticsEnabled: Bool {
@@ -56,6 +63,19 @@ enum Config {
     static func markOnboardingSeen() { store.set(true, forKey: "sawOnboarding") }
 }
 
+/// The locale of the language the app actually resolved to, which is not
+/// Locale.current: a phone in English with a French region would otherwise mix
+/// an English interface with French month names.
+enum AppLocale {
+    static let current = Locale(identifier: Bundle.main.preferredLocalizations.first ?? "en")
+
+    /// What the pipeline is told to write and speak in: the two letters the
+    /// server stores in users.output_language.
+    static var code: String { String(current.identifier.prefix(2)) }
+
+    static var isEnglish: Bool { code == "en" }
+}
+
 enum IngestError: LocalizedError {
     case notConfigured
     case badURL
@@ -64,13 +84,15 @@ enum IngestError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notConfigured:
-            return "Ajoutez votre jeton dans l’app Podcapp avant de partager."
+            return String(localized: "Add your token in the Podcapp app before sharing.")
         case .badURL:
-            return "Adresse du serveur invalide."
+            return String(localized: "Invalid server address.")
         case let .http(code, body):
             // The server always answers with {"error": "..."}; showing it beats a
             // status code the reader cannot act on.
-            return code == 401 ? "Jeton refusé par le serveur." : "Erreur \(code). \(body)"
+            return code == 401
+                ? String(localized: "Token refused by the server.")
+                : String(localized: "Error \(code). \(body)")
         }
     }
 }
