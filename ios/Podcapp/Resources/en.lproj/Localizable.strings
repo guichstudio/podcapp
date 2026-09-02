@@ -97,6 +97,7 @@
 "Editorial" = "Editorial";
 "Editorial: intro/outro, no external facts" = "Editorial: intro/outro, no external facts";
 "ElevenLabs · previewed on the next generation" = "ElevenLabs · previewed on the next generation";
+"Email" = "Email";
 "Episode in the works" = "Episode in the works";
 "Episode in the works · the feed and this screen update as soon as it is ready." = "Episode in the works · the feed and this screen update as soon as it is ready.";
 "Episode ready · open it" = "Episode ready · open it";
@@ -167,7 +168,6 @@
 "No briefing yet." = "No briefing yet.";
 "No chapter playing." = "No chapter playing.";
 "No extraction metadata" = "No extraction metadata";
-"No password · private RSS feed included" = "No password · private RSS feed included";
 "No sentence in this chapter carried a number, a quote or a name to check." = "No sentence in this chapter carried a number, a quote or a name to check.";
 "No source" = "No source";
 "No source saved yet." = "No source saved yet.";
@@ -188,6 +188,7 @@
 "Other" = "Other";
 "Outline" = "Outline";
 "Output language" = "Output language";
+"Password" = "Password";
 "Paste a link or some text…" = "Paste a link or some text…";
 "Pause" = "Pause";
 "Pick Podcapp" = "Pick Podcapp";
@@ -198,6 +199,7 @@
 "Previous chapter" = "Previous chapter";
 "Privacy policy" = "Privacy policy";
 "Private RSS feed" = "Private RSS feed";
+"Private RSS feed included · plays in any podcast app" = "Private RSS feed included · plays in any podcast app";
 "Private credit, Wall Street’s cockroach" = "Private credit, Wall Street’s cockroach";
 "Published" = "Published";
 "QUEUED" = "QUEUED";
@@ -233,7 +235,9 @@
 "Share a link from Safari, then pick Podcapp" = "Share a link from Safari, then pick Podcapp";
 "Share extension" = "Share extension";
 "Share it." = "Share it.";
+"Sign in" = "Sign in";
 "Sign in to the Podcapp app before sharing." = "Sign in to the Podcapp app before sharing.";
+"Sign in with email instead" = "Sign in with email instead";
 "Sign out" = "Sign out";
 "Sign-in cancelled." = "Sign-in cancelled.";
 "Sign-in was refused. Please try again." = "Sign-in was refused. Please try again.";

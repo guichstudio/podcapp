@@ -97,6 +97,7 @@
 "Editorial" = "Éditorial";
 "Editorial: intro/outro, no external facts" = "Éditorial : intro/outro, sans faits externes";
 "ElevenLabs · previewed on the next generation" = "ElevenLabs · à l’écoute à la prochaine génération";
+"Email" = "Email";
 "Episode in the works" = "Épisode en préparation";
 "Episode in the works · the feed and this screen update as soon as it is ready." = "Épisode en préparation · le flux et cet écran se mettent à jour dès qu’il est prêt.";
 "Episode ready · open it" = "Épisode prêt · l’ouvrir";
@@ -167,7 +168,6 @@
 "No briefing yet." = "Aucun briefing pour l’instant.";
 "No chapter playing." = "Aucun chapitre en lecture.";
 "No extraction metadata" = "Aucune métadonnée d’extraction";
-"No password · private RSS feed included" = "Aucun mot de passe · flux RSS privé inclus";
 "No sentence in this chapter carried a number, a quote or a name to check." = "Aucune phrase de ce chapitre ne portait de chiffre, de citation ni de nom à vérifier.";
 "No source" = "Aucune source";
 "No source saved yet." = "Aucune source enregistrée.";
@@ -188,6 +188,7 @@
 "Other" = "Autres";
 "Outline" = "Plan";
 "Output language" = "Langue de sortie";
+"Password" = "Mot de passe";
 "Paste a link or some text…" = "Coller un lien ou un texte…";
 "Pause" = "Pause";
 "Pick Podcapp" = "Choisissez Podcapp";
@@ -198,6 +199,7 @@
 "Previous chapter" = "Chapitre précédent";
 "Privacy policy" = "Politique de confidentialité";
 "Private RSS feed" = "Flux RSS privé";
+"Private RSS feed included · plays in any podcast app" = "Flux RSS privé inclus · s’écoute dans n’importe quelle app podcast";
 "Private credit, Wall Street’s cockroach" = "Crédit privé, le cafard de Wall Street";
 "Published" = "Publié";
 "QUEUED" = "EN FILE";
@@ -233,7 +235,9 @@
 "Share a link from Safari, then pick Podcapp" = "Partagez un lien depuis Safari, puis choisissez Podcapp";
 "Share extension" = "Extension de partage";
 "Share it." = "Partagez.";
+"Sign in" = "Se connecter";
 "Sign in to the Podcapp app before sharing." = "Connectez-vous à l’app Podcapp avant de partager.";
+"Sign in with email instead" = "Se connecter par email";
 "Sign out" = "Déconnecter";
 "Sign-in cancelled." = "Connexion annulée.";
 "Sign-in was refused. Please try again." = "La connexion a été refusée. Réessayez.";

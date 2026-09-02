@@ -45,6 +45,22 @@ enum Auth {
         return session.token
     }
 
+    /// App Review's way in without a personal Apple ID: /auth/password takes
+    /// the credentials straight, no nonce dance -- there is no provider round
+    /// trip to defend against replay here. Same postUnauthenticated path as
+    /// `exchange`, so a sign-in failure surfaces the same way on both forms.
+    static func signInWithPassword(email: String, password: String) async throws -> String {
+        struct Body: Encodable { let email: String; let password: String; let device_name: String }
+        struct Reply: Decodable { let token: String }
+        let session = try await API.shared.postUnauthenticated(
+            path: "/auth/password",
+            body: Body(email: email, password: password, device_name: deviceName),
+            as: Reply.self
+        )
+        Config.sessionToken = session.token
+        return session.token
+    }
+
     /// The one way a sign-out button should end this device's own session:
     /// revoke it server-side, then clear it locally regardless of whether
     /// that call succeeded. The order matters for what it does NOT do wrong --

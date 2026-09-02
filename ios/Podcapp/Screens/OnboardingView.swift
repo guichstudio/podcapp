@@ -22,6 +22,14 @@ struct OnboardingView: View {
     @State private var status: ConnectStatus = .idle
     @State private var page: Int? = 0
 
+    // The email form, collapsed until asked for so Apple stays the one
+    // button most reviewers and users ever see.
+    @State private var showEmailForm = false
+    @State private var email = ""
+    @State private var password = ""
+    @FocusState private var focusedEmailField: EmailField?
+    private enum EmailField: Hashable { case email, password }
+
     private static let pageCount = 6
 
     private func go(_ delta: Int) {
@@ -86,10 +94,10 @@ struct OnboardingView: View {
         // At the ROOT: the pager is a scroll view and clips at its own bounds,
         // so it must physically reach the bottom edge for the bezel to bleed
         // off-screen. Anything less leaves a strip of background under the cut.
-        .ignoresSafeArea(edges: .bottom)
-        // The Apple button never raises a keyboard, but the shell still ignores
-        // this safe area for consistency with the rest of the pager.
-        .ignoresSafeArea(.keyboard, edges: .bottom)
+        // Scoped to .container on purpose (the default .all also covers the
+        // keyboard region): the email form's fields need the keyboard's own
+        // safe area respected so their page can scroll clear of it.
+        .ignoresSafeArea(.container, edges: .bottom)
         .onAppear {
             Config.markOnboardingSeen()
         }
@@ -110,9 +118,9 @@ struct OnboardingView: View {
     }
 
     private var connectPage: some View {
-        // No keyboard ever appears on this page, unlike the pasted-token field
-        // it replaced, so the elaborate keyboard-avoidance a text field needed
-        // is gone with it: a plain scroll view is enough headroom on any phone.
+        // The Apple button raises no keyboard, but the email form (collapsed
+        // by default, see below) does -- this plain vertical scroll view is
+        // what lets its fields scroll clear of it.
         ScrollView(showsIndicators: false) {
             connectContent
         }
@@ -151,10 +159,17 @@ struct OnboardingView: View {
                 .disabled(status == .checking)
                 .opacity(status == .checking ? 0.5 : 1)
 
+            // App Review needs a way in without a personal Apple ID; everyone
+            // else never has to see it. One line, easy to miss on purpose.
+            emailSignIn
+                .frame(width: 272)
+                .padding(.top, 18)
+                .disabled(status == .checking)
+
             switch status {
             case .checking:
-                // The Apple exchange is a network round trip; without this the
-                // first interactive screen in the app looks frozen after Face ID.
+                // Both sign-in paths are a network round trip; without this the
+                // first interactive screen in the app looks frozen while it runs.
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.small).tint(Palette.muted)
                     Text("Signing in…")
@@ -173,7 +188,7 @@ struct OnboardingView: View {
                 EmptyView()
             }
 
-            Text("No password · private RSS feed included")
+            Text("Private RSS feed included · plays in any podcast app")
                 .fs(10)
                 .foregroundStyle(Palette.faint)
                 .padding(.top, 22)
@@ -219,6 +234,87 @@ struct OnboardingView: View {
                 nonce = Auth.makeNonce()
                 status = .failed(error.localizedDescription)
             }
+        }
+    }
+
+    // MARK: - Email + password (App Review's way in)
+
+    /// A single quiet link until tapped, so Apple keeps the visual weight;
+    /// the form it reveals is a login, not a signup -- there is nowhere on
+    /// this screen that offers to create an account or reset a password,
+    /// because the server has neither.
+    private var emailSignIn: some View {
+        Group {
+            if showEmailForm {
+                emailForm
+            } else {
+                Button {
+                    Feedback.tap()
+                    withAnimation(.easeInOut(duration: 0.2)) { showEmailForm = true }
+                } label: {
+                    Text("Sign in with email instead")
+                        .typo(Typo.metaSmall)
+                        .foregroundStyle(Palette.muted2)
+                        .underline()
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var emailForm: some View {
+        VStack(spacing: 10) {
+            TextField(String(localized: "Email"), text: $email)
+                .keyboardType(.emailAddress)
+                .textContentType(.username)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.next)
+                .focused($focusedEmailField, equals: .email)
+                .onSubmit { focusedEmailField = .password }
+                .onboardingFieldStyle()
+
+            SecureField(String(localized: "Password"), text: $password)
+                .textContentType(.password)
+                .submitLabel(.go)
+                .focused($focusedEmailField, equals: .password)
+                .onSubmit { Task { await submitPassword() } }
+                .onboardingFieldStyle()
+
+            Button {
+                Task { await submitPassword() }
+            } label: {
+                Text("Sign in")
+                    .typo(Typo.buttonMedium)
+                    .foregroundStyle(Palette.onDark)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(Palette.ink, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+            .disabled(isEmailSubmitDisabled)
+            .opacity(isEmailSubmitDisabled ? 0.45 : 1)
+        }
+    }
+
+    private var isEmailSubmitDisabled: Bool {
+        status == .checking
+            || email.trimmingCharacters(in: .whitespaces).isEmpty
+            || password.isEmpty
+    }
+
+    private func submitPassword() async {
+        guard !isEmailSubmitDisabled else { return }
+        focusedEmailField = nil
+        status = .checking
+        do {
+            _ = try await Auth.signInWithPassword(email: email, password: password)
+            onDone()
+        } catch {
+            // The password itself is never kept anywhere it doesn't already
+            // live in memory for this one request; only the email survives a
+            // failed attempt so the reviewer is not retyping both fields.
+            password = ""
+            status = .failed(error.localizedDescription)
         }
     }
 }
@@ -271,6 +367,20 @@ private extension View {
         return background(shape.fill(.white.opacity(0.58)))
             .overlay(shape.strokeBorder(.white.opacity(0.72)))
             .shadow(color: Onbo.floatShadow.opacity(0.25), radius: 20, y: 18)
+    }
+
+    /// The email/password fields: same card treatment as the capture field
+    /// on the library screen, so the login form doesn't invent a new style.
+    func onboardingFieldStyle() -> some View {
+        font(Typo.font(size: 13, weight: .regular))
+            .foregroundStyle(Palette.ink)
+            .padding(.horizontal, 13)
+            .padding(.vertical, 11)
+            .background(Palette.cardFill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Palette.cardBorder, lineWidth: 1)
+            )
     }
 
     /// The dark rounded toast used across the mocks.
