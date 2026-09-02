@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless'
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/neon-http'
-import { Hono } from 'hono'
+import { Hono, type Context } from 'hono'
 import { handle } from 'hono/vercel'
 import { z } from 'zod'
 import { ScriptSchema, type Script } from '../src/core/types.js'
@@ -10,6 +10,10 @@ import { feedKey } from '../src/rss/feed.js'
 import { countAvailableSources, hasEnoughSources, shortageMessage } from '../src/jobs/material.js'
 import { privacyHtml } from '../src/legal/privacy.js'
 import * as schema from '../src/db/schema.js'
+import { resolveUserId } from '../src/auth/identity.js'
+import { createSession, listSessions, revokeSession, userIdForToken } from '../src/auth/session.js'
+import { AuthError, type Provider } from '../src/auth/types.js'
+import { verifyIdentityToken } from '../src/auth/verify.js'
 
 // The endpoints that have to be reachable from a phone: capture, and reading
 // back what capture produced.
@@ -57,6 +61,14 @@ const EpisodeRequestSchema = z.object({
   target_min: z.number().int().min(1).max(MAX_TARGET_MINUTES).optional(),
   // One shelf of the library; the four-link rule then applies to that shelf.
   category: z.enum(CATEGORIES).optional(),
+})
+
+const SignInSchema = z.object({
+  token: z.string().min(1),
+  // The raw entropy: the server recomputes its hash and compares it to the
+  // token's `nonce` claim. This is what makes an intercepted token unusable.
+  nonce: z.string().min(8),
+  device_name: z.string().trim().min(1).max(64).default('iPhone'),
 })
 
 // Every status generateEpisode moves through before landing on ready or failed.
@@ -242,6 +254,28 @@ app.post('/ingest/email', async (c) => {
   return c.json({ accepted: true, source_id: row.id, queued }, 200)
 })
 
+// Public by necessity: this is where a caller obtains the token the
+// authed middleware will demand everywhere else.
+async function signIn(c: Context<Env>, provider: Provider) {
+  const parsed = SignInSchema.safeParse(await c.req.json().catch(() => null))
+  if (!parsed.success) return c.json({ error: 'expected { token, nonce, device_name? }' }, 400)
+  const conn = db()
+  try {
+    const identity = await verifyIdentityToken({ provider, token: parsed.data.token, rawNonce: parsed.data.nonce })
+    const userId = await resolveUserId(conn, identity)
+    const token = await createSession(conn, userId, parsed.data.device_name)
+    return c.json({ token }, 200)
+  } catch (err) {
+    // A rejected token and a database outage don't get the same answer: the
+    // first is the caller's fault, the second is ours.
+    if (err instanceof AuthError) return c.json({ error: 'sign-in rejected' }, 401)
+    throw err
+  }
+}
+
+app.post('/auth/apple', (c) => signIn(c, 'apple'))
+app.post('/auth/google', (c) => signIn(c, 'google'))
+
 // Registered before the authed sub-app is mounted: mounting at '/' installs the
 // bearer check on '/*', which would otherwise also cover /health.
 const authed = new Hono<Env>()
@@ -250,10 +284,16 @@ authed.use('*', async (c, next) => {
   const token = c.req.header('Authorization')?.replace(/^Bearer\s+/i, '')
   if (!token) return c.json({ error: 'missing bearer token' }, 401)
   const conn = db()
-  const [user] = await conn.select({ id: users.id }).from(users).where(eq(users.apiToken, token))
-  if (!user) return c.json({ error: 'invalid token' }, 401)
+  // Session first: it's the front door of the app. api_token is now only a
+  // service key for the CLI and the eval runner, never written or read by the app.
+  let userId = await userIdForToken(conn, token)
+  if (!userId) {
+    const [service] = await conn.select({ id: users.id }).from(users).where(eq(users.apiToken, token))
+    userId = service?.id ?? null
+  }
+  if (!userId) return c.json({ error: 'invalid token' }, 401)
   c.set('conn', conn)
-  c.set('userId', user.id)
+  c.set('userId', userId)
   await next()
 })
 
@@ -368,6 +408,27 @@ authed.put('/me', async (c) => {
     .where(eq(users.id, userId))
   if (!user) return c.json({ error: 'not found' }, 404)
   return c.json(meView(user))
+})
+
+authed.get('/me/sessions', async (c) => {
+  const rows = await listSessions(c.get('conn'), c.get('userId'))
+  return c.json({
+    sessions: rows.map((s) => ({
+      id: s.id,
+      device_name: s.deviceName,
+      created_at: s.createdAt,
+      last_seen_at: s.lastSeenAt,
+    })),
+  })
+})
+
+authed.delete('/me/sessions/:id', async (c) => {
+  const id = c.req.param('id')
+  // Same 404 as a foreign id: the requester learns nothing about an id's shape.
+  if (!UUID_RE.test(id)) return c.json({ error: 'not found' }, 404)
+  const done = await revokeSession(c.get('conn'), c.get('userId'), id)
+  if (!done) return c.json({ error: 'not found' }, 404)
+  return c.json({ ok: true })
 })
 
 authed.put('/me/language', async (c) => {
