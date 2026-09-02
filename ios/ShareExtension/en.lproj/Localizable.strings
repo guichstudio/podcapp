@@ -237,6 +237,8 @@
 "Share a link from Safari, then pick Podcapp" = "Share a link from Safari, then pick Podcapp";
 "Share extension" = "Share extension";
 "Share it." = "Share it.";
+"Sign-in cancelled." = "Sign-in cancelled.";
+"Sign-in was refused. Please try again." = "Sign-in was refused. Please try again.";
 "Sounds" = "Sounds";
 "Source" = "Source";
 "Source: %@" = "Source: %@";
@@ -263,6 +265,7 @@
 "The generation stopped." = "The generation stopped.";
 "The gesture, in 3 steps" = "The gesture, in 3 steps";
 "The language follows your phone and the voice is yours to pick; the rest is decided by the pipeline." = "The language follows your phone and the voice is yours to pick; the rest is decided by the pipeline.";
+"The provider returned no identity token." = "The provider returned no identity token.";
 "The run stopped before publishing. Try again from Today." = "The run stopped before publishing. Try again from Today.";
 "The script is still being written. Come back in a few minutes." = "The script is still being written. Come back in a few minutes.";
 "The token stays on this device and is shared with the extension. It is only ever sent to your server." = "The token stays on this device and is shared with the extension. It is only ever sent to your server.";

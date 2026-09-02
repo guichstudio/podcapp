@@ -237,6 +237,8 @@
 "Share a link from Safari, then pick Podcapp" = "Partagez un lien depuis Safari, puis choisissez Podcapp";
 "Share extension" = "Extension de partage";
 "Share it." = "Partagez.";
+"Sign-in cancelled." = "Connexion annulée.";
+"Sign-in was refused. Please try again." = "La connexion a été refusée. Réessayez.";
 "Sounds" = "Sons";
 "Source" = "Source";
 "Source: %@" = "Source : %@";
@@ -263,6 +265,7 @@
 "The generation stopped." = "La génération s’est arrêtée.";
 "The gesture, in 3 steps" = "Le geste, en 3 étapes";
 "The language follows your phone and the voice is yours to pick; the rest is decided by the pipeline." = "La langue suit votre téléphone et la voix est à vous ; le reste est décidé par le pipeline.";
+"The provider returned no identity token." = "Le fournisseur n'a renvoyé aucun jeton d'identité.";
 "The run stopped before publishing. Try again from Today." = "Le run s’est arrêté avant la publication. Relancez depuis Aujourd’hui.";
 "The script is still being written. Come back in a few minutes." = "Le script est en cours d’écriture. Revenez dans quelques minutes.";
 "The token stays on this device and is shared with the extension. It is only ever sent to your server." = "Le jeton est stocké sur l’appareil et partagé avec l’extension. Il n’est envoyé qu’à votre serveur.";

@@ -1,3 +1,4 @@
+import AuthenticationServices
 import SwiftUI
 import UIKit
 
@@ -10,27 +11,16 @@ import UIKit
 // formats, Partagez, Lisez, Connexion.
 //
 // The design's sixth screen offers "Continuer avec Apple" and "Continuer avec
-// Google". Neither exists: the product authenticates with a per-user token that
-// is issued by hand, and Sign in with Apple would need a paid developer account
-// and a backend that does not exist. Rather than ship two buttons that cannot
-// work, that screen keeps the design's layout and puts the token field and the
-// Continuer button where the OAuth buttons sit.
+// Google" side by side. Google has no backend yet, so this screen still keeps
+// the design's layout but puts only the Apple button, wired to /auth/apple,
+// in the slot where the design's two OAuth buttons sit.
 
 struct OnboardingView: View {
     let onDone: () -> Void
 
-    @State private var token = ""
+    @State private var nonce = Auth.makeNonce()
     @State private var status: ConnectStatus = .idle
     @State private var page: Int? = 0
-    @FocusState private var tokenFocused: Bool
-    /// How much of the screen the keyboard covers. The shell ignores the
-    /// keyboard safe area to keep the pages at their design geometry, which
-    /// also means nothing here moves on its own: the connect page has to be
-    /// told, or the token field stays under the keyboard with no way to reach
-    /// it — which is exactly what happened.
-    @State private var keyboard: CGFloat = 0
-
-    private static let fieldAnchor = "token-field"
 
     private static let pageCount = 6
 
@@ -97,24 +87,11 @@ struct OnboardingView: View {
         // so it must physically reach the bottom edge for the bezel to bleed
         // off-screen. Anything less leaves a strip of background under the cut.
         .ignoresSafeArea(edges: .bottom)
-        // Keyboard avoidance squeezed the whole shell when the token field took
-        // focus: the headline slid under the header, texts truncated. The shell
-        // keeps its geometry; the connect page scrolls instead.
+        // The Apple button never raises a keyboard, but the shell still ignores
+        // this safe area for consistency with the rest of the pager.
         .ignoresSafeArea(.keyboard, edges: .bottom)
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { note in
-            let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
-            // The page ignores the bottom safe area, so the keyboard's own
-            // height is exactly what it hides. No screen arithmetic needed.
-            withAnimation(.easeOut(duration: 0.25)) { keyboard = frame?.height ?? 0 }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-            withAnimation(.easeOut(duration: 0.25)) { keyboard = 0 }
-        }
         .onAppear {
             Config.markOnboardingSeen()
-            // A replay from Réglages arrives with a token already saved: the
-            // last page then re-checks it instead of asking for it again.
-            if token.isEmpty { token = Config.apiToken }
         }
     }
 
@@ -133,34 +110,11 @@ struct OnboardingView: View {
     }
 
     private var connectPage: some View {
-        ScrollViewReader { proxy in
-            ScrollView(showsIndicators: false) {
-                connectContent
-            }
-            // The inset is what makes this scrollable at all while typing: the
-            // shell holds the page at full height, so without it the content
-            // still fits and the scroll view has nothing to scroll.
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                Color.clear.frame(height: keyboard)
-            }
-            // Fires on the keyboard, not on the focus: focus arrives first, and
-            // scrolling before the inset exists lands on the same spot.
-            .onChange(of: keyboard) { _, height in
-                guard height > 0, tokenFocused else { return }
-                withAnimation(.easeOut(duration: 0.3)) {
-                    proxy.scrollTo(Self.fieldAnchor, anchor: .center)
-                }
-            }
-            .scrollDismissesKeyboard(.interactively)
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("OK") { tokenFocused = false }
-                }
-            }
-            // Centers like the fixed layout while content fits; scrolls only
-            // when the keyboard shortens the visible area.
-            .scrollBounceBehavior(.basedOnSize)
+        // No keyboard ever appears on this page, unlike the pasted-token field
+        // it replaced, so the elaborate keyboard-avoidance a text field needed
+        // is gone with it: a plain scroll view is enough headroom on any phone.
+        ScrollView(showsIndicators: false) {
+            connectContent
         }
     }
 
@@ -174,9 +128,9 @@ struct OnboardingView: View {
             .padding(.top, 20)
             PagerBar(fill: 1.0)
 
-            AppMark(size: tokenFocused ? 64 : 96)
+            AppMark(size: 96)
                 .shadow(color: Onbo.floatShadow.opacity(0.28), radius: 27, y: 24)
-                .padding(.top, tokenFocused ? 24 : 87)
+                .padding(.top, 87)
             Text("Welcome to Podcapp")
                 .fs(19, .semibold)
                 .foregroundStyle(Palette.ink)
@@ -190,54 +144,10 @@ struct OnboardingView: View {
                 .frame(maxWidth: 230)
                 .padding(.top, 12)
 
-            // The token field and the Continuer button take the exact slot of
-            // the design's OAuth buttons: same width, radii and dark treatment.
-            VStack(spacing: 11) {
-                SecureField("API token", text: $token)
-                    // Inside the horizontal paging ScrollView the field never
-                    // became first responder on its own: the tap died somewhere
-                    // in the nested scroll views, so the token could not be
-                    // typed OR pasted, which is the whole point of this screen.
-                    // Buttons on the same page work, and the same field works in
-                    // Réglages, so the focus is claimed by hand here.
-                    .contentShape(Rectangle())
-                    .onTapGesture { tokenFocused = true }
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .submitLabel(.go)
-                    .onSubmit { Task { await connect() } }
-                    .focused($tokenFocused)
-                    .fs(13.5)
-                    .multilineTextAlignment(.center)
-                    .padding(15)
-                    .background(RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(.white.opacity(0.6)))
-                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(.white.opacity(0.75)))
-                    .shadow(color: Onbo.floatShadow.opacity(0.16), radius: 12, y: 10)
-                Button {
-                    Task { await connect() }
-                } label: {
-                    HStack(spacing: 8) {
-                        if status == .checking { ProgressView().tint(.white) }
-                        Text(status == .checking ? String(localized: "Connecting") : String(localized: "Continue"))
-                            .fs(13.5, .semibold)
-                    }
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
-                    .background(RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Onbo.darkChip.opacity(token.isEmpty ? 0.4 : 0.88)))
-                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(.white.opacity(0.14)))
-                    .shadow(color: Color(hex: 0x1C1B22, opacity: 0.3), radius: 14, y: 12)
-                }
-                .buttonStyle(.plain)
-                .disabled(token.isEmpty || status == .checking)
-            }
-            .frame(width: 272)
-            .padding(.top, tokenFocused ? 20 : 32)
-            .id(Self.fieldAnchor)
+            // Same slot the design's OAuth buttons sit in, same width.
+            appleButton
+                .frame(width: 272)
+                .padding(.top, 32)
 
             if case let .failed(message) = status {
                 Text(message)
@@ -255,29 +165,45 @@ struct OnboardingView: View {
 
             Spacer(minLength: 0)
         }
-        // Tapping the empty space puts the keyboard away. It has to sit BEHIND
-        // the content: the same gesture on the scroll view covered the token
-        // field as well and won it, so a tap on the field focused and unfocused
-        // it in one go and nothing could ever be typed.
-        .background(
-            Color.clear
-                .contentShape(Rectangle())
-                .onTapGesture { tokenFocused = false }
-        )
     }
 
-    // A real round trip: the only honest way to know the token works is to use it.
-    private func connect() async {
-        let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
-        Config.apiToken = trimmed
-        status = .checking
-        do {
-            _ = try await API.shared.episodes()
-            tokenFocused = false
-            onDone()
-        } catch {
-            Config.apiToken = ""
-            status = .failed(error.localizedDescription)
+    private var appleButton: some View {
+        SignInWithAppleButton(.signIn) { request in
+            request.requestedScopes = [.email]
+            // Apple ne recoit que l'empreinte ; l'original part au serveur, qui
+            // verifie que les deux correspondent.
+            request.nonce = Auth.sha256Hex(nonce)
+        } onCompletion: { result in
+            Task { await handleApple(result) }
+        }
+        .signInWithAppleButtonStyle(.black)
+        .frame(height: 50)
+    }
+
+    private func handleApple(_ result: Result<ASAuthorization, Error>) async {
+        switch result {
+        case .failure:
+            status = .failed(AuthError.cancelled.localizedDescription)
+        case .success(let auth):
+            guard
+                let credential = auth.credential as? ASAuthorizationAppleIDCredential,
+                let data = credential.identityToken,
+                let token = String(data: data, encoding: .utf8)
+            else {
+                status = .failed(AuthError.noToken.localizedDescription)
+                return
+            }
+            status = .checking
+            do {
+                _ = try await Auth.exchange(path: "/auth/apple", token: token, nonce: nonce)
+                onDone()
+            } catch {
+                Config.sessionToken = ""
+                // Un nonce ne sert qu'une fois : sans ce renouvellement, un
+                // deuxieme essai apres echec serait refuse pour rejeu.
+                nonce = Auth.makeNonce()
+                status = .failed(error.localizedDescription)
+            }
         }
     }
 }

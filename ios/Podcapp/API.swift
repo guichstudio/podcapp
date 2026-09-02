@@ -324,12 +324,45 @@ actor API {
         return try await perform(request, as: type)
     }
 
+    /// The two sign-in endpoints are the only calls with no bearer token: they
+    /// are what mints one, so they skip `makeRequest`'s isConfigured guard.
+    /// Mirrors `perform`'s request/response handling so a sign-in failure reads
+    /// like every other one, just wrapped in AuthError instead of APIError.
+    func postUnauthenticated<Body: Encodable, T: Decodable>(path: String, body: Body, as type: T.Type) async throws -> T {
+        guard let endpoint = URL(string: Config.baseURL + path) else { throw APIError.badURL }
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(body)
+        request.timeoutInterval = 20
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch {
+            throw AuthError.server(error.localizedDescription)
+        }
+
+        let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+        guard (200..<300).contains(code) else {
+            let message = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+            throw AuthError.server(message ?? String(localized: "Sign-in was refused. Please try again."))
+        }
+
+        do {
+            return try decoder.decode(type, from: data)
+        } catch {
+            throw AuthError.server(Self.reason(error))
+        }
+    }
+
     private func makeRequest(for path: String) throws -> URLRequest {
         guard Config.isConfigured else { throw APIError.notConfigured }
         guard let endpoint = URL(string: Config.baseURL + path) else { throw APIError.badURL }
 
         var request = URLRequest(url: endpoint)
-        request.setValue("Bearer \(Config.apiToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(Config.sessionToken)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = 20
         return request
     }

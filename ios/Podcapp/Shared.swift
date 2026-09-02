@@ -31,12 +31,15 @@ enum Config {
         set { store.set(newValue, forKey: "baseURL") }
     }
 
-    static var apiToken: String {
+    // Le jeton de session emis par /auth/apple ou /auth/google. Il occupe la
+    // place ou vivait le jeton d'API : l'extension de partage lit cette meme
+    // case et n'a donc pas eu a changer.
+    static var sessionToken: String {
         get { store.string(forKey: "apiToken") ?? "" }
         set { store.set(newValue, forKey: "apiToken") }
     }
 
-    static var isConfigured: Bool { !apiToken.isEmpty }
+    static var isConfigured: Bool { !sessionToken.isEmpty }
 
     /// The language last accepted by the server, so the app does not repeat
     /// itself on every launch.
@@ -117,7 +120,7 @@ struct Ingest {
 
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(Config.apiToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(Config.sessionToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         request.timeoutInterval = 20

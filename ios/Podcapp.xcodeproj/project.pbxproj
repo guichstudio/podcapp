@@ -28,6 +28,7 @@
 		9966746AC7DBF194B4A4BDD3 /* Shared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61ADA2F70DC8C174D6BC7FED /* Shared.swift */; };
 		9A245B98DC67295A685A850F /* up.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 002F49E8C81F46B5536B22C6 /* up.m4a */; };
 		9D730A4B97D9E0080ECC3626 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 824C33DFB6EF3496881C22ED /* OnboardingView.swift */; };
+		9E6B3CE2CEEAE687EEE734C6 /* Auth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DB96D9BDF3CFB04B23AE71B /* Auth.swift */; };
 		9EF1A99FA8A006665138D5B0 /* InterTight-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = EC97B07C5A0B581294CAE728 /* InterTight-Regular.ttf */; };
 		9F33D933C9BB47BB506E235D /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119E53FD38F4BC6164F2565D /* TodayView.swift */; };
 		B3AEB9487C4C5D12B13A0C6A /* PlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D885E0D8C9C3F07766E1EB5 /* PlayerView.swift */; };
@@ -72,6 +73,7 @@
 		05A68A6D722F833D01F68802 /* ShareExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		09295238AFFDEE3FB0D35FCE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		0C6096E6E9F25B67F0F90338 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		0DB96D9BDF3CFB04B23AE71B /* Auth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Auth.swift; sourceTree = "<group>"; };
 		119E53FD38F4BC6164F2565D /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		14F37A9F90E96EC2331497B8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		1CD506100E61B995AEC6013E /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -126,6 +128,7 @@
 			children = (
 				402BB8486D430BDB64C0F3BE /* API.swift */,
 				0C6096E6E9F25B67F0F90338 /* Assets.xcassets */,
+				0DB96D9BDF3CFB04B23AE71B /* Auth.swift */,
 				C7279D361780FFACE1005925 /* Feedback.swift */,
 				09295238AFFDEE3FB0D35FCE /* Info.plist */,
 				FD5761D4ADCBA8E5525D7001 /* Podcapp.entitlements */,
@@ -333,6 +336,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E441AC6760F8DBC7B2BCC4A4 /* API.swift in Sources */,
+				9E6B3CE2CEEAE687EEE734C6 /* Auth.swift in Sources */,
 				63486EC1686F2F38EAB55CD6 /* BackstageView.swift in Sources */,
 				73F0A4FE46CA3E985AECE1A2 /* Components.swift in Sources */,
 				C24CAFC5DBE7B96445532F36 /* Feedback.swift in Sources */,

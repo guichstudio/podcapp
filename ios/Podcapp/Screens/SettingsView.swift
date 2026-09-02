@@ -10,7 +10,7 @@ import SwiftUI
 // and the RSS token live on the machine that generates episodes, and the API
 // exposes none of them. Inventing values here would be worse than saying so.
 struct SettingsView: View {
-    @State private var token = Config.apiToken
+    @State private var token = Config.sessionToken
     @State private var server = Config.baseURL
     @State private var connection: Connection = .idle
     // Config is plain UserDefaults and publishes nothing, so the saved state is
@@ -164,7 +164,7 @@ struct SettingsView: View {
         deletion = .working
         do {
             try await API.shared.deleteAccount()
-            Config.apiToken = ""
+            Config.sessionToken = ""
             Config.reportedLanguage = nil
             deletion = .idle
             Feedback.saved()
@@ -294,7 +294,7 @@ struct SettingsView: View {
 
         token = cleanToken
         server = resolvedServer
-        Config.apiToken = cleanToken
+        Config.sessionToken = cleanToken
         Config.baseURL = resolvedServer
         isConfigured = Config.isConfigured
         connection = .checking
