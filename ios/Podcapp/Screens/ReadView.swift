@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-// The Read tab, <sc-if value="{{ tabRead }}"> in ios/design/layout.html: two
+// The Read tab, tpl 70-98 of the v3 prototype (/tmp/podcapp-shots/v3.html): two
 // states in one file. The list of briefings, and one briefing as an article.
 
 struct ReadView: View {
@@ -77,7 +77,7 @@ struct ReadView: View {
                 Artwork()
                 VStack(alignment: .leading, spacing: 2) {
                     Text(Format.title(episode.title, on: episode.createdAt))
-                        .typo(Typo.rowTitleStrong)
+                        .typo(Typo.readRowTitle)
                         .foregroundStyle(Palette.ink)
                     Text(rowMeta(episode))
                         .typo(Typo.meta)
@@ -102,11 +102,19 @@ struct ReadView: View {
     @ViewBuilder
     private func badge(for episode: EpisodeSummary) -> some View {
         if !episode.chapters.isEmpty {
-            ReadBadge(label: String(localized: "Read"))
+            RowBadge(
+                label: String(localized: "Read"),
+                foreground: Palette.onDark,
+                background: Palette.ink
+            )
         } else if episode.status == "failed" {
             StatusChip(label: String(localized: "Failed"), kind: .danger)
         } else if episode.status == "ready" {
-            StatusChip(label: String(localized: "Audio only"), kind: .aired)
+            RowBadge(
+                label: String(localized: "Audio only"),
+                foreground: Palette.muted,
+                background: Palette.neutralChipBg
+            )
         } else {
             StatusChip(label: String(localized: "In progress"), kind: .neutral)
         }
@@ -138,6 +146,7 @@ private struct ArticleScreen: View {
     var onListen: (EpisodeDetail, Int) -> Void
 
     @State private var detail: Load<EpisodeDetail> = .loading
+    @State private var backstage: EpisodeDetail?
 
     var body: some View {
         ScrollView {
@@ -173,23 +182,34 @@ private struct ArticleScreen: View {
             .padding(.bottom, 24)
         }
         .task { await load() }
+        .sheet(item: $backstage) { ReadBackstageSheet(detail: $0) }
     }
 
     @ViewBuilder
     private func article(_ full: EpisodeDetail) -> some View {
-        Overline(text: Format.overline(full.createdAt), color: Palette.accentMuted)
-            .padding(.top, 8)
-        Text(Format.title(full.title, on: full.createdAt))
-            .typo(Typo.articleTitle)
-            .foregroundStyle(Palette.ink)
-            .padding(.top, 8)
         let meta = articleMeta(full)
-        if !meta.isEmpty {
-            Text(meta)
-                .typo(Typo.meta)
-                .foregroundStyle(Palette.muted)
-                .tabularNumerals()
-                .padding(.top, 6)
+        // Overline, headline and meta form one masthead block, closed by the
+        // rule the prototype hangs under the meta line.
+        VStack(alignment: .leading, spacing: 0) {
+            Overline(text: Format.overline(full.createdAt), color: Palette.accentMuted)
+                .padding(.top, 8)
+            Text(Format.title(full.title, on: full.createdAt))
+                .typo(Typo.articleTitle)
+                .foregroundStyle(Palette.ink)
+                .padding(.top, 8)
+                .fixedSize(horizontal: false, vertical: true)
+            if !meta.isEmpty {
+                Text(meta)
+                    .typo(Typo.meta)
+                    .foregroundStyle(Palette.muted)
+                    .tabularNumerals()
+                    .padding(.top, 6)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.bottom, 6)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Palette.divider).frame(height: 1)
         }
 
         if full.chapters.isEmpty {
@@ -201,6 +221,22 @@ private struct ArticleScreen: View {
             ForEach(full.chapters.indices, id: \.self) { index in
                 chapter(full, index: index)
             }
+            Button { backstage = full } label: {
+                Text("How this episode was made →")
+                    .typo(Typo.buttonMedium)
+                    .foregroundStyle(Palette.body)
+                    .frame(maxWidth: .infinity)
+                    .padding(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Radius.detail, style: .continuous)
+                            .strokeBorder(
+                                Palette.dashedBorder,
+                                style: StrokeStyle(lineWidth: 1, dash: [4, 3])
+                            )
+                    )
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 18)
         }
     }
 
@@ -220,12 +256,14 @@ private struct ArticleScreen: View {
                 Text(chapter.title)
                     .typo(Typo.chapterTitle)
                     .foregroundStyle(Palette.ink)
+                    .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             ForEach(paragraphs.indices, id: \.self) { paragraph in
                 Text(paragraphs[paragraph])
                     .typo(Typo.paragraph)
                     .foregroundStyle(Palette.prose)
+                    .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             if listenable || sourceLine != nil {
@@ -235,9 +273,13 @@ private struct ArticleScreen: View {
                             .buttonStyle(.plain)
                     }
                     if let sourceLine {
+                        // Styled as the prototype's source link, but plain text:
+                        // the app has no way to open a chapter's sources from
+                        // here, and an underline with no destination lies.
                         Text(sourceLine)
-                            .typo(Typo.metaSmall)
+                            .typo(Typo.linkSmall)
                             .foregroundStyle(Palette.accentDeep)
+                            .padding(.vertical, 7)
                     }
                 }
             }
@@ -251,14 +293,15 @@ private struct ArticleScreen: View {
         HStack(spacing: 6) {
             Image(systemName: "play.fill")
                 .font(.system(size: 9))
-            Text("Listen here")
+            Text("Listen from here")
                 .typo(Typo.pillButton)
         }
         .foregroundStyle(Palette.ink)
         .padding(.horizontal, 13)
         .padding(.vertical, 7)
-        .background(Palette.ink.opacity(0.04), in: Capsule())
-        .overlay(Capsule().strokeBorder(Palette.ink.opacity(0.14), lineWidth: 1))
+        .background(Palette.pillFill, in: Capsule())
+        .overlay(Capsule().strokeBorder(Palette.cardBorder, lineWidth: 1))
+        .dropShadow(Palette.pillShadow)
     }
 
     private func articleMeta(_ full: EpisodeDetail) -> String {
@@ -295,6 +338,41 @@ private struct ArticleScreen: View {
         } catch {
             detail = .failed(error.localizedDescription)
         }
+    }
+}
+
+/// The same backstage the Today hero and the player show, reached from the
+/// dashed button at the foot of an article. Its own wrapper rather than a
+/// shared one: each entry point owns the chrome around the report.
+private struct ReadBackstageSheet: View {
+    let detail: EpisodeDetail
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .firstTextBaseline) {
+                    Overline(text: String(localized: "How it was made"), color: Palette.accentDeep)
+                    Spacer(minLength: 8)
+                    Button("Close") { dismiss() }
+                        .typo(Typo.navButton)
+                        .foregroundStyle(Palette.accentDeep)
+                }
+                .padding(.bottom, 12)
+
+                Text(Format.title(detail.title, on: detail.createdAt))
+                    .typo(Typo.playerTitle)
+                    .foregroundStyle(Palette.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.bottom, 16)
+
+                EpisodeBackstage(detail: detail)
+            }
+            .padding(20)
+        }
+        .background(ScreenBackground())
+        .presentationDragIndicator(.visible)
     }
 }
 
@@ -358,26 +436,29 @@ private struct StatusPanel: View {
     }
 }
 
-/// The dark pill on a readable episode. StatusChip covers the muted pairs, this
-/// is the one white on ink badge the markup uses.
-private struct ReadBadge: View {
+/// The pill at the end of an episode row. StatusChip carries the app's status
+/// vocabulary; this one takes its pair directly because the two badges the
+/// prototype draws here — white on ink, muted on a grey wash — are not in it.
+private struct RowBadge: View {
     let label: String
+    let foreground: Color
+    let background: Color
 
     var body: some View {
         Text(label)
             .textCase(.uppercase)
             .typo(Typo.chip)
-            .foregroundStyle(Palette.onDark)
+            .foregroundStyle(foreground)
             .lineLimit(1)
             .padding(.horizontal, 9)
             .padding(.vertical, 4)
-            .background(Palette.ink, in: Capsule())
+            .background(background, in: Capsule())
     }
 }
 
 /// The episode thumbnail. A missing asset leaves a tinted tile, never a hole.
 private struct Artwork: View {
-    private let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+    private let shape = RoundedRectangle(cornerRadius: Radius.logo, style: .continuous)
 
     var body: some View {
         Group {
@@ -389,7 +470,7 @@ private struct Artwork: View {
         }
         .frame(width: 40, height: 40)
         .clipShape(shape)
-        .overlay(shape.strokeBorder(Palette.ink.opacity(0.1), lineWidth: 1))
+        .overlay(shape.strokeBorder(Palette.tileBorder, lineWidth: 1))
     }
 }
 

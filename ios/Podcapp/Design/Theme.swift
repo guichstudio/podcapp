@@ -136,6 +136,9 @@ enum Palette {
     static let innerHighlightSoft = Color.white.opacity(0.90)
     /// The same highlight over the accent gradient of a filled button.
     static let innerHighlightOnAccent = Color.white.opacity(0.30)
+    /// The mini player and the player's source bar carry a brighter edge than a
+    /// card does, `rgba(255,255,255,.88)`: they float over everything else.
+    static let miniBorder = Color.white.opacity(0.88)
 
     // Tab bar (floating capsule, from v3.html's #dc-root markup)
     static let tabInactive = Color(hex: 0x8A87A0)
@@ -174,6 +177,19 @@ enum Palette {
         startPoint: .leading,
         endPoint: .trailing
     )
+
+    /// The glass edge, as a stroke. CSS gives a glass surface two things at
+    /// once: a 1px border all the way round, and an `inset 0 1px 0` highlight
+    /// on its top edge only. SwiftUI has no inset shadow, so one gradient
+    /// stroke carries both — highlight at the top, the border's own alpha at
+    /// the bottom. Pass the border the surface actually uses.
+    static func glassEdge(_ border: Color, highlight: Color = innerHighlight) -> LinearGradient {
+        LinearGradient(colors: [highlight, border], startPoint: .top, endPoint: .bottom)
+    }
+
+    /// Over `accentGradient`, where the surface has no border of its own and
+    /// only the highlight exists.
+    static let accentEdge = glassEdge(.clear, highlight: innerHighlightOnAccent)
 }
 
 // MARK: - Corner radii
@@ -271,6 +287,10 @@ extension Palette {
     static let darkPillShadow = Shadow(Color(hex: 0x1C1B22, opacity: 0.25), radius: 9, y: 8)
     /// The player's 68pt play button. `0 14px 34px rgba(28,27,34,.28)`
     static let playButtonShadow = Shadow(Color(hex: 0x1C1B22, opacity: 0.28), radius: 17, y: 14)
+    /// The playing-bars badge pinned to the artwork's corner.
+    /// `0 2px 8px rgba(28,27,34,.25)` — tight and dark, unlike the ambient
+    /// violet drops: it reads as a chip lying on the cover.
+    static let badgeShadow = Shadow(Color(hex: 0x1C1B22, opacity: 0.25), radius: 4, y: 2)
 
     /// The filled call-to-action. `0 12px 30px rgba(107,91,204,.4)`
     static let ctaShadow = Shadow(Color(hex: 0x6B5BCC, opacity: 0.40), radius: 15, y: 12)
@@ -521,6 +541,11 @@ extension Typo {
     static let rowLabelStrong = TypoStyle(size: 13.5, weight: .semibold)
     static let rowLabel = TypoStyle(size: 13.5, weight: .regular)
     static let listTitle = TypoStyle(size: 13.5, weight: .regular, lineHeight: 1.35)
+    /// The lead line of a sheet section, `13px/1.5`.
+    static let sheetLead = TypoStyle(size: 13, weight: .regular, lineHeight: 1.5)
+    /// The superseded half of a corrected sentence: lighter and a size down, so
+    /// the fix reads first and the original reads as history.
+    static let struckSentence = TypoStyle(size: 12, weight: .light, lineHeight: 1.45)
     /// Onboarding subtitle.
     static let onboardingBody = TypoStyle(size: 13.5, weight: .regular, lineHeight: 1.55)
     static let paragraph = TypoStyle(size: 15, weight: .light, lineHeight: 1.7)

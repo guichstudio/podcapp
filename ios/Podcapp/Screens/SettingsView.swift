@@ -1,6 +1,10 @@
 import SwiftUI
 
-// The Settings tab of ios/design/layout.html (<sc-if value="{{ tabSettings }}">).
+// The Settings tab of the v3 prototype (/tmp/podcapp-shots/v3.html): a stack of
+// blurred glass groups 12pt apart -- a language card, the voice picker, the
+// read-only rows, the how-to-share row -- with footnotes and underlined links
+// between them.
+//
 // Signing in happens once, in onboarding's Sign in with Apple button; this
 // screen only ever shows an already-signed-in account -- its own device in
 // "Signed-in devices" below, and the way out is Sign out or Delete my
@@ -9,6 +13,9 @@ import SwiftUI
 // The generation settings below are read-only on purpose: voice, target length
 // and the RSS token live on the machine that generates episodes, and the API
 // exposes none of them. Inventing values here would be worse than saying so.
+// Where the prototype offers a control the API cannot serve -- an EN/FR switch,
+// a 15-minute length, a schedule toggle -- only its visual treatment is kept
+// and the app's own fact is shown in it.
 struct SettingsView: View {
     // Config is plain UserDefaults and publishes nothing, so the saved state is
     // mirrored here.
@@ -50,11 +57,6 @@ struct SettingsView: View {
                     .padding(.top, 6)
                     .padding(.bottom, 16)
 
-                if isConfigured {
-                    devicesSection
-                        .padding(.bottom, 22)
-                }
-
                 languageCard
                     .padding(.bottom, 12)
 
@@ -66,53 +68,37 @@ struct SettingsView: View {
                 feedbackCard
                     .padding(.bottom, 12)
 
-                Text("The language follows your phone and the voice is yours to pick; the rest is decided by the pipeline.")
-                    .typo(Typo.metaSmall)
-                    .foregroundStyle(Palette.muted2)
-                    .padding(.horizontal, 4)
-                    .padding(.bottom, 8)
+                generationCard
 
                 if case let .failed(message) = meState {
-                    // Without this, the rows below quietly fall back to
+                    // Without this, the rows above quietly fall back to
                     // placeholder values with nothing saying they are not the
                     // account's real settings.
-                    Text(message)
-                        .typo(Typo.metaSmall)
-                        .foregroundStyle(Palette.danger)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, 4)
-                        .padding(.bottom, 8)
+                    footnote(Text(message), color: Palette.danger)
                 }
 
-                generationCard
+                footnote(Text("The language follows your phone and the voice is yours to pick; the rest is decided by the pipeline."))
 
                 shareHelpCard
                     .padding(.top, 12)
 
-                Text("The RSS feed works in Apple Podcasts, Overcast and the rest. Its address carries a token that is the only key to your episodes: share it with nobody.")
-                    .typo(Typo.metaSmall)
-                    .foregroundStyle(Palette.muted2)
-                    .padding(.top, 14)
-                    .padding(.horizontal, 4)
+                footnote(Text("The RSS feed works in Apple Podcasts, Overcast and the rest. Its address carries a token that is the only key to your episodes: share it with nobody."))
 
-                HStack(spacing: 18) {
-                    legalLinks
-                    replayLink
+                // The prototype has no account section -- it predates sign-in --
+                // so the devices list borrows the voice card's shape: a header
+                // over hairline-separated rows.
+                if isConfigured {
+                    devicesSection
+                        .padding(.top, 22)
                 }
-                .padding(.top, 20)
-                .padding(.horizontal, 4)
 
-                signOutButton
-                    .padding(.top, 28)
-                    .padding(.horizontal, 4)
-
-                deleteAccountButton
-                    .padding(.top, 14)
+                accountLinks
+                    .padding(.top, 16)
                     .padding(.horizontal, 4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 20)
-            .padding(.top, 10)
+            .padding(.top, 2)
             .padding(.bottom, 24)
         }
         .background(ScreenBackground())
@@ -136,251 +122,114 @@ struct SettingsView: View {
         }
     }
 
-    // App Review 5.1.1 wants the privacy policy reachable from inside the app,
-    // not only from the App Store listing, and an app that lets you create an
-    // account has to state its terms somewhere a user can find them. Both
-    // follow Config.baseURL, so a build pointed elsewhere reads that server's
-    // documents rather than hardcoded ones.
-    private var legalLinks: some View {
-        HStack(spacing: 14) {
-            legalLink(path: "/privacy", label: Text("Privacy policy"))
-            legalLink(path: "/terms", label: Text("Terms of Use"))
-        }
-    }
+    // MARK: - Pieces the prototype repeats
 
-    @ViewBuilder
-    private func legalLink(path: String, label: Text) -> some View {
-        let base = Config.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        let origin = base.hasSuffix("/") ? String(base.dropLast()) : base
-        if let url = URL(string: origin + path), url.scheme?.hasPrefix("http") == true {
-            // The underline goes on the Text, not on the Link: on the Link the
-            // modifier compiles and does nothing, and a caption-coloured line of
-            // text with no affordance does not read as tappable.
-            Link(destination: url) {
-                label
-                    .typo(Typo.metaSmall)
-                    .underline()
-            }
-            .foregroundStyle(Palette.muted2)
-        }
-    }
+    /// The prototype's settings group: `rgba(255,255,255,.52)` over a 26px
+    /// backdrop blur, a white hairline, radius 16 and the ambient card shadow.
+    /// Local to this screen because `PlainCard` is the opaquer card the story
+    /// and episode lists use, and other screens depend on it as it is.
+    private struct SettingsCard<Content: View>: View {
+        @ViewBuilder var content: Content
 
-    // MARK: - Appareils connectes
+        private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: Radius.group, style: .continuous) }
 
-    private var devicesSection: some View {
-        PlainCard(cornerRadius: 16, padding: 0) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Signed-in devices")
-                    .typo(Typo.listTitle)
-                    .foregroundStyle(Palette.ink)
-                switch devicesState {
-                case .loading:
-                    EmptyView()
-                case let .loaded(devices):
-                    VStack(spacing: 0) {
-                        ForEach(Array(devices.enumerated()), id: \.element.id) { index, device in
-                            deviceRow(device)
-                            if index < devices.count - 1 {
-                                Rectangle().fill(Palette.hairline).frame(height: 1)
-                            }
-                        }
-                    }
-                case let .failed(message):
-                    Text(message)
-                        .typo(Typo.metaSmall)
-                        .foregroundStyle(Palette.danger)
+        var body: some View {
+            content
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background {
+                    shape.fill(Palette.panelFill)
+                        .background(.ultraThinMaterial, in: shape)
                 }
-            }
+                // Rows draw their separators edge to edge; the clip is what
+                // keeps them off the rounded corners.
+                .clipShape(shape)
+                .overlay {
+                    // CSS pairs the drop shadow with `inset 0 1px 0 white`.
+                    // SwiftUI has no inset shadow, so the border itself fades
+                    // from that highlight at the top to its base alpha, the
+                    // same trick the tab bar uses.
+                    shape.strokeBorder(Palette.glassEdge(Palette.panelBorder), lineWidth: 1)
+                }
+                .dropShadow(Palette.cardShadow)
+        }
+    }
+
+    /// The 15/16 padding every row and card body in the prototype uses.
+    private func rowPadding<V: View>(_ content: V) -> some View {
+        content
             .padding(.horizontal, 16)
             .padding(.vertical, 15)
-        }
-        .task { await loadDevices() }
     }
 
-    // Every "iPhone" in this list can look identical -- UIDevice.current.name
-    // returns that generic label on iOS 16+ without a dedicated entitlement
-    // (see Auth.deviceName) -- so last-seen time and the current-device marker
-    // are what actually let someone tell the rows apart before picking one to
-    // revoke.
-    private func deviceRow(_ device: DeviceSession) -> some View {
-        HStack(spacing: 10) {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(device.device_name)
-                        .typo(Typo.rowTitle)
-                        .foregroundStyle(Palette.ink)
-                    if device.current {
-                        Text("This device")
-                            .textCase(.uppercase)
-                            .typo(Typo.chip)
-                            .foregroundStyle(Palette.muted)
-                    }
-                }
-                Text(Self.lastSeenLabel(device.last_seen_at))
-                    .typo(Typo.metaSmall)
-                    .foregroundStyle(Palette.muted2)
-            }
-            Spacer(minLength: 0)
-            Button {
-                Task { await revoke(device) }
-            } label: {
-                // "Sign out" is reserved for the standalone button below,
-                // which always acts on this device's own session: a row can
-                // point at someone else's, so "Revoke" is what stays true
-                // regardless of which row it is on.
-                Text("Revoke")
-                    .typo(Typo.metaSmall)
-                    .foregroundStyle(Palette.muted2)
-                    .underline()
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.vertical, 6)
+    private func hairline() -> some View {
+        Rectangle().fill(Palette.hairline).frame(height: 1)
     }
 
-    // A row can be this device's own session: revoking it the same way as any
-    // other row would race the reload just below against a 401 walking this
-    // device back to onboarding on its own. Routing through Auth.signOut()
-    // instead makes that deterministic -- server revoke, then local clear --
-    // and it is the same call the standalone Sign out button makes.
-    private func revoke(_ device: DeviceSession) async {
-        if device.current {
-            await Auth.signOut()
-            return
-        }
-        do {
-            try await API.shared.revokeSession(id: device.id)
-            await loadDevices()
-        } catch {
-            // Without this, a failed revoke and a successful one look
-            // identical: the row just persists either way.
-            devicesState = .failed(error.localizedDescription)
-        }
+    /// The grey note that sits between two groups, inset 4pt like the prototype's.
+    private func footnote(_ text: Text, color: Color = Palette.muted2) -> some View {
+        text
+            .typo(Typo.note)
+            .foregroundStyle(color)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.top, 14)
+            .padding(.horizontal, 4)
     }
 
-    private func loadDevices() async {
-        do {
-            devicesState = .loaded(try await API.shared.sessions())
-        } catch {
-            devicesState = .failed(error.localizedDescription)
-        }
-    }
-
-    // Today shows a time, any other day shows day + month -- same split
-    // LibraryRow.stamp uses for capturedAt, so a saved source and a device's
-    // last-seen read the same way.
-    private static let lastSeenTime: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = AppLocale.current
-        formatter.dateFormat = "HH:mm"
-        return formatter
-    }()
-
-    private static let lastSeenDay: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = AppLocale.current
-        formatter.setLocalizedDateFormatFromTemplate("d MMM")
-        return formatter
-    }()
-
-    private static func lastSeenLabel(_ date: Date) -> String {
-        let stamp = Calendar.current.isDateInToday(date) ? lastSeenTime.string(from: date) : lastSeenDay.string(from: date)
-        return String(localized: "Last seen \(stamp)")
-    }
-
-    // MARK: - Deconnexion
-
-    private var signOutButton: some View {
-        Button {
-            signOut()
-        } label: {
-            Text("Sign out")
-                .typo(Typo.metaSmall)
-                .foregroundStyle(Palette.muted2)
-                .underline()
-        }
-        .buttonStyle(.plain)
-        .disabled(!isConfigured)
-    }
-
-    private func signOut() {
-        Feedback.tap()
-        Task { await Auth.signOut() }
-    }
-
-    // MARK: - Suppression du compte
-
-    @State private var confirmingDeletion = false
-    @State private var deletion: Deletion = .idle
-    enum Deletion: Equatable { case idle, working, failed(String) }
-
-    // App Review 5.1.1(v): an account you can sign into is an account you can
-    // delete from inside the app. It is also what makes the privacy policy's
-    // "erasure is final" a fact rather than a promise kept by hand.
-    private var deleteAccountButton: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Button {
-                confirmingDeletion = true
-            } label: {
-                Text(deletion == .working ? String(localized: "Deleting…") : String(localized: "Delete my account"))
-                    .typo(Typo.metaSmall)
-                    .foregroundStyle(Palette.danger)
-                    .underline()
-            }
-            .buttonStyle(.plain)
-            .disabled(deletion == .working || !isConfigured)
-            if case let .failed(message) = deletion {
-                Text(message)
-                    .typo(Typo.metaSmall)
-                    .foregroundStyle(Palette.danger)
-            }
-        }
-        .confirmationDialog("Delete your account?", isPresented: $confirmingDeletion, titleVisibility: .visible) {
-            Button("Delete everything", role: .destructive) { Task { await deleteAccount() } }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Your sources, briefings, audio and feed are erased for good. Nothing is kept.")
-        }
-    }
-
-    @MainActor
-    private func deleteAccount() async {
-        deletion = .working
-        do {
-            try await API.shared.deleteAccount()
-            // The server has already revoked every session and both tokens
-            // for this account (see DELETE /me): nothing left to tell it, so
-            // this is the same local-only clear the 401 path uses, not
-            // Auth.signOut() -- that would just spend a network call getting
-            // a 401 back for a session already dead.
-            Config.endSession()
-            deletion = .idle
-            Feedback.saved()
-        } catch {
-            deletion = .failed(error.localizedDescription)
-            Feedback.refused()
-        }
+    /// The prototype's only link style: 12.5pt semibold, underlined, violet.
+    /// Sign out and Delete take the same shape in their own colour, so the
+    /// footer reads as one family rather than four inventions.
+    private func linkLabel(_ text: Text, color: Color = Palette.accentDeep) -> some View {
+        text
+            .typo(Typo.buttonMedium)
+            .foregroundStyle(color)
+            .underline()
+            .padding(.vertical, 7)
+            .contentShape(Rectangle())
     }
 
     // MARK: - Langue
 
     private var languageCard: some View {
-        PlainCard(cornerRadius: 16, padding: 0) {
-            HStack(spacing: 10) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Language")
-                        .typo(Typo.listTitle)
-                        .foregroundStyle(Palette.ink)
-                    Text("Interface and narration follow your phone. Change it in iOS Settings.")
-                        .typo(Typo.metaSmall)
-                        .foregroundStyle(Palette.muted2)
+        SettingsCard {
+            rowPadding(
+                HStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Language")
+                            .typo(Typo.rowLabel)
+                            .foregroundStyle(Palette.ink)
+                        Text("Interface and narration follow your phone. Change it in iOS Settings.")
+                            .typo(Typo.metaSmall)
+                            .foregroundStyle(Palette.muted2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 0)
+                    languagePicker
                 }
-                Spacer(minLength: 0)
-                languagePicker
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 15)
+            )
         }
+    }
+
+    // A readout, not a switch: iOS decides which localisation resolved, and the
+    // API has no language field to write. Deliberately not a Button -- the
+    // prototype's segmented shape with nothing tappable in it.
+    private var languagePicker: some View {
+        HStack(spacing: 0) {
+            languageOption("EN", selected: AppLocale.isEnglish)
+            languageOption("FR", selected: !AppLocale.isEnglish)
+        }
+        .clipShape(Capsule())
+        .overlay(Capsule().strokeBorder(Palette.controlBorder, lineWidth: 1))
+        .fixedSize()
+        .accessibilityElement(children: .combine)
+    }
+
+    private func languageOption(_ label: String, selected: Bool) -> some View {
+        Text(label)
+            .typo(Typo.buttonSmall)
+            .foregroundStyle(selected ? Palette.onDark : Palette.body)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .background(selected ? Palette.ink : Color.clear)
     }
 
     // MARK: - Voix
@@ -391,27 +240,27 @@ struct SettingsView: View {
     /// promise: there is no sample player here, the next episode is the sample.
     private var voiceCard: some View {
         let options = voiceOptions
-        return PlainCard(cornerRadius: 16, padding: 0) {
-            VStack(alignment: .leading, spacing: 12) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Narration voice")
-                        .typo(Typo.listTitle)
-                        .foregroundStyle(Palette.ink)
-                    Text("ElevenLabs · previewed on the next generation")
-                        .typo(Typo.metaSmall)
-                        .foregroundStyle(Palette.muted2)
-                }
-                ScrollView(.horizontal) {
-                    HStack(spacing: 8) {
+        return SettingsCard {
+            rowPadding(
+                VStack(alignment: .leading, spacing: 11) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Narration voice")
+                            .typo(Typo.rowLabel)
+                            .foregroundStyle(Palette.ink)
+                        Text("ElevenLabs · previewed on the next generation")
+                            .typo(Typo.metaSmall)
+                            .foregroundStyle(Palette.muted2)
+                    }
+                    // The server offers three English voices and two French
+                    // ones, so the prototype's equal-width row always fits and
+                    // never needs to scroll.
+                    HStack(spacing: 7) {
                         ForEach(options) { option in
-                            voiceChip(option, selected: option.id == selectedVoiceId)
+                            voiceTile(option, selected: option.id == selectedVoiceId)
                         }
                     }
                 }
-                .scrollIndicators(.hidden)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 15)
+            )
         }
     }
 
@@ -423,7 +272,7 @@ struct SettingsView: View {
 
     private var selectedVoiceId: String? { me?.voiceId ?? me?.voice }
 
-    private func voiceChip(_ option: API.VoiceOption, selected: Bool) -> some View {
+    private func voiceTile(_ option: API.VoiceOption, selected: Bool) -> some View {
         Button {
             guard !selected else { return }
             Feedback.select()
@@ -439,80 +288,45 @@ struct SettingsView: View {
             VStack(spacing: 2) {
                 Text(option.name)
                     .typo(Typo.buttonMedium)
-                    .foregroundStyle(selected ? Palette.onDark : Palette.ink)
+                    .foregroundStyle(selected ? Palette.onDark : Palette.body)
                 Text(option.style)
-                    .typo(Typo.metaTiny)
-                    .foregroundStyle(selected ? Palette.onDark.opacity(0.7) : Palette.muted2)
+                    .typo(Typo.tileCaption)
+                    .foregroundStyle(selected ? Palette.onDarkMuted : Palette.muted2)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(selected ? Palette.ink : Palette.cardFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Palette.cardBorder, lineWidth: selected ? 0 : 1))
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 9)
+            .background(
+                selected ? AnyShapeStyle(Palette.ink) : AnyShapeStyle(Palette.pillFill),
+                in: RoundedRectangle(cornerRadius: Radius.tile, style: .continuous)
+            )
+            // The outline stays on the selected tile too, exactly as the
+            // prototype draws it -- it is what keeps the dark tile from
+            // looking a pixel larger than its neighbours.
+            .overlay(
+                RoundedRectangle(cornerRadius: Radius.tile, style: .continuous)
+                    .strokeBorder(Palette.tileBorder, lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
-    }
-
-    // MARK: - Aide au partage, intro
-
-    private var shareHelpCard: some View {
-        Button { showingShareHelp = true } label: {
-            PlainCard(cornerRadius: 16, padding: 0) {
-                HStack(spacing: 10) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("How to share a link in Podcapp")
-                            .typo(Typo.listTitle)
-                            .foregroundStyle(Palette.ink)
-                        Text("The gesture, in 3 steps")
-                            .typo(Typo.metaSmall)
-                            .foregroundStyle(Palette.muted2)
-                    }
-                    Spacer(minLength: 0)
-                    Text("›")
-                        .typo(Typo.navButton)
-                        .foregroundStyle(Palette.muted2)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 15)
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var replayLink: some View {
-        Button {
-            Feedback.tap()
-            NotificationCenter.default.post(name: .podcappReplayOnboarding, object: nil)
-        } label: {
-            Text("Replay the intro")
-                .typo(Typo.metaSmall)
-                .foregroundStyle(Palette.muted2)
-                .underline()
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func copyFeedLink() {
-        guard let url = me?.feedURL else { return }
-        UIPasteboard.general.string = url.absoluteString
-        copiedFeed = true
-        Feedback.saved()
-        Task {
-            try? await Task.sleep(for: .seconds(2))
-            copiedFeed = false
-        }
+        .accessibilityLabel(Text(option.name))
+        .accessibilityValue(Text(option.style))
+        .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
     }
 
     // MARK: - Retours
 
     private var feedbackCard: some View {
-        PlainCard(cornerRadius: 16, padding: 0) {
+        SettingsCard {
             VStack(spacing: 0) {
                 feedbackRow(
                     title: String(localized: "Haptics"),
                     sub: String(localized: "A tap under your finger on tabs, playback and chapters."),
                     isOn: $haptics
                 )
-                Rectangle().fill(Palette.cardBorder).frame(height: 1)
+                hairline()
                 feedbackRow(
                     title: String(localized: "Sounds"),
                     sub: String(localized: "Four short sounds: saved, refused, generation queued, next chapter."),
@@ -523,44 +337,24 @@ struct SettingsView: View {
     }
 
     private func feedbackRow(title: String, sub: String, isOn: Binding<Bool>) -> some View {
-        HStack(spacing: 10) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .typo(Typo.listTitle)
-                    .foregroundStyle(Palette.ink)
-                Text(sub)
-                    .typo(Typo.metaSmall)
-                    .foregroundStyle(Palette.muted2)
+        rowPadding(
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .typo(Typo.rowLabel)
+                        .foregroundStyle(Palette.ink)
+                    Text(sub)
+                        .typo(Typo.metaSmall)
+                        .foregroundStyle(Palette.muted2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+                Toggle("", isOn: isOn)
+                    .labelsHidden()
+                    .tint(Palette.ink)
+                    .accessibilityLabel(Text(title))
             }
-            Spacer(minLength: 0)
-            Toggle("", isOn: isOn)
-                .labelsHidden()
-                .tint(Palette.ink)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 15)
-    }
-
-    // Read-only, and honest about it: the app is localised in both, and iOS —
-    // not this control — decides which one it resolved to.
-    private var languagePicker: some View {
-        HStack(spacing: 0) {
-            languageOption("FR", selected: !AppLocale.isEnglish)
-            languageOption("EN", selected: AppLocale.isEnglish)
-        }
-        .clipShape(Capsule())
-        .overlay(Capsule().strokeBorder(Palette.ink.opacity(0.14), lineWidth: 1))
-        .fixedSize()
-    }
-
-    private func languageOption(_ label: String, selected: Bool) -> some View {
-        Text(label)
-            .typo(Typo.buttonSmall)
-            .foregroundStyle(selected ? Palette.onDark : Palette.body)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 7)
-            .background(selected ? Palette.ink : Color.clear)
-            .opacity(selected ? 1 : 0.4)
+        )
     }
 
     // MARK: - Fabrication
@@ -613,14 +407,12 @@ struct SettingsView: View {
 
     private var generationCard: some View {
         let rows = generationRows
-        return PlainCard(cornerRadius: 16, padding: 0) {
+        return SettingsCard {
             VStack(spacing: 0) {
                 ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
                     generationRowView(row)
                     if index < rows.count - 1 {
-                        Rectangle()
-                            .fill(Palette.hairline)
-                            .frame(height: 1)
+                        hairline()
                     }
                 }
             }
@@ -638,24 +430,306 @@ struct SettingsView: View {
     }
 
     private func generationRowBody(_ row: GenerationRow) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+        rowPadding(
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(row.label)
+                        .typo(Typo.rowLabel)
+                        .foregroundStyle(Palette.ink)
+                    Text(row.sub)
+                        .typo(Typo.metaSmall)
+                        .foregroundStyle(Palette.muted2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+                Text(row.value)
+                    .typo(Typo.buttonMedium)
+                    .foregroundStyle(Palette.body)
+                    .multilineTextAlignment(.trailing)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        )
+    }
+
+    // MARK: - Aide au partage
+
+    private var shareHelpCard: some View {
+        Button { showingShareHelp = true } label: {
+            SettingsCard {
+                rowPadding(
+                    HStack(spacing: 10) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("How to share a link in Podcapp")
+                                .typo(Typo.rowLabel)
+                                .foregroundStyle(Palette.ink)
+                            Text("The gesture, in 3 steps")
+                                .typo(Typo.metaSmall)
+                                .foregroundStyle(Palette.muted2)
+                        }
+                        Spacer(minLength: 0)
+                        Text(verbatim: "›")
+                            .typo(Self.chevron)
+                            // Same grey the tab bar's idle labels use; the
+                            // prototype writes #8A87A0 in both places.
+                            .foregroundStyle(Palette.tabInactive)
+                    }
+                )
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// 15pt regular: the disclosure arrow's size, which no shared role covers.
+    private static let chevron = TypoStyle(size: 15, weight: .regular)
+
+    private func copyFeedLink() {
+        guard let url = me?.feedURL else { return }
+        UIPasteboard.general.string = url.absoluteString
+        copiedFeed = true
+        Feedback.saved()
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            copiedFeed = false
+        }
+    }
+
+    // MARK: - Appareils connectes
+
+    private var devicesSection: some View {
+        SettingsCard {
+            rowPadding(
+                VStack(alignment: .leading, spacing: 11) {
+                    Text("Signed-in devices")
+                        .typo(Typo.rowLabel)
+                        .foregroundStyle(Palette.ink)
+                    switch devicesState {
+                    case .loading:
+                        EmptyView()
+                    case let .loaded(devices):
+                        VStack(spacing: 0) {
+                            ForEach(Array(devices.enumerated()), id: \.element.id) { index, device in
+                                deviceRow(device)
+                                if index < devices.count - 1 {
+                                    hairline()
+                                }
+                            }
+                        }
+                    case let .failed(message):
+                        Text(message)
+                            .typo(Typo.note)
+                            .foregroundStyle(Palette.danger)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            )
+        }
+        .task { await loadDevices() }
+    }
+
+    // Every "iPhone" in this list can look identical -- UIDevice.current.name
+    // returns that generic label on iOS 16+ without a dedicated entitlement
+    // (see Auth.deviceName) -- so last-seen time and the current-device marker
+    // are what actually let someone tell the rows apart before picking one to
+    // revoke.
+    private func deviceRow(_ device: DeviceSession) -> some View {
+        HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(row.label)
-                    .typo(Typo.listTitle)
-                    .foregroundStyle(Palette.ink)
-                Text(row.sub)
+                HStack(spacing: 6) {
+                    Text(device.device_name)
+                        .typo(Typo.rowLabel)
+                        .foregroundStyle(Palette.ink)
+                    if device.current {
+                        // A chip rather than loose grey text: the prototype
+                        // marks a row's status with the same pill everywhere.
+                        StatusChip(label: String(localized: "This device"), kind: .neutral)
+                    }
+                }
+                Text(Self.lastSeenLabel(device.last_seen_at))
                     .typo(Typo.metaSmall)
                     .foregroundStyle(Palette.muted2)
             }
             Spacer(minLength: 0)
-            Text(row.value)
-                .typo(Typo.buttonMedium)
-                .foregroundStyle(Palette.body)
-                .multilineTextAlignment(.trailing)
-                .fixedSize(horizontal: false, vertical: true)
+            Button {
+                Task { await revoke(device) }
+            } label: {
+                // "Sign out" is reserved for the standalone link below,
+                // which always acts on this device's own session: a row can
+                // point at someone else's, so "Revoke" is what stays true
+                // regardless of which row it is on.
+                Text("Revoke")
+                    .typo(Typo.metaSmall)
+                    .foregroundStyle(Palette.muted2)
+                    .underline()
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 15)
+        .padding(.vertical, 8)
+    }
+
+    // A row can be this device's own session: revoking it the same way as any
+    // other row would race the reload just below against a 401 walking this
+    // device back to onboarding on its own. Routing through Auth.signOut()
+    // instead makes that deterministic -- server revoke, then local clear --
+    // and it is the same call the standalone Sign out link makes.
+    private func revoke(_ device: DeviceSession) async {
+        if device.current {
+            await Auth.signOut()
+            return
+        }
+        do {
+            try await API.shared.revokeSession(id: device.id)
+            await loadDevices()
+        } catch {
+            // Without this, a failed revoke and a successful one look
+            // identical: the row just persists either way.
+            devicesState = .failed(error.localizedDescription)
+        }
+    }
+
+    private func loadDevices() async {
+        do {
+            devicesState = .loaded(try await API.shared.sessions())
+        } catch {
+            devicesState = .failed(error.localizedDescription)
+        }
+    }
+
+    // Today shows a time, any other day shows day + month -- same split
+    // LibraryRow.stamp uses for capturedAt, so a saved source and a device's
+    // last-seen read the same way.
+    private static let lastSeenTime: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = AppLocale.current
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
+
+    private static let lastSeenDay: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = AppLocale.current
+        formatter.setLocalizedDateFormatFromTemplate("d MMM")
+        return formatter
+    }()
+
+    private static func lastSeenLabel(_ date: Date) -> String {
+        let stamp = Calendar.current.isDateInToday(date) ? lastSeenTime.string(from: date) : lastSeenDay.string(from: date)
+        return String(localized: "Last seen \(stamp)")
+    }
+
+    // MARK: - Pied de page : mentions legales, session, compte
+
+    private var accountLinks: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 16) {
+                legalLink(path: "/privacy", label: Text("Privacy policy"))
+                legalLink(path: "/terms", label: Text("Terms of Use"))
+            }
+            replayLink
+            signOutButton
+            deleteAccountButton
+        }
+    }
+
+    // App Review 5.1.1 wants the privacy policy reachable from inside the app,
+    // not only from the App Store listing, and an app that lets you create an
+    // account has to state its terms somewhere a user can find them. Both
+    // follow Config.baseURL, so a build pointed elsewhere reads that server's
+    // documents rather than hardcoded ones.
+    @ViewBuilder
+    private func legalLink(path: String, label: Text) -> some View {
+        let base = Config.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        let origin = base.hasSuffix("/") ? String(base.dropLast()) : base
+        if let url = URL(string: origin + path), url.scheme?.hasPrefix("http") == true {
+            // The underline goes on the Text, not on the Link: on the Link the
+            // modifier compiles and does nothing, and a caption-coloured line of
+            // text with no affordance does not read as tappable.
+            // The colour is set twice on purpose: Link tints its label from the
+            // environment, so the outer style is what stops the system blue
+            // from winning if the inner one is ever dropped.
+            Link(destination: url) { linkLabel(label) }
+                .foregroundStyle(Palette.accentDeep)
+        }
+    }
+
+    private var replayLink: some View {
+        Button {
+            Feedback.tap()
+            NotificationCenter.default.post(name: .podcappReplayOnboarding, object: nil)
+        } label: {
+            linkLabel(Text("Replay the intro"))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var signOutButton: some View {
+        Button {
+            signOut()
+        } label: {
+            // Neutral rather than violet: leaving the account is not the thing
+            // this footer is inviting you to do.
+            linkLabel(Text("Sign out"), color: Palette.body)
+        }
+        .buttonStyle(.plain)
+        .disabled(!isConfigured)
+    }
+
+    private func signOut() {
+        Feedback.tap()
+        Task { await Auth.signOut() }
+    }
+
+    @State private var confirmingDeletion = false
+    @State private var deletion: Deletion = .idle
+    enum Deletion: Equatable { case idle, working, failed(String) }
+
+    // App Review 5.1.1(v): an account you can sign into is an account you can
+    // delete from inside the app. It is also what makes the privacy policy's
+    // "erasure is final" a fact rather than a promise kept by hand.
+    private var deleteAccountButton: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                confirmingDeletion = true
+            } label: {
+                linkLabel(
+                    Text(deletion == .working ? String(localized: "Deleting…") : String(localized: "Delete my account")),
+                    color: Palette.danger
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(deletion == .working || !isConfigured)
+            if case let .failed(message) = deletion {
+                Text(message)
+                    .typo(Typo.note)
+                    .foregroundStyle(Palette.danger)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .confirmationDialog("Delete your account?", isPresented: $confirmingDeletion, titleVisibility: .visible) {
+            Button("Delete everything", role: .destructive) { Task { await deleteAccount() } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Your sources, briefings, audio and feed are erased for good. Nothing is kept.")
+        }
+    }
+
+    @MainActor
+    private func deleteAccount() async {
+        deletion = .working
+        do {
+            try await API.shared.deleteAccount()
+            // The server has already revoked every session and both tokens
+            // for this account (see DELETE /me): nothing left to tell it, so
+            // this is the same local-only clear the 401 path uses, not
+            // Auth.signOut() -- that would just spend a network call getting
+            // a 401 back for a session already dead.
+            Config.endSession()
+            deletion = .idle
+            Feedback.saved()
+        } catch {
+            deletion = .failed(error.localizedDescription)
+            Feedback.refused()
+        }
     }
 }
 

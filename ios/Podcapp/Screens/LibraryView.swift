@@ -1,8 +1,10 @@
 import SwiftUI
 
 // The Sources tab: everything captured, what the pipeline made of it, and the
-// reason when it went wrong. Layout and copy come from ios/design/layout.html
-// and component.jsx (TXT.fr, CHIP_L.fr, ACT_FR, LBL_FR).
+// reason when it went wrong. Layout, spacing and colour come from the v3
+// prototype (/tmp/podcapp-shots/v3.html, the `tabLibrary` branch); the states
+// and the counts come from the API, which is why the prototype's AIRED shelf
+// and its per-row actions are absent — see the notes on LibraryStatus.
 
 struct LibraryView: View {
     @State private var sources: [SavedSource] = []
@@ -14,6 +16,9 @@ struct LibraryView: View {
     @State private var generationError: String?
     // The server's own minimum, same source of truth Today reads it from.
     @State private var minimum = 4
+    // The address newsletters are forwarded to. Only the server knows it, and
+    // only some deployments have one, so the line appears when it exists.
+    @State private var ingestAddress: String?
     @State private var phase: Phase = .loading
     @State private var filter: LibraryFilter = .all
     @State private var expanded: String?
@@ -31,19 +36,23 @@ struct LibraryView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Text("Library")
+                // The 20pt gutter is on each block rather than on the stack,
+                // because the category rail is the one thing that has to run
+                // past it and off both screen edges.
+                Text("Sources")
                     .typo(Typo.screenTitle)
                     .foregroundStyle(Palette.ink)
                     .padding(.top, 6)
                     .padding(.bottom, 14)
+                    .padding(.horizontal, 20)
 
-                captureField
-                filterPills
+                captureField.padding(.horizontal, 20)
+                ingestLine.padding(.horizontal, 20)
+                filterPills.padding(.horizontal, 20)
                 categoryPills
-                categoryGenerate
-                content
+                categoryGenerate.padding(.horizontal, 20)
+                content.padding(.horizontal, 20)
             }
-            .padding(.horizontal, 20)
             .padding(.top, 10)
             .padding(.bottom, 24)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -75,9 +84,11 @@ struct LibraryView: View {
         sources.filter { $0.category == shelf && LibraryStatus.of($0).isReady }.count
     }
 
+    /// A rail that bleeds to both screen edges: the design pulls it out of the
+    /// 20pt gutter so a chip can scroll off the side rather than stop short of it.
     private var categoryPills: some View {
         ScrollView(.horizontal) {
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 shelfPill(nil, label: String(localized: "All"), count: sources.count)
                 ForEach(categories, id: \.self) { shelf in
                     let n = count(in: shelf)
@@ -85,10 +96,11 @@ struct LibraryView: View {
                         .opacity(n == 0 ? 0.45 : 1)
                 }
             }
+            .padding(.horizontal, 20)
+            .padding(.top, 2)
+            .padding(.bottom, 6)
         }
         .scrollIndicators(.hidden)
-        .padding(.top, 8)
-        .padding(.bottom, 4)
     }
 
     private func shelfPill(_ shelf: String?, label: String, count: Int) -> some View {
@@ -98,14 +110,15 @@ struct LibraryView: View {
             category = shelf
         } label: {
             Text(count > 0 && shelf != nil ? "\(label) · \(count)" : label)
-                .typo(Typo.buttonSmall)
+                .typo(Typo.pillButton)
                 .foregroundStyle(selected ? Palette.onDark : Palette.body)
-                .padding(.horizontal, 13)
-                .padding(.vertical, 8)
-                .background(selected ? Palette.ink : Palette.cardFill, in: Capsule())
-                .overlay(Capsule().strokeBorder(Palette.cardBorder, lineWidth: selected ? 0 : 1))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(selected ? Palette.ink : Palette.pillFill, in: Capsule())
+                .overlay(Capsule().strokeBorder(Palette.tileBorder, lineWidth: 1))
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
     }
 
     /// "Make a Finance episode": only on a shelf with something on it. Gated
@@ -120,14 +133,18 @@ struct LibraryView: View {
                 Button {
                     Task { await generate(shelf: shelf) }
                 } label: {
-                    HStack(spacing: 9) {
-                        Text("▶").typo(Typo.buttonSmall)
-                        Text(String(localized: "Make a \(Self.categoryLabel(shelf)) episode")).typo(Typo.buttonMedium)
+                    HStack(spacing: 6) {
+                        Text(verbatim: "▶")
+                        Text(String(localized: "Make a \(Self.categoryLabel(shelf)) episode"))
                     }
+                    .typo(Typo.navButton)
                     .foregroundStyle(Palette.onDark)
-                    .padding(.vertical, 11)
-                    .padding(.horizontal, 18)
-                    .background(Palette.ink.opacity(rule.met ? 1 : 0.55), in: Capsule())
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Palette.accentGradient, in: Capsule())
+                    .overlay(Capsule().strokeBorder(Palette.accentEdge, lineWidth: 1))
+                    .dropShadow(Palette.ctaShadow)
+                    .opacity(rule.met ? 1 : 0.5)
                 }
                 .buttonStyle(.plain)
                 .disabled(!rule.met)
@@ -144,7 +161,8 @@ struct LibraryView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .padding(.top, 10)
+            .padding(.top, 2)
+            .padding(.bottom, 10)
             .sheet(item: $generation) { target in GenerationSheet(episodeId: target.id) }
         }
     }
@@ -172,18 +190,20 @@ struct LibraryView: View {
             HStack(spacing: 8) {
                 TextField("Paste a link or some text…", text: $draft, axis: .vertical)
                     .lineLimit(1...4)
-                    .font(Typo.font(size: 13, weight: .regular))
+                    .typo(Typo.field)
                     .foregroundStyle(Palette.ink)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .keyboardType(.URL)
-                    .padding(.horizontal, 13)
+                    .padding(.horizontal, 16)
                     .padding(.vertical, 11)
-                    .background(Palette.cardFill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(Palette.cardBorder, lineWidth: 1)
-                    )
+                    .background {
+                        Capsule()
+                            .fill(Palette.pillFill)
+                            .background(.ultraThinMaterial, in: Capsule())
+                            .overlay(Capsule().strokeBorder(Palette.glassEdge(Palette.cardBorder), lineWidth: 1))
+                            .dropShadow(Palette.fieldShadow)
+                    }
                     .onSubmit { Task { await add() } }
 
                 Button {
@@ -193,15 +213,15 @@ struct LibraryView: View {
                         if case .sending = addState {
                             ProgressView().tint(Palette.onDark)
                         } else {
-                            Text("Add")
-                                .font(Typo.font(size: 13, weight: .semibold))
+                            Text("Add").typo(Typo.navButton)
                         }
                     }
                     .foregroundStyle(Palette.onDark)
-                    .frame(height: 41)
-                    .padding(.horizontal, 16)
-                    .background(Palette.ink, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .frame(height: 38)
+                    .padding(.horizontal, 18)
+                    .background(Palette.ink, in: Capsule())
                 }
+                .buttonStyle(.plain)
                 .disabled(isAddDisabled)
                 .opacity(isAddDisabled ? 0.45 : 1)
             }
@@ -219,7 +239,31 @@ struct LibraryView: View {
                     .foregroundStyle(Palette.danger)
             }
         }
-        .padding(.bottom, 14)
+        .padding(.bottom, 6)
+    }
+
+    /// The other way in: forwarding a newsletter. Drawn only when the server
+    /// hands one over, so nobody is told to write to an address that is not live.
+    @ViewBuilder
+    private var ingestLine: some View {
+        if let ingestAddress {
+            HStack(spacing: 5) {
+                Text(verbatim: "✉")
+                    .typo(Typo.metaSmall)
+                    .foregroundStyle(Palette.muted)
+                Text(verbatim: ingestAddress)
+                    .font(Typo.font(size: 11.5, weight: .semibold))
+                    .foregroundStyle(Palette.body)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            .padding(.bottom, 14)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("Ingest address"))
+            .accessibilityValue(Text(verbatim: ingestAddress))
+        } else {
+            Color.clear.frame(height: 8)
+        }
     }
 
     private var isAddDisabled: Bool {
@@ -239,11 +283,14 @@ struct LibraryView: View {
                         .foregroundStyle(option == filter ? Palette.onDark : Palette.body)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 7)
-                        .background(option == filter ? Palette.ink : Palette.airedChipBg, in: Capsule())
-                        .overlay(Capsule().strokeBorder(Palette.cardBorder, lineWidth: 1))
+                        .background(option == filter ? Palette.ink : Palette.pillFill, in: Capsule())
+                        .overlay(Capsule().strokeBorder(Palette.filterBorder, lineWidth: 1))
                 }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(option == filter ? [.isSelected, .isButton] : .isButton)
             }
         }
+        .padding(.bottom, 6)
     }
 
     // MARK: - List
@@ -254,26 +301,30 @@ struct LibraryView: View {
         case .loading:
             message(title: String(localized: "Loading your sources…"), detail: nil, showsSpinner: true)
         case let .failed(reason):
-            message(title: String(localized: "Could not load"), detail: reason, showsSpinner: false)
+            message(title: String(localized: "Could not load"), detail: reason, isFailure: true)
         case .loaded:
             if sources.isEmpty {
                 message(
                     title: String(localized: "No source saved yet."),
-                    detail: String(localized: "Share a link from Safari with Podcapp, or paste it above."),
-                    showsSpinner: false
+                    detail: String(localized: "Share a link from Safari with Podcapp, or paste it above.")
                 )
             } else if sections.isEmpty {
                 message(
                     title: String(localized: "Nothing in this filter."),
-                    detail: String(localized: "\(sources.count) saved in total: tap All to see them."),
-                    showsSpinner: false
+                    detail: String(localized: "\(sources.count) saved in total: tap All to see them.")
                 )
             } else {
                 ForEach(sections) { section in
                     VStack(alignment: .leading, spacing: 0) {
-                        Overline(text: section.title)
+                        Text(section.title)
+                            .textCase(.uppercase)
+                            .typo(Typo.sectionLabel)
+                            .foregroundStyle(Palette.muted2)
                             .padding(.top, 20)
                             .padding(.bottom, 4)
+
+                        if section.grouped { groupingBanner }
+
                         ForEach(section.rows) { source in
                             row(source)
                         }
@@ -283,25 +334,58 @@ struct LibraryView: View {
         }
     }
 
-    private func message(title: String, detail: String?, showsSpinner: Bool) -> some View {
-        PlainCard(cornerRadius: 14, padding: 16) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    if showsSpinner { ProgressView().tint(Palette.muted) }
-                    Text(title)
-                        .typo(Typo.rowTitleStrong)
-                        .foregroundStyle(Palette.ink)
-                }
-                if let detail {
-                    Text(detail)
-                        .typo(Typo.detail)
-                        .foregroundStyle(Palette.body)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+    /// The design's dedupe callout. It names the rule, not a pair of rows: the
+    /// API says whether a source has been clustered, never into which story, so
+    /// the banner cannot point at the two rows that will share a chapter.
+    private var groupingBanner: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(verbatim: "⧉")
+                .font(Typo.font(size: 11.5, weight: .semibold))
+            Text("Sources grouped into a story air as one chapter")
+                .typo(Typo.metaSmall)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.top, 20)
+        .foregroundStyle(Palette.accentDeep)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            Palette.accentTint,
+            in: RoundedRectangle(cornerRadius: Radius.banner, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Radius.banner, style: .continuous)
+                .strokeBorder(Palette.accentTintBorder, lineWidth: 1)
+        )
+        .padding(.top, 6)
+        .padding(.bottom, 2)
+    }
+
+    /// Loading, failure and the two empty cases share the design's one quiet
+    /// treatment for "nothing to show here": centred, small, no card.
+    private func message(
+        title: String,
+        detail: String?,
+        showsSpinner: Bool = false,
+        isFailure: Bool = false
+    ) -> some View {
+        VStack(spacing: 8) {
+            if showsSpinner { ProgressView().tint(Palette.muted) }
+            Text(title)
+                .typo(Typo.detail)
+                .foregroundStyle(isFailure ? Palette.danger : Palette.muted)
+                .multilineTextAlignment(.center)
+            if let detail {
+                Text(detail)
+                    .typo(Typo.metaSmall)
+                    .foregroundStyle(Palette.muted2)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 34)
+        .padding(.horizontal, 20)
     }
 
     private func row(_ source: SavedSource) -> some View {
@@ -314,7 +398,17 @@ struct LibraryView: View {
                     .font(Typo.font(size: 13, weight: .regular))
                     .foregroundStyle(Palette.body)
                     .frame(width: 36, height: 36)
-                    .background(Palette.airedChipBg, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    // The shadow rides on the tile, not on the composited row:
+                    // hung outside .background it would halo the glyph too.
+                    .background {
+                        RoundedRectangle(cornerRadius: Radius.icon, style: .continuous)
+                            .fill(Palette.pillFill)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: Radius.icon, style: .continuous)
+                                    .strokeBorder(Palette.cardBorder, lineWidth: 1)
+                            )
+                            .dropShadow(Palette.tileShadow)
+                    }
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(LibraryRow.publisher(source))
@@ -333,7 +427,7 @@ struct LibraryView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                StatusChip(label: state.chip, kind: state.kind)
+                SourceStatusChip(label: state.chip, kind: state.kind, pulses: state.pulses)
                     .padding(.top, 2)
             }
             .contentShape(Rectangle())
@@ -342,17 +436,30 @@ struct LibraryView: View {
                     expanded = isOpen ? nil : source.id
                 }
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isButton)
 
             if isOpen {
-                PlainCard(cornerRadius: 13, padding: 12) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(LibraryRow.detail(source))
-                            .typo(Typo.detail)
-                            .foregroundStyle(Palette.body)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(LibraryRow.detail(source))
+                        .typo(Typo.detail)
+                        .foregroundStyle(Palette.body)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
+                .background {
+                    RoundedRectangle(cornerRadius: Radius.detail, style: .continuous)
+                        .fill(Palette.panelFill)
+                        .background(
+                            .ultraThinMaterial,
+                            in: RoundedRectangle(cornerRadius: Radius.detail, style: .continuous)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Radius.detail, style: .continuous)
+                                .strokeBorder(Palette.glassEdge(Palette.panelBorder), lineWidth: 1)
+                        )
+                        .dropShadow(Palette.cardShadow)
                 }
                 .padding(.leading, 48)
                 .padding(.top, 10)
@@ -377,20 +484,24 @@ struct LibraryView: View {
         let problems = visible.filter { LibraryStatus.of($0).isProblem }
         let healthy = visible.filter { !LibraryStatus.of($0).isProblem }
         let calendar = Calendar.current
+        let today = healthy.filter { calendar.isDateInToday($0.capturedAt) }
+        let earlier = healthy.filter { !calendar.isDateInToday($0.capturedAt) }
 
         return [
-            LibrarySection(
-                id: "today",
-                title: String(localized: "TODAY"),
-                rows: healthy.filter { calendar.isDateInToday($0.capturedAt) }
-            ),
-            LibrarySection(id: "issues", title: String(localized: "NEEDS A LOOK"), rows: problems),
-            LibrarySection(
-                id: "earlier",
-                title: String(localized: "EARLIER"),
-                rows: healthy.filter { !calendar.isDateInToday($0.capturedAt) }
-            ),
+            LibrarySection(id: "today", title: String(localized: "TODAY"), rows: today, grouped: grouped(today)),
+            LibrarySection(id: "issues", title: String(localized: "NEEDS A LOOK"), rows: problems, grouped: false),
+            // The note rides on TODAY alone, as in the design: it is about what
+            // the next episode will do with a fresh capture, and repeating it
+            // under every heading turns a callout into wallpaper.
+            LibrarySection(id: "earlier", title: String(localized: "EARLIER"), rows: earlier, grouped: false),
         ].filter { !$0.rows.isEmpty }
+    }
+
+    /// Two or more clustered sources in one section is the case the banner is
+    /// there to explain; under a status filter the section is a partial view of
+    /// the shelf, so the note would be about rows that are not on screen.
+    private func grouped(_ rows: [SavedSource]) -> Bool {
+        filter == .all && rows.filter(\.inStory).count > 1
     }
 
     private func load() async {
@@ -402,6 +513,13 @@ struct LibraryView: View {
             phase = .loaded
         } catch {
             phase = .failed(error.localizedDescription)
+        }
+        // Secondary, and never fatal: without it the screen simply loses one
+        // line of copy, so it must not turn a loaded list into an error. Asked
+        // once -- the address does not change, and load() also runs after every
+        // capture and every pull to refresh.
+        if ingestAddress == nil, let me = try? await API.shared.me() {
+            ingestAddress = me.ingestAddress
         }
     }
 
@@ -422,6 +540,44 @@ struct LibraryView: View {
     }
 }
 
+// MARK: - Status chip
+
+/// The Library's own status pill: half a point larger and a touch tighter than
+/// the shared `StatusChip`, and able to breathe while the pipeline is still
+/// working on a row (the design animates EXTRACTING at 1.4 s a cycle).
+private struct SourceStatusChip: View {
+    let label: String
+    let kind: StatusChip.Kind
+    let pulses: Bool
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var dimmed = false
+
+    var body: some View {
+        Text(label)
+            .textCase(.uppercase)
+            .typo(Typo.statusChip)
+            .foregroundStyle(kind.foreground)
+            .lineLimit(1)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 4)
+            .background(kind.background, in: Capsule())
+            .opacity(dimmed ? 0.25 : 1)
+            .onAppear {
+                guard pulses, !reduceMotion else { return }
+                withAnimation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true)) {
+                    dimmed = true
+                }
+            }
+    }
+}
+
+// MARK: - Local tokens
+
+/// The design's `inset 0 1px 0 rgba(255,255,255,.9x)` — the one-pixel highlight
+/// along the top of a glass surface. SwiftUI has no inset shadow, so the border
+/// itself brightens at the top edge, the same fake RootView's tab pill uses.
+/// Not in Theme.swift yet; promote if a second screen needs it.
 // MARK: - Filters, sections, status mapping
 
 private enum LibraryFilter: String, CaseIterable, Identifiable {
@@ -450,18 +606,23 @@ private struct LibrarySection: Identifiable {
     let id: String
     let title: String
     let rows: [SavedSource]
+    /// Whether this section carries the "will air as one chapter" note.
+    let grouped: Bool
 }
 
 /// One row's status, translated from `sources.status` in src/db/schema.ts.
-/// Chip wording comes from CHIP_L.fr. The design's per-row actions (exclude,
-/// delete) have no endpoint and are not drawn: App Review 2.1 does not allow a
-/// button that only says it does nothing.
+/// The design's per-row actions (exclude, retry, delete) have no endpoint and
+/// are not drawn: App Review 2.1 does not allow a button that only says it does
+/// nothing. Its AIRED shelf is absent for the same reason — `aired` is a story
+/// status on the server, never a source one, so no row can carry it.
 private struct LibraryStatus {
     let chip: String
     let kind: StatusChip.Kind
     let icon: String
     let isReady: Bool
     let isProblem: Bool
+    /// Work still in flight, which the chip shows by breathing.
+    var pulses = false
 
     static func of(_ source: SavedSource) -> LibraryStatus {
         switch source.status {
@@ -475,7 +636,7 @@ private struct LibraryStatus {
         case "extracting":
             return LibraryStatus(
                 chip: String(localized: "EXTRACTING"), kind: .warning, icon: glyph(source),
-                isReady: false, isProblem: false
+                isReady: false, isProblem: false, pulses: true
             )
         case "analyzed":
             return LibraryStatus(

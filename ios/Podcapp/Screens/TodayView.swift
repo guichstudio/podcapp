@@ -1,10 +1,10 @@
 import SwiftUI
 import UIKit
 
-// The Today tab of ios/design/layout.html: the latest briefing, what is queued
-// for the next one, and the episodes before it.
+// The Today tab of the v3 prototype (/tmp/podcapp-shots/v3.html): the latest
+// briefing, what is queued for the next one, and the episodes before it.
 //
-// One write: Générer posts to /episodes, which queues the generation in the
+// One write: Generate posts to /episodes, which queues the generation in the
 // cloud. The server owns every refusal (a briefing already in flight, cloud
 // not wired up) and words it in French, so this screen shows its message
 // verbatim instead of inventing its own diagnosis.
@@ -13,6 +13,10 @@ struct TodayView: View {
     @State private var phase: Phase = .loading
     @State private var backstage: EpisodeDetail?
     @State private var targetMinutes = 5
+    /// The prototype's strip is one flex row, so every past card is as tall as
+    /// the hero. SwiftUI sizes them independently, so the hero measures itself
+    /// and the others follow.
+    @State private var heroHeight: CGFloat = 250
 
     var body: some View {
         ScrollView {
@@ -28,8 +32,10 @@ struct TodayView: View {
                     content(data)
                 }
             }
-            .padding(.top, 10)
-            .padding(.bottom, 24)
+            // The prototype's 64pt of head room is mostly the status bar, which
+            // the safe area already pays for; only the remainder is ours.
+            .padding(.top, 4)
+            .padding(.bottom, 32)
         }
         .background(ScreenBackground())
         .refreshable { await load(reset: false) }
@@ -70,7 +76,7 @@ struct TodayView: View {
     }
 
     private func errorState(_ message: String) -> some View {
-        PlainCard(cornerRadius: 18, padding: 16) {
+        TodayCard(cornerRadius: Radius.panel, padding: 16) {
             VStack(alignment: .leading, spacing: 10) {
                 Overline(text: String(localized: "Could not load"), color: Palette.danger)
                 Text(message)
@@ -84,6 +90,7 @@ struct TodayView: View {
                         .padding(.vertical, 10)
                         .padding(.horizontal, 18)
                         .background(Palette.ink, in: Capsule())
+                        .dropShadow(Palette.darkButtonShadow)
                 }
                 .buttonStyle(.plain)
             }
@@ -97,32 +104,44 @@ struct TodayView: View {
 
     /// The latest briefing first, the earlier ones behind it as narrower cards,
     /// one page per swipe. The design's answer to a list of past episodes that
-    /// pushed Générer below the fold.
+    /// pushed Generate below the fold.
     @ViewBuilder
     private func heroStrip(_ data: TodayData) -> some View {
         if data.featured == nil && data.past.isEmpty {
             noEpisodeCard.padding(.horizontal, 20)
         } else {
             ScrollView(.horizontal) {
-                LazyHStack(alignment: .top, spacing: 12) {
+                LazyHStack(alignment: .top, spacing: TodayMetric.stripGap) {
                     if let featured = data.featured {
                         TodayHeroCard(
                             episode: featured.episode,
                             detail: featured.detail,
                             onBackstage: { backstage = featured.detail }
                         )
-                        .containerRelativeFrame(.horizontal) { width, _ in width - 40 }
+                        // 338 of the prototype's 402: the next card peeks in by
+                        // its 12pt gap plus the 20pt margin it scrolls under.
+                        .containerRelativeFrame(.horizontal) { width, _ in width - 64 }
+                        .background {
+                            GeometryReader { geo in
+                                Color.clear.preference(key: TodayHeroHeight.self, value: geo.size.height)
+                            }
+                        }
                     }
                     ForEach(data.past) { episode in
-                        TodayPastCard(episode: episode)
-                            .containerRelativeFrame(.horizontal) { width, _ in (width - 40) * 0.74 }
+                        TodayPastCard(episode: episode, minHeight: heroHeight)
+                            .containerRelativeFrame(.horizontal) { width, _ in width - 128 }
                     }
                 }
                 .scrollTargetLayout()
+                // A horizontal ScrollView clips its content, and the cards cast a
+                // 20pt shadow 16pt down; without this it lands on a hard edge.
+                .padding(.bottom, 26)
             }
             .contentMargins(.horizontal, 20, for: .scrollContent)
             .scrollTargetBehavior(.viewAligned)
             .scrollIndicators(.hidden)
+            .padding(.bottom, -26)
+            .onPreferenceChange(TodayHeroHeight.self) { if $0 > 0 { heroHeight = $0 } }
         }
     }
 
@@ -133,17 +152,20 @@ struct TodayView: View {
         VStack(alignment: .leading, spacing: 0) {
             heroStrip(data)
 
+            TodayGenerateCard(
+                readySourceCount: data.available ?? data.readyCount,
+                minimum: data.minimum ?? 4,
+                targetMinutes: $targetMinutes
+            )
+            .padding(.horizontal, 20)
+            .padding(.top, 18)
+
             focusSection(data)
-
-            TodayGenerateCard(readySourceCount: data.available ?? data.readyCount, minimum: data.minimum ?? 4, targetMinutes: $targetMinutes)
-                .padding(.horizontal, 20)
-                .padding(.top, 18)
-
         }
     }
 
     private var noEpisodeCard: some View {
-        GlassCard {
+        TodayCard(padding: EdgeInsets(top: 20, leading: 20, bottom: 18, trailing: 20)) {
             VStack(alignment: .leading, spacing: 12) {
                 Overline(text: String(localized: "No briefing"), color: Palette.accentDeep)
                 Text("Nothing to listen to yet.")
@@ -151,10 +173,11 @@ struct TodayView: View {
                     .foregroundStyle(Palette.ink)
                     .fixedSize(horizontal: false, vertical: true)
                 Text("Share a few links from Safari, then hit Generate below: the first episode shows up here as soon as it is ready.")
-                    .typo(Typo.metaSmall)
+                    .typo(TodayType.note)
                     .foregroundStyle(Palette.accentMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -170,11 +193,11 @@ struct TodayView: View {
                 .foregroundStyle(Palette.muted)
         }
         .padding(.horizontal, 20)
-        .padding(.top, 26)
-        .padding(.bottom, 12)
+        .padding(.top, 18)
+        .padding(.bottom, 10)
 
         if data.focus.isEmpty {
-            PlainCard {
+            TodayCard(cornerRadius: Radius.group, padding: 14) {
                 Text("Nothing new since the last briefing. Share a link to Podcapp, from Safari or any app, to feed the next one.")
                     .typo(Typo.detail)
                     .foregroundStyle(Palette.body)
@@ -185,14 +208,15 @@ struct TodayView: View {
         } else {
             // Full-bleed row: the design lets the cards run under both edges.
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 10) {
+                HStack(alignment: .top, spacing: TodayMetric.storyGap) {
                     ForEach(data.focus) { source in
                         TodayFocusCard(source: source)
                     }
                 }
                 .padding(.horizontal, 20)
-                .padding(.bottom, 4)
+                .padding(.bottom, 26)
             }
+            .padding(.bottom, -26)
         }
     }
 
@@ -279,6 +303,111 @@ struct TodayView: View {
     }
 }
 
+// MARK: - Metrics and local type roles
+
+private enum TodayMetric {
+    /// Between the cards of the hero strip.
+    static let stripGap: CGFloat = 12
+    /// Between the story cards under Tomorrow.
+    static let storyGap: CGFloat = 10
+    /// The N-of-4 ring: a 40-unit viewBox drawn at 46pt, so its 16-unit radius
+    /// lands at 36.8pt across and its 3.6-unit stroke at 4.14pt.
+    static let ringBox: CGFloat = 46
+    static let ringDiameter: CGFloat = 36.8
+    static let ringStroke: CGFloat = 4.14
+    /// Story cards are a fixed 230x125 in the prototype, minus padding and border.
+    static let storyWidth: CGFloat = 200
+    static let storyMinHeight: CGFloat = 95
+}
+
+/// Two roles the prototype uses on this screen that no shared token names yet.
+/// Promote them to `Typo` if another screen turns out to need them.
+private enum TodayType {
+    /// Chapter rows in the hero card: 13px/400. `Typo.field` has the same
+    /// metrics but belongs to the search box.
+    static let chapterLine = TypoStyle(size: 13, weight: .regular)
+    /// Card and rule notes: 11.5px/400 at line-height 1.4, between the shared
+    /// `metaSmall` (font default) and `note` (1.5).
+    static let note = TypoStyle(size: 11.5, weight: .regular, lineHeight: 1.4)
+}
+
+/// The hero's measured height, so the past cards can match it. Zero means "not
+/// measured": the lazy strip drops the hero once it scrolls off, and the last
+/// known height has to survive that rather than snap back to a default.
+private struct TodayHeroHeight: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+// MARK: - Card surface
+
+/// Every surface on this screen: a translucent fill, a 1pt edge, the ambient
+/// drop shadow, and the prototype's `inset 0 1px 0 rgba(255,255,255,.92)`.
+/// SwiftUI has no inset shadow, so the border fades from that highlight down to
+/// the flat edge colour — the same trick the tab bar uses.
+private struct TodayCard<Content: View>: View {
+    var cornerRadius: CGFloat = Radius.card
+    var padding = EdgeInsets(top: 14, leading: 14, bottom: 14, trailing: 14)
+    var fill: Color = Palette.cardFill
+    var edge: Color = Palette.cardBorder
+    /// Only the generation panel blurs what is behind it; the cards do not.
+    var blurred = false
+    var content: Content
+
+    init(
+        cornerRadius: CGFloat = Radius.card,
+        padding: EdgeInsets = EdgeInsets(top: 14, leading: 14, bottom: 14, trailing: 14),
+        fill: Color = Palette.cardFill,
+        edge: Color = Palette.cardBorder,
+        blurred: Bool = false,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.cornerRadius = cornerRadius
+        self.padding = padding
+        self.fill = fill
+        self.edge = edge
+        self.blurred = blurred
+        self.content = content()
+    }
+
+    /// The uniform-padding spelling the call sites mostly want.
+    init(
+        cornerRadius: CGFloat = Radius.card,
+        padding: CGFloat,
+        fill: Color = Palette.cardFill,
+        edge: Color = Palette.cardBorder,
+        blurred: Bool = false,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.init(
+            cornerRadius: cornerRadius,
+            padding: EdgeInsets(top: padding, leading: padding, bottom: padding, trailing: padding),
+            fill: fill,
+            edge: edge,
+            blurred: blurred,
+            content: content
+        )
+    }
+
+    private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: cornerRadius, style: .continuous) }
+
+    var body: some View {
+        content
+            .padding(padding)
+            .background {
+                shape
+                    .fill(fill)
+                    .background { if blurred { shape.fill(.ultraThinMaterial) } }
+                    .overlay {
+                        shape.strokeBorder(Palette.glassEdge(edge), lineWidth: 1)
+                    }
+                    .dropShadow(Palette.cardShadow)
+            }
+    }
+}
+
 // MARK: - Hero
 
 private struct TodayHeroCard: View {
@@ -287,7 +416,7 @@ private struct TodayHeroCard: View {
     let onBackstage: () -> Void
 
     var body: some View {
-        GlassCard {
+        TodayCard(padding: EdgeInsets(top: 20, leading: 20, bottom: 18, trailing: 20)) {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .firstTextBaseline) {
                     Overline(text: overline, color: Palette.accentDeep)
@@ -309,7 +438,7 @@ private struct TodayHeroCard: View {
 
                 if episode.status != "ready" {
                     Text(statusLine)
-                        .typo(Typo.metaSmall)
+                        .typo(TodayType.note)
                         .foregroundStyle(Palette.accentMuted)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -317,13 +446,14 @@ private struct TodayHeroCard: View {
                 actions
 
                 Text(footnote)
-                    .typo(Typo.metaSmall)
+                    .typo(TodayType.note)
                     .foregroundStyle(Palette.accentMuted)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.top, 11)
                     .overlay(alignment: .top) { Rectangle().fill(Palette.hairline).frame(height: 1) }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -354,11 +484,11 @@ private struct TodayHeroCard: View {
                             // at 16 the number wraps to a second line.
                             .frame(width: 20, alignment: .leading)
                         Text(chapter.title)
-                            .typo(Typo.listTitle)
+                            .typo(TodayType.chapterLine)
                             .foregroundStyle(Palette.accentDark)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         Text(TodayText.sourceCount(chapter.sourceIds.count))
-                            .typo(Typo.listTitle)
+                            .typo(TodayType.chapterLine)
                             .foregroundStyle(Palette.accentMid)
                             .tabularNumerals()
                     }
@@ -388,7 +518,7 @@ private struct TodayHeroCard: View {
                     .padding(.vertical, 12)
                     .padding(.horizontal, 22)
                     .background(Palette.ink, in: Capsule())
-                    .shadow(color: Palette.ink.opacity(0.22), radius: 12, y: 8)
+                    .dropShadow(Palette.darkButtonShadow)
                 }
                 .buttonStyle(.plain)
             }
@@ -429,7 +559,7 @@ private struct TodayFocusCard: View {
     let source: SavedSource
 
     var body: some View {
-        PlainCard(cornerRadius: 16, padding: 14) {
+        TodayCard(cornerRadius: Radius.group, padding: 14) {
             VStack(alignment: .leading, spacing: 8) {
                 Text(TodayText.sourceStatusLabel(source.status))
                     .textCase(.uppercase)
@@ -444,12 +574,19 @@ private struct TodayFocusCard: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text(TodayText.note(for: source))
-                    .typo(Typo.metaSmall)
+                    .typo(TodayType.note)
                     .foregroundStyle(Palette.muted)
                     .lineLimit(4)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(width: 172, alignment: .leading)
+            // Fixed width, floor on the height: SwiftUI has no width+minHeight
+            // overload, so the width is pinned through min/max instead.
+            .frame(
+                minWidth: TodayMetric.storyWidth,
+                maxWidth: TodayMetric.storyWidth,
+                minHeight: TodayMetric.storyMinHeight,
+                alignment: .topLeading
+            )
         }
     }
 }
@@ -467,6 +604,10 @@ private struct TodayGenerateCard: View {
     @State private var isGenerating = false
     @State private var outcome: Outcome?
 
+    /// The episode length the server accepts. The cap is 5 minutes, so the
+    /// prototype's 10/15/20 becomes the three lengths that actually exist.
+    private static let lengths = [3, 4, 5]
+
     private enum Outcome {
         case queued
         // The server's French message, shown verbatim: it names the refusal
@@ -482,41 +623,54 @@ private struct TodayGenerateCard: View {
     }
 
     private var card: some View {
-        PlainCard(cornerRadius: 18, padding: 16) {
+        TodayCard(cornerRadius: Radius.panel, padding: 16, fill: Palette.panelFill, edge: Palette.panelBorder, blurred: true) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .center, spacing: 10) {
-                    Text("Next briefing")
-                        .typo(Typo.rowTitleStrong)
-                        .foregroundStyle(Palette.ink)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Next briefing")
+                            .typo(Typo.rowTitleStrong)
+                            .foregroundStyle(Palette.ink)
+                        Text("\(readySourceCount) ready · ~\(targetMinutes) min")
+                            .typo(Typo.meta)
+                            .foregroundStyle(Palette.muted)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     lengthPicker
                 }
 
                 // The four-link rule, drawn rather than explained: the ring fills
                 // with the server's own count and turns green at the minimum.
-                HStack(spacing: 12) {
+                HStack(spacing: 13) {
                     ruleRing
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 1) {
                         Text(rule.title)
-                            .typo(Typo.listTitle)
+                            .typo(Typo.buttonMedium)
                             .foregroundStyle(Palette.ink)
                         Text(ruleSub)
-                            .typo(Typo.metaSmall)
+                            .typo(TodayType.note)
                             .foregroundStyle(Palette.muted)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
+                .padding(.top, 2)
+                .padding(.bottom, 4)
 
                 Button { Task { await generate() } } label: {
                     Text(isGenerating ? String(localized: "Sending…") : String(localized: "Generate now"))
                         .typo(Typo.buttonLarge)
                         .foregroundStyle(Palette.onDark)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 13)
-                        .background(
-                            Palette.ink.opacity(isGenerating || !rule.met ? 0.55 : 1),
-                            in: RoundedRectangle(cornerRadius: 13, style: .continuous)
-                        )
+                        .padding(.vertical, 14)
+                        .background(Palette.accentGradient, in: Capsule())
+                        .overlay {
+                            // The prototype's `inset 0 1px 0 rgba(255,255,255,.3)`
+                            // over the gradient, drawn as a fading edge.
+                            Capsule().strokeBorder(Palette.accentEdge, lineWidth: 1)
+                        }
+                        .dropShadow(Palette.ctaShadow)
+                        // The design dims the whole button rather than swapping
+                        // its fill, so a refused tap still reads as the same one.
+                        .opacity(isGenerating || !rule.met ? 0.5 : 1)
                 }
                 .buttonStyle(.plain)
                 .disabled(isGenerating || !rule.met)
@@ -526,12 +680,12 @@ private struct TodayGenerateCard: View {
                     // The sheet carries the progress; this line remains for
                     // when it has been dismissed and the run is still going.
                     Text("Episode in the works · the feed and this screen update as soon as it is ready.")
-                        .typo(Typo.metaSmall)
+                        .typo(TodayType.note)
                         .foregroundStyle(Palette.muted)
                         .fixedSize(horizontal: false, vertical: true)
                 case let .failed(message):
                     Text(message)
-                        .typo(Typo.metaSmall)
+                        .typo(TodayType.note)
                         .foregroundStyle(Palette.danger)
                         .fixedSize(horizontal: false, vertical: true)
                 case nil:
@@ -549,20 +703,23 @@ private struct TodayGenerateCard: View {
 
     private var ruleRing: some View {
         let fraction = min(1, Double(readySourceCount) / Double(max(1, minimum)))
-        let tint = rule.met ? Color(hex: 0x2E7D46) : Color(hex: 0x7C6CDC)
+        let tint = rule.met ? Palette.success : Palette.accent
         return ZStack {
-            Circle().stroke(Palette.hairline, lineWidth: 4)
+            Circle()
+                .stroke(Palette.tileBorder, lineWidth: TodayMetric.ringStroke)
+                .frame(width: TodayMetric.ringDiameter, height: TodayMetric.ringDiameter)
             Circle()
                 .trim(from: 0, to: fraction)
-                .stroke(tint, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .stroke(tint, style: StrokeStyle(lineWidth: TodayMetric.ringStroke, lineCap: .round))
+                .frame(width: TodayMetric.ringDiameter, height: TodayMetric.ringDiameter)
                 .rotationEffect(.degrees(-90))
                 .animation(.easeOut(duration: 0.5), value: fraction)
             Text("\(min(readySourceCount, minimum))/\(minimum)")
-                .typo(Typo.metaTiny)
+                .typo(Typo.buttonSmall)
                 .foregroundStyle(Palette.ink)
                 .tabularNumerals()
         }
-        .frame(width: 44, height: 44)
+        .frame(width: TodayMetric.ringBox, height: TodayMetric.ringBox)
         .accessibilityLabel(rule.title)
     }
 
@@ -587,7 +744,7 @@ private struct TodayGenerateCard: View {
 
     private var lengthPicker: some View {
         HStack(spacing: 0) {
-            ForEach([3, 4, 5], id: \.self) { minutes in
+            ForEach(Self.lengths, id: \.self) { minutes in
                 Button {
                     if minutes != targetMinutes { Feedback.select() }
                     targetMinutes = minutes
@@ -604,7 +761,7 @@ private struct TodayGenerateCard: View {
             }
         }
         .clipShape(Capsule())
-        .overlay(Capsule().strokeBorder(Palette.cardBorder, lineWidth: 1))
+        .overlay(Capsule().strokeBorder(Palette.controlBorder, lineWidth: 1))
     }
 }
 
@@ -613,29 +770,31 @@ private struct TodayGenerateCard: View {
 /// An earlier briefing in the hero strip: title, date, and one tap to play.
 private struct TodayPastCard: View {
     let episode: EpisodeSummary
+    /// The hero's height, so the strip reads as one row rather than a staircase.
+    let minHeight: CGFloat
 
     var body: some View {
-        PlainCard(cornerRadius: 22, padding: 18) {
-            VStack(alignment: .leading, spacing: 12) {
-                TodayLogo(size: 40)
+        TodayCard(padding: 18) {
+            VStack(alignment: .leading, spacing: 9) {
+                TodayLogo(size: 34, radius: Radius.logoSmall, ring: Palette.divider)
                 Text(TodayText.title(episode.title, createdAt: episode.createdAt))
-                    .typo(Typo.rowTitleStrong)
+                    .typo(Typo.episodeTitle)
                     .foregroundStyle(Palette.ink)
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(meta)
-                    .typo(Typo.meta)
+                    .typo(Typo.metaSmall)
                     .foregroundStyle(Palette.muted)
-                Spacer(minLength: 0)
+                Spacer(minLength: 12)
                 if episode.status == "ready", let seconds = episode.actualSec {
                     Button { EpisodePlayer.shared.open(episodeId: episode.id) } label: {
-                        HStack(spacing: 8) {
-                            Text("▶").typo(Typo.buttonSmall)
-                            Text(TodayText.clock(seconds)).typo(Typo.buttonLarge).tabularNumerals()
+                        HStack(spacing: 7) {
+                            Text("▶").typo(Typo.pillButton)
+                            Text(TodayText.clock(seconds)).typo(Typo.pillButton).tabularNumerals()
                         }
                         .foregroundStyle(Palette.onDark)
-                        .padding(.vertical, 10)
-                        .padding(.horizontal, 18)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 14)
                         .background(Palette.ink, in: Capsule())
                     }
                     .buttonStyle(.plain)
@@ -646,7 +805,7 @@ private struct TodayPastCard: View {
                     )
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: 250, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: minHeight - 36, alignment: .topLeading)
         }
     }
 
@@ -695,7 +854,10 @@ private struct TodayBackstageSheet: View {
 
 private struct TodayLogo: View {
     var size: CGFloat
-    var radius: CGFloat = 10
+    var radius: CGFloat = Radius.logo
+    /// The prototype rings the 32pt wordmark logo at .12 and the 34pt one on a
+    /// past-episode card at .08.
+    var ring: Color = Palette.filterBorder
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
@@ -708,7 +870,7 @@ private struct TodayLogo: View {
         }
         .frame(width: size, height: size)
         .clipShape(shape)
-        .overlay(shape.strokeBorder(Palette.cardBorder, lineWidth: 1))
+        .overlay(shape.strokeBorder(ring, lineWidth: 1))
     }
 }
 

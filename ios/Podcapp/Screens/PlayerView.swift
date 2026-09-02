@@ -467,15 +467,17 @@ struct MiniPlayerBar: View {
 
     private var bar: some View {
         HStack(spacing: 11) {
-            PlayerArtwork(size: 34, radius: 9)
-            VStack(alignment: .leading, spacing: 1) {
+            // A circle here, not the rounded square of the full player: the
+            // mini bar is a capsule and the artwork follows its edge.
+            PlayerArtwork(size: 36, radius: 18)
+            VStack(alignment: .leading, spacing: 0) {
                 Text(player.currentChapter?.title ?? player.episode?.title ?? "Briefing")
                     .typo(Typo.buttonMedium)
-                    .foregroundStyle(Palette.onDark)
+                    .foregroundStyle(Palette.ink)
                     .lineLimit(1)
                 Text("\(PlayerFormat.time(player.time)) / \(PlayerFormat.time(player.duration))")
-                    .typo(TypoStyle(size: 10.5, weight: .regular, monospacedDigits: true))
-                    .foregroundStyle(Palette.onDark.opacity(0.65))
+                    .typo(Typo.metaMicro.tabular)
+                    .foregroundStyle(Palette.muted2)
             }
             // flex:1 in the markup: without it the HStack shrinks to its text
             // and the bar floats as a pill instead of spanning the screen.
@@ -485,40 +487,44 @@ struct MiniPlayerBar: View {
                 player.isPlaying ? Feedback.play() : Feedback.pause()
             } label: {
                 Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Palette.onDark)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
+                    .frame(width: 38, height: 38)
+                    .background(Palette.ink, in: Circle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(player.isPlaying ? "Pause" : "Play")
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(alignment: .bottomLeading) {
-            ZStack(alignment: .bottomLeading) {
-                LinearGradient(
-                    colors: [Color(hex: 0x5B4DBE, opacity: 0.95), Color(hex: 0x3A3087, opacity: 0.95)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                GeometryReader { geo in
-                    Rectangle()
-                        .fill(Palette.onDark)
-                        .frame(width: geo.size.width * player.progress, height: 2)
-                        .frame(maxHeight: .infinity, alignment: .bottom)
+        .padding(.vertical, 8)
+        .background {
+            Capsule()
+                .fill(Palette.miniFill)
+                .background(.ultraThinMaterial, in: Capsule())
+                // The played fraction runs along the bottom edge, clipped by
+                // the capsule so it disappears into the rounded ends.
+                .overlay {
+                    GeometryReader { geo in
+                        Rectangle()
+                            .fill(Palette.accentGradient)
+                            .frame(width: geo.size.width * player.progress, height: 3)
+                            .frame(maxHeight: .infinity, alignment: .bottom)
+                    }
+                    .clipShape(Capsule())
                 }
-            }
+                .overlay {
+                    Capsule().strokeBorder(
+                        Palette.glassEdge(Palette.miniBorder, highlight: Palette.innerHighlightStrong),
+                        lineWidth: 1
+                    )
+                }
+                .dropShadow(Palette.miniShadow)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 15, style: .continuous)
-                .strokeBorder(Palette.onDark.opacity(0.22), lineWidth: 1)
-        )
-        .shadow(color: Color(hex: 0x322A6E, opacity: 0.3), radius: 15, y: 12)
-        .padding(.horizontal, 10)
-        .padding(.bottom, 6)
-        .contentShape(Rectangle())
+        .padding(.horizontal, 14)
+        // The prototype floats the bar 8pt clear of the tab bar rather than
+        // stacking the two edge to edge.
+        .padding(.bottom, 8)
+        .contentShape(Capsule())
         .onTapGesture { player.isPresented = true }
     }
 }
@@ -533,7 +539,7 @@ struct PlayerView: View {
 
     var body: some View {
         ZStack {
-            PlayerPalette.background.ignoresSafeArea()
+            PlayerBackground()
             content
         }
         .sheet(item: $player.sheet) { sheet in
@@ -579,7 +585,7 @@ struct PlayerView: View {
                 player.isPresented = false
             } label: {
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 17, weight: .medium))
                     .foregroundStyle(Palette.body)
                     .padding(8)
             }
@@ -594,7 +600,7 @@ struct PlayerView: View {
                 player.sheet = .backstage
             } label: {
                 Image(systemName: "ellipsis")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(Palette.body)
                     .padding(8)
             }
@@ -602,7 +608,7 @@ struct PlayerView: View {
             .accessibilityLabel("How it was made")
         }
         .padding(.horizontal, 16)
-        .padding(.top, 8)
+        .padding(.top, 6)
     }
 
     private var overline: String {
@@ -615,20 +621,21 @@ struct PlayerView: View {
             Spacer(minLength: 0)
 
             ZStack(alignment: .bottomTrailing) {
-                PlayerArtwork(size: 122, radius: 28)
-                    .shadow(color: Color(hex: 0x322A6E, opacity: 0.22), radius: 30, y: 24)
+                PlayerArtwork(size: 122, radius: Radius.artwork)
+                    .dropShadow(Palette.artworkShadow)
                 if player.isPlaying {
                     PlayingBars()
                         .padding(.horizontal, 8)
                         .padding(.vertical, 6)
                         .background(Palette.ink.opacity(0.92), in: Capsule())
+                        .dropShadow(Palette.badgeShadow)
                         .offset(x: 6, y: 6)
                 }
             }
 
             VStack(spacing: 7) {
                 Text(chapterOverline)
-                    .typo(TypoStyle(size: 11, weight: .semibold, trackingEm: 0.13))
+                    .typo(Typo.playerOverline)
                     .foregroundStyle(Palette.accentMuted)
                 Text(player.currentChapter?.title ?? player.episode?.title ?? "Briefing")
                     .typo(Typo.playerTitle)
@@ -644,7 +651,7 @@ struct PlayerView: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 9)
                     .frame(maxWidth: .infinity)
-                    .background(Palette.dangerBg, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .background(Palette.dangerBg, in: RoundedRectangle(cornerRadius: Radius.icon, style: .continuous))
             }
 
             seekBar
@@ -665,21 +672,23 @@ struct PlayerView: View {
     private var displayTime: Double { scrub ?? player.time }
 
     private var seekBar: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 0) {
             GeometryReader { geo in
                 let width = geo.size.width
                 let ratio = player.duration > 0 ? min(1, max(0, displayTime / player.duration)) : 0
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(Palette.ink.opacity(0.14))
+                        .fill(Palette.controlBorder)
                         .frame(height: 4)
                     Capsule()
                         .fill(Palette.ink)
                         .frame(width: width * ratio, height: 4)
+                    // The ticks are the background showing through the fill,
+                    // not a line drawn over it, so they carry the screen base.
                     ForEach(player.chapters.dropFirst()) { chapter in
                         if player.duration > 0 {
                             RoundedRectangle(cornerRadius: 2, style: .continuous)
-                                .fill(PlayerPalette.tick)
+                                .fill(Palette.screenBase)
                                 .frame(width: 2, height: 8)
                                 .offset(x: width * (chapter.start / player.duration) - 1)
                         }
@@ -704,7 +713,9 @@ struct PlayerView: View {
             HStack {
                 Text(PlayerFormat.time(displayTime))
                 Spacer()
-                Text("-" + PlayerFormat.time(max(0, player.duration - displayTime)))
+                // U+2212, as the design writes it: a hyphen next to a timecode
+                // reads as a dash between two numbers.
+                Text("\u{2212}" + PlayerFormat.time(max(0, player.duration - displayTime)))
             }
             .typo(Typo.metaTiny.tabular)
             .foregroundStyle(Palette.accentMuted)
@@ -717,34 +728,40 @@ struct PlayerView: View {
         HStack(spacing: 10) {
             Button { player.previousChapter() } label: {
                 Image(systemName: "backward.end.fill")
-                    .font(.system(size: 17))
+                    .font(.system(size: 19))
                     .foregroundStyle(Palette.ink)
                     .padding(12)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Previous chapter")
 
-            PlayerSkipButton(label: "-15") { Feedback.tap(); player.skip(-15) }
+            PlayerSkipButton(
+                label: "\u{2212}15",
+                accessibility: String(localized: "Skip back 15 seconds")
+            ) { Feedback.tap(); player.skip(-15) }
 
             Button {
                 player.toggle()
                 player.isPlaying ? Feedback.play() : Feedback.pause()
             } label: {
                 Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                    .font(.system(size: 24, weight: .medium))
+                    .font(.system(size: 22, weight: .medium))
                     .foregroundStyle(Palette.onDark)
                     .frame(width: 68, height: 68)
                     .background(Palette.ink, in: Circle())
-                    .shadow(color: Palette.ink.opacity(0.28), radius: 17, y: 14)
+                    .dropShadow(Palette.playButtonShadow)
             }
             .buttonStyle(.plain)
             .accessibilityLabel(player.isPlaying ? "Pause" : "Play")
 
-            PlayerSkipButton(label: "+15") { Feedback.tap(); player.skip(15) }
+            PlayerSkipButton(
+                label: "+15",
+                accessibility: String(localized: "Skip forward 15 seconds")
+            ) { Feedback.tap(); player.skip(15) }
 
             Button { player.nextChapter() } label: {
                 Image(systemName: "forward.end.fill")
-                    .font(.system(size: 17))
+                    .font(.system(size: 19))
                     .foregroundStyle(Palette.ink)
                     .padding(12)
             }
@@ -770,24 +787,28 @@ struct PlayerView: View {
             HStack(spacing: 11) {
                 Text("Source")
                     .textCase(.uppercase)
-                    .typo(TypoStyle(size: 10, weight: .semibold, trackingEm: 0.1))
+                    .typo(Typo.fromLabel)
                     .foregroundStyle(Palette.accentMuted)
                 Text(sourceLine)
-                    .typo(TypoStyle(size: 12.5, weight: .regular))
+                    .typo(Typo.detail)
                     .foregroundStyle(Palette.ink)
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Image(systemName: "arrow.up.right")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(Palette.muted2)
             }
-            .padding(.horizontal, 15)
+            .padding(.horizontal, 18)
             .padding(.vertical, 13)
-            .background(Color.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 15, style: .continuous)
-                    .strokeBorder(Color(hex: 0x1C1B22, opacity: 0.09), lineWidth: 1)
-            )
+            .background {
+                Capsule()
+                    .fill(Palette.miniFill)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .overlay {
+                        Capsule().strokeBorder(Palette.glassEdge(Palette.miniBorder), lineWidth: 1)
+                    }
+                    .dropShadow(Palette.sourceBarShadow)
+            }
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 16)
@@ -847,8 +868,12 @@ private struct PlayerSheetView: View {
         }
         .presentationDetents([.fraction(0.76)])
         .presentationDragIndicator(.visible)
-        .presentationCornerRadius(24)
-        .presentationBackground(Color(hex: 0xFCFCFA, opacity: 0.94))
+        .presentationCornerRadius(Radius.sheet)
+        // The design's sheet is a 66% off-white wash over a heavy backdrop
+        // blur, not an opaque panel: the player has to stay readable under it.
+        .presentationBackground {
+            Palette.sheetFill.background(.ultraThinMaterial)
+        }
     }
 }
 
@@ -890,8 +915,8 @@ private struct PlayerChaptersSheet: View {
                         .padding(.horizontal, 10)
                         .padding(.vertical, 13)
                         .background(
-                            isCurrent ? Palette.airedChipBg : Color.clear,
-                            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            isCurrent ? Palette.rowSelected : Color.clear,
+                            in: RoundedRectangle(cornerRadius: Radius.icon, style: .continuous)
                         )
                     }
                     .buttonStyle(.plain)
@@ -921,7 +946,7 @@ private struct PlayerSourcesSheet: View {
 
                 if chapter.sources.isEmpty {
                     Text("Intro/outro: no external fact.")
-                        .typo(TypoStyle(size: 13, weight: .regular, lineHeight: 1.5))
+                        .typo(Typo.sheetLead)
                         .foregroundStyle(Palette.muted)
                 }
 
@@ -940,25 +965,24 @@ private struct PlayerSourcesSheet: View {
                 }
 
                 if !chapter.grounding.isEmpty {
-                    Overline(text: String(localized: "Checked on air"))
-                        .padding(.top, 8)
+                    PlayerGroupLabel(text: String(localized: "Checked on air"))
                     Text(Self.verdictLine(chapter))
-                        .typo(Typo.metaSmall)
+                        .typo(Typo.note)
                         .foregroundStyle(Palette.muted2)
-                        .lineSpacing(3)
 
-                    ForEach(chapter.grounding) { entry in
-                        GroundedSentenceRow(entry: entry)
+                    VStack(spacing: 0) {
+                        ForEach(chapter.grounding) { entry in
+                            GroundedSentenceRow(entry: entry)
+                            Divider().overlay(Palette.hairline)
+                        }
                     }
                 } else if !chapter.sources.isEmpty {
                     // No entry at all means nothing in the chapter was checkable,
                     // which is not the same as nothing having been checked.
-                    Overline(text: String(localized: "Checked on air"))
-                        .padding(.top, 8)
+                    PlayerGroupLabel(text: String(localized: "Checked on air"))
                     Text("No sentence in this chapter carried a number, a quote or a name to check.")
-                        .typo(Typo.metaSmall)
+                        .typo(Typo.note)
                         .foregroundStyle(Palette.muted2)
-                        .lineSpacing(3)
                 }
             } else {
                 PlayerEmptyLine(text: String(localized: "No chapter playing."))
@@ -973,9 +997,9 @@ private struct PlayerSourcesSheet: View {
                     .frame(maxWidth: .infinity)
                     .padding(12)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 13, style: .continuous)
+                        RoundedRectangle(cornerRadius: Radius.detail, style: .continuous)
                             .strokeBorder(
-                                Color(hex: 0x1C1B22, opacity: 0.22),
+                                Palette.dashedBorder,
                                 style: StrokeStyle(lineWidth: 1, dash: [4, 3])
                             )
                     )
@@ -990,11 +1014,12 @@ private struct PlayerSourceCard: View {
     let source: ChapterSource
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: Radius.panel, style: .continuous)
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(PlayerSourceText.publisher(source))
                     .textCase(.uppercase)
-                    .typo(Typo.sourcePub)
+                    .typo(Typo.sheetSourcePub)
                     .foregroundStyle(Palette.body)
                 Spacer()
                 if let lang = source.lang, !lang.isEmpty {
@@ -1004,8 +1029,7 @@ private struct PlayerSourceCard: View {
                 }
             }
             Text(PlayerSourceText.title(source))
-                .typo(Typo.rowTitle)
-                .lineSpacing(4)
+                .typo(Typo.sourceTitle)
                 .foregroundStyle(Palette.ink)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if let meta = PlayerSourceText.meta(source) {
@@ -1016,11 +1040,21 @@ private struct PlayerSourceCard: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.7), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 15, style: .continuous)
-                .strokeBorder(Color(hex: 0x1C1B22, opacity: 0.09), lineWidth: 1)
-        )
+        .background {
+            shape
+                .fill(Palette.controlFill)
+                .overlay {
+                    shape.strokeBorder(
+                        LinearGradient(
+                            colors: [Palette.innerHighlight, Palette.panelBorder],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 1
+                    )
+                }
+                .dropShadow(Palette.sheetCardShadow)
+        }
     }
 }
 
@@ -1030,16 +1064,20 @@ private struct PlayerTranscriptSheet: View {
     var body: some View {
         if let chapter = player.currentChapter, !chapter.text.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
-                Overline(text: PlayerSourceText.position(chapter, in: player.chapters) + String(localized: " · in sync"))
+                PlayerGroupLabel(
+                    text: PlayerSourceText.position(chapter, in: player.chapters)
+                        + String(localized: " · in sync")
+                )
                 Text(chapter.text)
                     .typo(Typo.transcriptBody)
                     .foregroundStyle(Palette.prose)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                Divider().overlay(Palette.hairline)
                 Text("✓ checked: tap SOURCE for the evidence.")
-                    .typo(Typo.metaSmall)
+                    .typo(Typo.note)
                     .foregroundStyle(Palette.muted2)
-                    .padding(.top, 4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 10)
+                    .overlay(alignment: .top) { Palette.divider.frame(height: 1) }
             }
         } else {
             PlayerEmptyLine(text: String(localized: "No text for this chapter: the episode has no readable script yet."))
@@ -1069,7 +1107,7 @@ struct PlayerStat: View {
                 .typo(Typo.statNumber)
                 .foregroundStyle(Palette.ink)
             Text(label)
-                .typo(TypoStyle(size: 10.5, weight: .regular))
+                .typo(Typo.metaMicro)
                 .foregroundStyle(Palette.muted)
                 .multilineTextAlignment(.center)
         }
@@ -1090,10 +1128,10 @@ struct PlayerFlag: View {
         }
         .padding(.horizontal, 13)
         .padding(.vertical, 11)
-        .background(Palette.danger.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(Palette.dangerPanelFill, in: RoundedRectangle(cornerRadius: Radius.icon, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(Palette.danger.opacity(0.2), lineWidth: 1)
+            RoundedRectangle(cornerRadius: Radius.icon, style: .continuous)
+                .strokeBorder(Palette.dangerPanelBorder, lineWidth: 1)
         )
     }
 }
@@ -1147,8 +1185,7 @@ private struct PlayerPill: View {
                 .foregroundStyle(Palette.ink)
                 .padding(.horizontal, 15)
                 .padding(.vertical, 9)
-                .background(Palette.ink.opacity(0.04), in: Capsule())
-                .overlay(Capsule().strokeBorder(Palette.ink.opacity(0.12), lineWidth: 1))
+                .glassPill(shadow: Palette.controlShadow)
         }
         .buttonStyle(.plain)
     }
@@ -1156,19 +1193,58 @@ private struct PlayerPill: View {
 
 private struct PlayerSkipButton: View {
     let label: String
+    let accessibility: String
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Text(label)
-                .typo(Typo.metaTiny.tabular)
+                .typo(Typo.tagPill.tabular)
                 .foregroundStyle(Palette.ink)
                 .frame(width: 46, height: 46)
-                .background(Palette.ink.opacity(0.05), in: Circle())
-                .overlay(Circle().strokeBorder(Palette.ink.opacity(0.14), lineWidth: 1))
+                .glassPill(shadow: Palette.transportShadow)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(label == "-15" ? "Skip back 15 seconds" : "Skip forward 15 seconds")
+        .accessibilityLabel(accessibility)
+    }
+}
+
+/// The group head inside a sheet (CHECKED ON AIR, CHAPTER 1 OF 4 · IN SYNC).
+/// One step tighter than `Overline`, which the prototype reserves for headers
+/// outside a sheet.
+private struct PlayerGroupLabel: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .textCase(.uppercase)
+            .typo(Typo.sectionLabel)
+            .foregroundStyle(Palette.muted2)
+            .padding(.top, 8)
+    }
+}
+
+private extension View {
+    /// The prototype's glass control: a white wash over a blur, a hairline that
+    /// brightens along the top edge in place of CSS's `inset 0 1px 0`, and the
+    /// ambient violet drop.
+    func glassPill(shadow: Shadow) -> some View {
+        background {
+            Capsule()
+                .fill(Palette.controlFill)
+                .background(.ultraThinMaterial, in: Capsule())
+                .overlay {
+                    Capsule().strokeBorder(
+                        LinearGradient(
+                            colors: [Palette.innerHighlightSoft, Palette.cardBorder],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 1
+                    )
+                }
+                .dropShadow(shadow)
+        }
     }
 }
 
@@ -1189,7 +1265,7 @@ private struct PlayerArtwork: View {
         .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: radius, style: .continuous)
-                .strokeBorder(Color(hex: 0x1C1B22, opacity: 0.08), lineWidth: 1)
+                .strokeBorder(Palette.divider, lineWidth: 1)
         )
     }
 }
@@ -1340,63 +1416,44 @@ private enum PlayerSourceText {
     }
 }
 
-private enum PlayerPalette {
-    /// The player's own backdrop: linear-gradient(180deg, #E4DFF5, #F4F3EF 46%,
-    /// #FAFAF8). Deeper at the top than the screen gradient in Theme.
-    static let background = LinearGradient(
-        stops: [
-            .init(color: Color(hex: 0xE4DFF5), location: 0),
-            .init(color: Color(hex: 0xF4F3EF), location: 0.46),
-            .init(color: Color(hex: 0xFAFAF8), location: 1),
-        ],
-        startPoint: .top,
-        endPoint: .bottom
-    )
-
-    /// Chapter marks on the seek bar, light enough to read over the dark fill.
-    static let tick = Color(hex: 0xE9E5F5)
-}
-
-
+/// The four values the player needs that Theme does not carry yet. Read off
+/// v3.html like everything else; promote them to `Palette`/`Typo` once another
+/// screen wants them.
 // One checked sentence and its verdict. A correction shows both versions: the
 // point of the report is that the listener can see what the evidence changed.
 private struct GroundedSentenceRow: View {
     let entry: GroundingEntry
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .top, spacing: 8) {
-                StatusChip(
-                    // Feminine: the referent is "une phrase", like the sheet's
-                    // own copy ("1 a été réécrite").
-                    label: entry.wasCorrected ? String(localized: "Corrected") : String(localized: "Verified"),
-                    kind: entry.wasCorrected ? .warning : .success
-                )
-                Spacer(minLength: 0)
+        HStack(alignment: .top, spacing: 10) {
+            StatusChip(
+                // Feminine: the referent is "une phrase", like the sheet's
+                // own copy ("1 a été réécrite").
+                label: entry.wasCorrected ? String(localized: "Corrected") : String(localized: "Verified"),
+                kind: entry.wasCorrected ? .warning : .success
+            )
+            .padding(.top, 1)
+
+            VStack(alignment: .leading, spacing: 4) {
+                if entry.wasCorrected, let fix = entry.fix {
+                    Text(fix)
+                        .typo(Typo.detail)
+                        .foregroundStyle(Palette.ink2)
+                    // The struck original is the whole point of the row: the
+                    // listener sees what the evidence changed, not just that
+                    // something changed.
+                    Text(entry.sentence)
+                        .typo(Typo.struckSentence)
+                        .foregroundStyle(Palette.muted2)
+                        .strikethrough(true, color: Palette.muted2.opacity(0.6))
+                } else {
+                    Text(entry.sentence)
+                        .typo(Typo.detail)
+                        .foregroundStyle(Palette.ink2)
+                }
             }
-            if entry.wasCorrected, let fix = entry.fix {
-                Text(fix)
-                    .typo(TypoStyle(size: 13, weight: .regular, lineHeight: 1.5))
-                    .foregroundStyle(Palette.prose)
-                Text(entry.sentence)
-                    .typo(TypoStyle(size: 12, weight: .light, lineHeight: 1.45))
-                    .foregroundStyle(Palette.muted2)
-                    .strikethrough(true, color: Palette.muted2.opacity(0.6))
-            } else {
-                Text(entry.sentence)
-                    .typo(TypoStyle(size: 13, weight: .regular, lineHeight: 1.5))
-                    .foregroundStyle(Palette.prose)
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.55))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color(hex: 0x1C1B22, opacity: 0.07))
-        )
+        .padding(.vertical, 9)
     }
 }

@@ -11,6 +11,7 @@
 "%lld links of %lld minimum" = "%lld links of %lld minimum";
 "%lld min · max %lld" = "%lld min · max %lld";
 "%lld new today" = "%lld new today";
+"%lld ready · ~%lld min" = "%lld ready · ~%lld min";
 "%lld saved in total: tap All to see them." = "%lld saved in total: tap All to see them.";
 "%lld sentences were checked" = "%lld sentences were checked";
 "%lld sources" = "%lld sources";
@@ -145,7 +146,7 @@
 "Library" = "Library";
 "Link" = "Link";
 "Listen" = "Listen";
-"Listen here" = "Listen here";
+"Listen from here" = "Listen from here";
 "Listen…" = "Listen…";
 "Loading the briefing" = "Loading the briefing";
 "Loading the briefing…" = "Loading the briefing…";
@@ -250,6 +251,7 @@
 "Source: %@" = "Source: %@";
 "Source: %@ +%lld" = "Source: %@ +%lld";
 "Sources" = "Sources";
+"Sources grouped into a story air as one chapter" = "Sources grouped into a story air as one chapter";
 "Sources in another language? Your recap stays in yours." = "Sources in another language? Your recap stays in yours.";
 "Started from the computer" = "Started from the computer";
 "Status “%@” unknown to the app." = "Status “%@” unknown to the app.";

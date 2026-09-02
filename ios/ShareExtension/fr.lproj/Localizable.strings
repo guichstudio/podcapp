@@ -11,6 +11,7 @@
 "%lld links of %lld minimum" = "%lld liens sur %lld minimum";
 "%lld min · max %lld" = "%lld min · max %lld";
 "%lld new today" = "%lld nouveaux aujourd’hui";
+"%lld ready · ~%lld min" = "%lld prêtes · ~%lld min";
 "%lld saved in total: tap All to see them." = "%lld enregistrée(s) au total : touchez Tout pour les voir.";
 "%lld sentences were checked" = "%lld phrases ont été confrontées";
 "%lld sources" = "%lld sources";
@@ -145,7 +146,7 @@
 "Library" = "Bibliothèque";
 "Link" = "Lien";
 "Listen" = "Écouter";
-"Listen here" = "Écouter ici";
+"Listen from here" = "Écouter ici";
 "Listen…" = "Écoutez…";
 "Loading the briefing" = "Chargement du briefing";
 "Loading the briefing…" = "Chargement du briefing…";
@@ -250,6 +251,7 @@
 "Source: %@" = "Source : %@";
 "Source: %@ +%lld" = "Source : %@ +%lld";
 "Sources" = "Sources";
+"Sources grouped into a story air as one chapter" = "Les sources regroupées en un sujet sont diffusées en un seul chapitre";
 "Sources in another language? Your recap stays in yours." = "Sources dans une autre langue ? Votre recap reste dans la vôtre.";
 "Started from the computer" = "Lancée depuis l’ordinateur";
 "Status “%@” unknown to the app." = "Statut « %@ » inconnu de l’app.";
