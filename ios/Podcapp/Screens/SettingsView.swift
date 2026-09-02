@@ -25,6 +25,8 @@ struct SettingsView: View {
     @State private var me: API.Me?
     @State private var showingShareHelp = false
     @State private var copiedFeed = false
+    // The devices signed into this account. Loaded once per visit, same as `me`.
+    @State private var devices: [DeviceSession] = []
 
     enum Connection: Equatable {
         case idle
@@ -44,6 +46,11 @@ struct SettingsView: View {
 
                 connectionSection
                     .padding(.bottom, 22)
+
+                if isConfigured {
+                    devicesSection
+                        .padding(.bottom, 22)
+                }
 
                 languageCard
                     .padding(.bottom, 12)
@@ -80,8 +87,12 @@ struct SettingsView: View {
                 .padding(.top, 20)
                 .padding(.horizontal, 4)
 
-                deleteAccountButton
+                signOutButton
                     .padding(.top, 28)
+                    .padding(.horizontal, 4)
+
+                deleteAccountButton
+                    .padding(.top, 14)
                     .padding(.horizontal, 4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -122,6 +133,80 @@ struct SettingsView: View {
             }
             .foregroundStyle(Palette.muted2)
         }
+    }
+
+    // MARK: - Appareils connectes
+
+    private var devicesSection: some View {
+        PlainCard(cornerRadius: 16, padding: 0) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Signed-in devices")
+                    .typo(Typo.listTitle)
+                    .foregroundStyle(Palette.ink)
+                VStack(spacing: 0) {
+                    ForEach(Array(devices.enumerated()), id: \.element.id) { index, device in
+                        deviceRow(device)
+                        if index < devices.count - 1 {
+                            Rectangle().fill(Palette.hairline).frame(height: 1)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 15)
+        }
+        .task { devices = (try? await API.shared.sessions()) ?? [] }
+    }
+
+    private func deviceRow(_ device: DeviceSession) -> some View {
+        HStack(spacing: 10) {
+            Text(device.device_name)
+                .typo(Typo.rowTitle)
+                .foregroundStyle(Palette.ink)
+            Spacer(minLength: 0)
+            Button {
+                Task { await revoke(device) }
+            } label: {
+                Text("Sign out")
+                    .typo(Typo.metaSmall)
+                    .foregroundStyle(Palette.muted2)
+                    .underline()
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.vertical, 6)
+    }
+
+    // Revokes on the server only: it does not touch this device's own token,
+    // so revoking the row for the phone you are holding leaves the app signed
+    // in locally with a token the server now refuses. Use signOut() for that.
+    private func revoke(_ device: DeviceSession) async {
+        try? await API.shared.revokeSession(id: device.id)
+        devices = (try? await API.shared.sessions()) ?? []
+    }
+
+    // MARK: - Deconnexion
+
+    private var signOutButton: some View {
+        Button {
+            signOut()
+        } label: {
+            Text("Sign out")
+                .typo(Typo.metaSmall)
+                .foregroundStyle(Palette.muted2)
+                .underline()
+        }
+        .buttonStyle(.plain)
+        .disabled(!isConfigured)
+    }
+
+    private func signOut() {
+        Feedback.tap()
+        // Efface aussi ce que lit l'extension de partage : la garder connectee
+        // alors que l'app ne l'est plus serait une surprise desagreable.
+        Config.sessionToken = ""
+        Config.reportedLanguage = nil
+        NotificationCenter.default.post(name: .podcappSignedOut, object: nil)
     }
 
     // MARK: - Suppression du compte

@@ -119,6 +119,14 @@ struct SavedSource: Decodable, Identifiable, Sendable {
     var link: URL? { url.flatMap(URL.init(string:)) }
 }
 
+// GET /me/sessions is snake_case on the wire like the write endpoints (see the
+// top-of-file note): the property names below are the JSON keys verbatim.
+struct DeviceSession: Decodable, Identifiable, Sendable {
+    let id: String
+    let device_name: String
+    let last_seen_at: Date
+}
+
 enum APIError: LocalizedError {
     case notConfigured
     case badURL
@@ -232,6 +240,24 @@ actor API {
     }
 
     private struct DeleteAck: Decodable { let status: String }
+
+    /// GET /me/sessions: every device still signed into this account, most
+    /// recently seen first.
+    func sessions() async throws -> [DeviceSession] {
+        struct Reply: Decodable { let sessions: [DeviceSession] }
+        return try await get("/me/sessions", as: Reply.self).sessions
+    }
+
+    /// DELETE /me/sessions/:id. A missing or foreign id answers 404, same as
+    /// any other lookup scoped to the caller. Revoking is server-side only:
+    /// it does not touch this device's own stored token, so a device signing
+    /// itself out this way keeps calling with a now-dead token until it also
+    /// clears Config.sessionToken (see Settings' signOut()).
+    func revokeSession(id: String) async throws {
+        struct Ack: Decodable { let ok: Bool }
+        _ = try await delete("/me/sessions/\(id)", as: Ack.self)
+    }
+
     /// The account as the server shows it. snake_case on the wire like the
     /// other write endpoints, because PUT /me answers with the same shape.
     struct VoiceOption: Decodable, Identifiable, Sendable, Equatable {
@@ -293,6 +319,12 @@ actor API {
 
     private func get<T: Decodable>(_ path: String, as type: T.Type) async throws -> T {
         try await perform(makeRequest(for: path), as: type)
+    }
+
+    private func delete<T: Decodable>(_ path: String, as type: T.Type) async throws -> T {
+        var request = try makeRequest(for: path)
+        request.httpMethod = "DELETE"
+        return try await perform(request, as: type)
     }
 
     private func post<T: Decodable, Body: Encodable>(_ path: String, body: Body, as type: T.Type) async throws -> T {

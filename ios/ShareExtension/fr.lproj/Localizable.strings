@@ -237,8 +237,10 @@
 "Share a link from Safari, then pick Podcapp" = "Partagez un lien depuis Safari, puis choisissez Podcapp";
 "Share extension" = "Extension de partage";
 "Share it." = "Partagez.";
+"Sign out" = "Déconnecter";
 "Sign-in cancelled." = "Connexion annulée.";
 "Sign-in was refused. Please try again." = "La connexion a été refusée. Réessayez.";
+"Signed-in devices" = "Appareils connectés";
 "Sounds" = "Sons";
 "Source" = "Source";
 "Source: %@" = "Source : %@";
