@@ -7,7 +7,9 @@ const MIGRATIONS_DIR = new URL('./migrations', import.meta.url).pathname
 
 // Plain sequential runner over drizzle-kit's generated .sql files. Works on both
 // drivers (node-postgres and PGlite); tracks applied files in _migrations.
-export async function migrate(db: Db): Promise<void> {
+// `quiet` skips the per-file log line: the test database helper calls this on
+// every test file, and the CLI entrypoint's own output must stay as-is.
+export async function migrate(db: Db, opts?: { quiet?: boolean }): Promise<void> {
   await db.execute(sql`CREATE EXTENSION IF NOT EXISTS vector`)
   await db.execute(
     sql`CREATE TABLE IF NOT EXISTS _migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())`,
@@ -24,7 +26,7 @@ export async function migrate(db: Db): Promise<void> {
       if (s) await db.execute(sql.raw(s))
     }
     await db.execute(sql`INSERT INTO _migrations (name) VALUES (${f})`)
-    console.log(`applied ${f}`)
+    if (!opts?.quiet) console.log(`applied ${f}`)
   }
 }
 
