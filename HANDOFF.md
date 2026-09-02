@@ -34,17 +34,13 @@ ce qui vient ensuite, et ce qui piège.
 
 ## Prochaines actions, dans l'ordre
 
-1. **TestFlight** : la fiche existe (**app id `6807563809`**) et tout le
-   remplissage est fait — sous-titre, catégorie News, droits sur le contenu
-   tiers, classification **13+**, étiquette de confidentialité publiée,
-   description bêta, e-mails, URLs, contact de vérification. Restent deux
-   gestes **navigateur, côté Louis** : coller les identifiants de démo dans
+1. **TestFlight** : **le build 27 est en ligne** (téléversé le 2026-09-02,
+   état `VALID`). Les testeurs internes l'ont ; les externes attendent la
+   Beta App Review, non soumise. Reste à coller les identifiants de démo dans
    TestFlight → Test Information → « Connexion requise » (utilisateur
-   `beta-review@podcapp.fr`, mot de passe = le jeton d'API du compte, dans le
-   gestionnaire de mots de passe), et créer une clé API (Users and Access →
-   Integrations, rôle App Manager, `.p8` + Key ID + Issuer ID). Puis, depuis
-   `ios/` : `TEAM_ID=V7BMDJS5C7 ASC_KEY_ID=… ASC_ISSUER_ID=… ASC_KEY_PATH=… ./testflight.sh`
-   (`CURRENT_PROJECT_VERSION` est déjà à **27**).
+   `beta-review@podcapp.fr`, mot de passe = le jeton d'API du compte), puis à
+   soumettre pour revue quand tu veux des testeurs externes.
+   **Supprimer la clé API Admin `4M524UGZT6`** si ce n'est pas déjà fait.
 2. **Beta App Review** : le compte de démonstration existe et est peuplé
    (`beta-review@podcapp.fr`, anglais, voix Eric, 5 min, 6 sources, épisode
    `a5978667-…` publié à 4 min 50). Rien à refaire.

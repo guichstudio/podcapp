@@ -127,9 +127,47 @@ sinon Apple relève la contradiction :
 
 ## Clé API pour l'upload
 
-App Store Connect → Users and Access → Integrations → App Store Connect API,
-rôle **App Manager**. Télécharger le `.p8` (une seule fois, Apple ne le
-redonne pas), noter le Key ID et l'Issuer ID. Puis, depuis `ios/` :
+App Store Connect → Users and Access → Integrations → App Store Connect API.
+Le premier passage demande de cliquer **Demander l'accès** : tant que l'accès
+n'est pas accordé, aucune clé ne peut être générée. Puis **Générer une clé
+API**, rôle **App Manager**, télécharger le `.p8` (une seule fois, Apple ne le
+redonne pas), noter le Key ID ; l'Issuer ID s'affiche en haut de la liste.
+
+**Le rôle d'une clé est définitif, et App Manager ne suffit pas.** Il permet
+de téléverser, pas de laisser la signature dans le cloud fabriquer ce qu'il
+faut pour signer. L'export échoue en deux temps, et le second message
+n'apparaît qu'une fois le premier réglé :
+
+```
+error: exportArchive Cloud signing permission error
+error: exportArchive No signing certificate "iOS Distribution" found
+```
+puis, une fois le certificat créé :
+```
+error: exportArchive Provisioning profile "iOS Team Store Provisioning Profile:
+com.louisguichard.podcapp" doesn't include signing certificate
+"Apple Distribution: louis guichard (V7BMDJS5C7)"
+```
+
+(l'archive, elle, réussit à chaque fois — c'est toujours l'export qui bloque).
+Ne pas chercher du côté des contrats Apple : le contrat applications gratuites
+peut être actif et l'erreur rester la même.
+
+**Ce qu'il faut réellement : une clé en rôle Admin.** Créer le certificat à la
+main dans Xcode (Réglages → Comptes → l'équipe → Manage Certificates… → + →
+Apple Distribution) règle la première erreur mais pas la seconde : régénérer
+les profils de provisionnement passe aussi par la signature dans le cloud.
+Deux façons d'en finir :
+
+- une seconde clé en rôle **Admin** — c'est ce qui a marché le 2026-09-02 ;
+  **la supprimer juste après l'upload**, elle n'expire jamais ;
+- ou distribuer depuis l'Organizer de Xcode (Product → Archive → Distribute
+  App), qui signe avec le compte Admin connecté et régénère les profils seul.
+
+Vérifier le certificat avec `security find-identity -v -p codesigning` : il
+doit y avoir une identité `Apple Distribution` à côté d'`Apple Development`.
+
+Puis, depuis `ios/` :
 
 ```
 TEAM_ID=V7BMDJS5C7 \
