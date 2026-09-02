@@ -13,9 +13,6 @@ struct TodayView: View {
     @State private var phase: Phase = .loading
     @State private var backstage: EpisodeDetail?
     @State private var targetMinutes = 5
-    // Local only: no endpoint carries an include flag, so a tap never leaves the
-    // phone. The line under the row says so.
-    @State private var includeOverrides: [String: Bool] = [:]
 
     var body: some View {
         ScrollView {
@@ -190,28 +187,13 @@ struct TodayView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 10) {
                     ForEach(data.focus) { source in
-                        TodayFocusCard(
-                            source: source,
-                            isIncluded: isIncluded(source),
-                            onToggle: { includeOverrides[source.id] = !isIncluded(source) }
-                        )
+                        TodayFocusCard(source: source)
                     }
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 4)
             }
-
-            Text("In or out stays on this iPhone: the selection is not sent to the server yet.")
-                .typo(Typo.metaSmall)
-                .foregroundStyle(Palette.muted2)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
         }
-    }
-
-    private func isIncluded(_ source: SavedSource) -> Bool {
-        includeOverrides[source.id] ?? TodayText.canAir(source.status)
     }
 
     // MARK: - Loading
@@ -445,30 +427,15 @@ private struct TodayHeroCard: View {
 
 private struct TodayFocusCard: View {
     let source: SavedSource
-    let isIncluded: Bool
-    let onToggle: () -> Void
 
     var body: some View {
         PlainCard(cornerRadius: 16, padding: 14) {
             VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    Text(TodayText.sourceStatusLabel(source.status))
-                        .textCase(.uppercase)
-                        .typo(Typo.cardTag)
-                        .foregroundStyle(TodayText.isFailure(source.status) ? Palette.danger : Palette.muted)
-                        .lineLimit(1)
-                    Spacer(minLength: 4)
-                    Button(action: onToggle) {
-                        Text(isIncluded ? String(localized: "Included") : String(localized: "Excluded"))
-                            .typo(Typo.chip)
-                            .foregroundStyle(isIncluded ? Palette.onDark : Palette.muted)
-                            .padding(.vertical, 4)
-                            .padding(.horizontal, 10)
-                            .background(isIncluded ? Palette.ink : Color.clear, in: Capsule())
-                            .overlay(Capsule().strokeBorder(Palette.cardBorder, lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
-                }
+                Text(TodayText.sourceStatusLabel(source.status))
+                    .textCase(.uppercase)
+                    .typo(Typo.cardTag)
+                    .foregroundStyle(TodayText.isFailure(source.status) ? Palette.danger : Palette.muted)
+                    .lineLimit(1)
 
                 Text(TodayText.headline(for: source))
                     .typo(Typo.cardTitle)
@@ -494,8 +461,7 @@ private struct TodayGenerateCard: View {
     let minimum: Int
     @Binding var targetMinutes: Int
 
-    private var shortBy: Int { max(0, minimum - readySourceCount) }
-    private var ruleMet: Bool { shortBy == 0 }
+    private var rule: MinimumSourcesRule { MinimumSourcesRule(count: readySourceCount, minimum: minimum) }
     @State private var generation: GenerationTarget?
 
     @State private var isGenerating = false
@@ -531,7 +497,7 @@ private struct TodayGenerateCard: View {
                 HStack(spacing: 12) {
                     ruleRing
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(ruleTitle)
+                        Text(rule.title)
                             .typo(Typo.listTitle)
                             .foregroundStyle(Palette.ink)
                         Text(ruleSub)
@@ -548,12 +514,12 @@ private struct TodayGenerateCard: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 13)
                         .background(
-                            Palette.ink.opacity(isGenerating || shortBy > 0 ? 0.55 : 1),
+                            Palette.ink.opacity(isGenerating || !rule.met ? 0.55 : 1),
                             in: RoundedRectangle(cornerRadius: 13, style: .continuous)
                         )
                 }
                 .buttonStyle(.plain)
-                .disabled(isGenerating || shortBy > 0)
+                .disabled(isGenerating || !rule.met)
 
                 switch outcome {
                 case .queued:
@@ -575,22 +541,15 @@ private struct TodayGenerateCard: View {
         }
     }
 
-    private var ruleTitle: String {
-        if ruleMet { return String(localized: "Minimum reached") }
-        return readySourceCount == 1
-            ? String(localized: "1 link of \(minimum) minimum")
-            : String(localized: "\(readySourceCount) links of \(minimum) minimum")
-    }
-
     private var ruleSub: String {
-        ruleMet
+        rule.met
             ? String(localized: "Ready to generate · target \(targetMinutes) min.")
-            : String(localized: "At least \(minimum) links are needed to build an episode.")
+            : rule.explanation
     }
 
     private var ruleRing: some View {
         let fraction = min(1, Double(readySourceCount) / Double(max(1, minimum)))
-        let tint = ruleMet ? Color(hex: 0x2E7D46) : Color(hex: 0x7C6CDC)
+        let tint = rule.met ? Color(hex: 0x2E7D46) : Color(hex: 0x7C6CDC)
         return ZStack {
             Circle().stroke(Palette.hairline, lineWidth: 4)
             Circle()
@@ -604,7 +563,7 @@ private struct TodayGenerateCard: View {
                 .tabularNumerals()
         }
         .frame(width: 44, height: 44)
-        .accessibilityLabel(ruleTitle)
+        .accessibilityLabel(rule.title)
     }
 
     @MainActor
@@ -865,12 +824,6 @@ private enum TodayText {
     /// Red is for a source that broke, not for one that simply repeats another.
     static func isFailure(_ status: String) -> Bool {
         ["extraction_failed", "low_quality", "unsupported"].contains(status)
-    }
-
-    /// Drives the default side of the Inclus/Exclu pill: a failed or duplicated
-    /// source will not air whatever the pill says.
-    static func canAir(_ status: String) -> Bool {
-        !isFailure(status) && status != "duplicate"
     }
 
     // Episode statuses written by src/jobs/generateEpisode.ts and publishEpisode.ts.

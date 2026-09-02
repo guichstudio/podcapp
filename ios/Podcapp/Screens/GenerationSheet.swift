@@ -4,6 +4,28 @@ struct GenerationTarget: Identifiable {
     let id: String
 }
 
+/// The four-link rule, in one place so Today's ring and Library's per-shelf
+/// gate always state it the same way instead of drifting into two copies.
+struct MinimumSourcesRule {
+    let count: Int
+    let minimum: Int
+
+    var shortBy: Int { max(0, minimum - count) }
+    var met: Bool { shortBy == 0 }
+
+    var title: String {
+        if met { return String(localized: "Minimum reached") }
+        return count == 1
+            ? String(localized: "1 link of \(minimum) minimum")
+            : String(localized: "\(count) links of \(minimum) minimum")
+    }
+
+    /// The sentence that states the rule before any tap.
+    var explanation: String {
+        String(localized: "At least \(minimum) links are needed to build an episode.")
+    }
+}
+
 /// The nine editorial steps, followed live. The pipeline writes its status on
 /// the episode row at every stage, so this only has to read it back: no
 /// invented timer, no progress that runs ahead of the work.

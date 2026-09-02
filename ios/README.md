@@ -115,9 +115,9 @@ description, review notes, privacy questionnaire — is in
 
 - a beta app description and a feedback email — both required before you can
   invite anyone external;
-- **a demo account**, because the app is useless without a token: put a working
-  API token and the base URL in the Beta App Review notes, or the reviewer sees
-  the onboarding and nothing else;
+- **no demo account needed**: the onboarding's last screen offers Sign in with
+  Apple, so a reviewer creates their own account with their own Apple ID —
+  uncheck "Sign-in required" in Test Information;
 - the privacy policy URL, `https://podcapp.vercel.app/privacy` — served by the
   API from `src/legal/privacy.ts` and linked at the bottom of the Réglages
   screen, since App Review 5.1.1 wants it reachable from inside the app too. It
@@ -127,15 +127,18 @@ The bundle already carries what Apple checks automatically: a `PrivacyInfo.xcpri
 in each target declaring the `UserDefaults` access reasons (`1C8F.1` for the App
 Group, `CA92.1` for the fallback) and what the app sends to its own server, plus
 `ITSAppUsesNonExemptEncryption=false` so no upload stops to ask about encryption.
-The App Store Connect privacy questionnaire must say the same thing: user content
-and an account identifier, linked to the user, used only for app functionality,
-never for tracking.
+The App Store Connect privacy questionnaire must say the same thing: user content,
+an account identifier, and an email address (Sign in with Apple, private-relay
+addresses included), linked to the user, used only for app functionality, never
+for tracking.
 
 ## What it deliberately does not do
 
-No sign-in with Apple or Google: the onboarding's last screen asks for the API
-token in that slot, because token exchange needs endpoints that do not exist.
-Per-sentence grounding is shown in the app; everything else about a run stays in
-`episodes/<id>/run/` on R2.
+Sign in with Apple ships; Sign in with Google does not. The server verifies
+Google identity tokens too (`POST /auth/google`) and refuses every request
+while `GOOGLE_CLIENT_ID` is unset, but no button in the app calls that route —
+it is ready for a later version, not part of this one. Per-sentence grounding
+is shown in the app; everything else about a run stays in `episodes/<id>/run/`
+on R2.
 
 [XcodeGen]: https://github.com/yonaskolb/XcodeGen

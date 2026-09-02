@@ -1,35 +1,43 @@
 import SwiftUI
 
-// The Settings tab of ios/design/layout.html (<sc-if value="{{ tabSettings }}">),
-// plus everything ContentView owns today: the app token, the server address and
-// the "Enregistrer et tester" round trip. This screen replaces ContentView, so
-// that behaviour has to keep working here, in the design's language rather than
-// in a Form.
+// The Settings tab of ios/design/layout.html (<sc-if value="{{ tabSettings }}">).
+// Signing in happens once, in onboarding's Sign in with Apple button; this
+// screen only ever shows an already-signed-in account -- its own device in
+// "Signed-in devices" below, and the way out is Sign out or Delete my
+// account, not a token field to edit.
 //
 // The generation settings below are read-only on purpose: voice, target length
 // and the RSS token live on the machine that generates episodes, and the API
 // exposes none of them. Inventing values here would be worse than saying so.
 struct SettingsView: View {
-    @State private var token = Config.apiToken
-    @State private var server = Config.baseURL
-    @State private var connection: Connection = .idle
     // Config is plain UserDefaults and publishes nothing, so the saved state is
-    // mirrored here and refreshed by saveAndTest() instead of read mid-render.
+    // mirrored here.
     @State private var isConfigured = Config.isConfigured
     // Config publishes nothing, so the switches keep their own state and write
-    // through on change, like the token field above.
+    // through on change.
     @State private var haptics = Config.hapticsEnabled
     @State private var sounds = Config.soundEnabled
     // The account as the server sees it: voice, language, feed link. Loaded
-    // once per visit; nil until then, and the cards that need it wait.
-    @State private var me: API.Me?
+    // once per visit, same shape as `devicesState` below so a failed load
+    // reads as an error rather than as an account with nothing in it.
+    @State private var meState: MeState = .loading
+    private enum MeState {
+        case loading
+        case loaded(API.Me)
+        case failed(String)
+    }
+    private var me: API.Me? {
+        if case let .loaded(value) = meState { return value }
+        return nil
+    }
     @State private var showingShareHelp = false
     @State private var copiedFeed = false
-
-    enum Connection: Equatable {
-        case idle
-        case checking
-        case ok(String)
+    // The devices signed into this account. Loaded once per visit, same as `me`.
+    // A separate state so a network hiccup does not read as "no other devices".
+    @State private var devicesState: DevicesState = .loading
+    private enum DevicesState {
+        case loading
+        case loaded([DeviceSession])
         case failed(String)
     }
 
@@ -42,8 +50,10 @@ struct SettingsView: View {
                     .padding(.top, 6)
                     .padding(.bottom, 16)
 
-                connectionSection
-                    .padding(.bottom, 22)
+                if isConfigured {
+                    devicesSection
+                        .padding(.bottom, 22)
+                }
 
                 languageCard
                     .padding(.bottom, 12)
@@ -62,6 +72,18 @@ struct SettingsView: View {
                     .padding(.horizontal, 4)
                     .padding(.bottom, 8)
 
+                if case let .failed(message) = meState {
+                    // Without this, the rows below quietly fall back to
+                    // placeholder values with nothing saying they are not the
+                    // account's real settings.
+                    Text(message)
+                        .typo(Typo.metaSmall)
+                        .foregroundStyle(Palette.danger)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 4)
+                        .padding(.bottom, 8)
+                }
+
                 generationCard
 
                 shareHelpCard
@@ -74,14 +96,18 @@ struct SettingsView: View {
                     .padding(.horizontal, 4)
 
                 HStack(spacing: 18) {
-                    privacyLink
+                    legalLinks
                     replayLink
                 }
                 .padding(.top, 20)
                 .padding(.horizontal, 4)
 
-                deleteAccountButton
+                signOutButton
                     .padding(.top, 28)
+                    .padding(.horizontal, 4)
+
+                deleteAccountButton
+                    .padding(.top, 14)
                     .padding(.horizontal, 4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -91,7 +117,13 @@ struct SettingsView: View {
         }
         .background(ScreenBackground())
         .scrollDismissesKeyboard(.interactively)
-        .task { me = try? await API.shared.me() }
+        .task {
+            do {
+                meState = .loaded(try await API.shared.me())
+            } catch {
+                meState = .failed(error.localizedDescription)
+            }
+        }
         .sheet(isPresented: $showingShareHelp) { ShareHelpSheet() }
         .onChange(of: haptics) { _, on in
             Config.hapticsEnabled = on
@@ -105,23 +137,175 @@ struct SettingsView: View {
     }
 
     // App Review 5.1.1 wants the privacy policy reachable from inside the app,
-    // not only from the App Store listing. It follows the server field, so a build
-    // pointed elsewhere reads that server's policy rather than a hardcoded one.
+    // not only from the App Store listing, and an app that lets you create an
+    // account has to state its terms somewhere a user can find them. Both
+    // follow Config.baseURL, so a build pointed elsewhere reads that server's
+    // documents rather than hardcoded ones.
+    private var legalLinks: some View {
+        HStack(spacing: 14) {
+            legalLink(path: "/privacy", label: Text("Privacy policy"))
+            legalLink(path: "/terms", label: Text("Terms of Use"))
+        }
+    }
+
     @ViewBuilder
-    private var privacyLink: some View {
-        let base = server.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func legalLink(path: String, label: Text) -> some View {
+        let base = Config.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         let origin = base.hasSuffix("/") ? String(base.dropLast()) : base
-        if let url = URL(string: origin + "/privacy"), url.scheme?.hasPrefix("http") == true {
+        if let url = URL(string: origin + path), url.scheme?.hasPrefix("http") == true {
             // The underline goes on the Text, not on the Link: on the Link the
             // modifier compiles and does nothing, and a caption-coloured line of
             // text with no affordance does not read as tappable.
             Link(destination: url) {
-                Text("Privacy policy")
+                label
                     .typo(Typo.metaSmall)
                     .underline()
             }
             .foregroundStyle(Palette.muted2)
         }
+    }
+
+    // MARK: - Appareils connectes
+
+    private var devicesSection: some View {
+        PlainCard(cornerRadius: 16, padding: 0) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Signed-in devices")
+                    .typo(Typo.listTitle)
+                    .foregroundStyle(Palette.ink)
+                switch devicesState {
+                case .loading:
+                    EmptyView()
+                case let .loaded(devices):
+                    VStack(spacing: 0) {
+                        ForEach(Array(devices.enumerated()), id: \.element.id) { index, device in
+                            deviceRow(device)
+                            if index < devices.count - 1 {
+                                Rectangle().fill(Palette.hairline).frame(height: 1)
+                            }
+                        }
+                    }
+                case let .failed(message):
+                    Text(message)
+                        .typo(Typo.metaSmall)
+                        .foregroundStyle(Palette.danger)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 15)
+        }
+        .task { await loadDevices() }
+    }
+
+    // Every "iPhone" in this list can look identical -- UIDevice.current.name
+    // returns that generic label on iOS 16+ without a dedicated entitlement
+    // (see Auth.deviceName) -- so last-seen time and the current-device marker
+    // are what actually let someone tell the rows apart before picking one to
+    // revoke.
+    private func deviceRow(_ device: DeviceSession) -> some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(device.device_name)
+                        .typo(Typo.rowTitle)
+                        .foregroundStyle(Palette.ink)
+                    if device.current {
+                        Text("This device")
+                            .textCase(.uppercase)
+                            .typo(Typo.chip)
+                            .foregroundStyle(Palette.muted)
+                    }
+                }
+                Text(Self.lastSeenLabel(device.last_seen_at))
+                    .typo(Typo.metaSmall)
+                    .foregroundStyle(Palette.muted2)
+            }
+            Spacer(minLength: 0)
+            Button {
+                Task { await revoke(device) }
+            } label: {
+                // "Sign out" is reserved for the standalone button below,
+                // which always acts on this device's own session: a row can
+                // point at someone else's, so "Revoke" is what stays true
+                // regardless of which row it is on.
+                Text("Revoke")
+                    .typo(Typo.metaSmall)
+                    .foregroundStyle(Palette.muted2)
+                    .underline()
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.vertical, 6)
+    }
+
+    // A row can be this device's own session: revoking it the same way as any
+    // other row would race the reload just below against a 401 walking this
+    // device back to onboarding on its own. Routing through Auth.signOut()
+    // instead makes that deterministic -- server revoke, then local clear --
+    // and it is the same call the standalone Sign out button makes.
+    private func revoke(_ device: DeviceSession) async {
+        if device.current {
+            await Auth.signOut()
+            return
+        }
+        do {
+            try await API.shared.revokeSession(id: device.id)
+            await loadDevices()
+        } catch {
+            // Without this, a failed revoke and a successful one look
+            // identical: the row just persists either way.
+            devicesState = .failed(error.localizedDescription)
+        }
+    }
+
+    private func loadDevices() async {
+        do {
+            devicesState = .loaded(try await API.shared.sessions())
+        } catch {
+            devicesState = .failed(error.localizedDescription)
+        }
+    }
+
+    // Today shows a time, any other day shows day + month -- same split
+    // LibraryRow.stamp uses for capturedAt, so a saved source and a device's
+    // last-seen read the same way.
+    private static let lastSeenTime: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = AppLocale.current
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
+
+    private static let lastSeenDay: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = AppLocale.current
+        formatter.setLocalizedDateFormatFromTemplate("d MMM")
+        return formatter
+    }()
+
+    private static func lastSeenLabel(_ date: Date) -> String {
+        let stamp = Calendar.current.isDateInToday(date) ? lastSeenTime.string(from: date) : lastSeenDay.string(from: date)
+        return String(localized: "Last seen \(stamp)")
+    }
+
+    // MARK: - Deconnexion
+
+    private var signOutButton: some View {
+        Button {
+            signOut()
+        } label: {
+            Text("Sign out")
+                .typo(Typo.metaSmall)
+                .foregroundStyle(Palette.muted2)
+                .underline()
+        }
+        .buttonStyle(.plain)
+        .disabled(!isConfigured)
+    }
+
+    private func signOut() {
+        Feedback.tap()
+        Task { await Auth.signOut() }
     }
 
     // MARK: - Suppression du compte
@@ -164,147 +348,16 @@ struct SettingsView: View {
         deletion = .working
         do {
             try await API.shared.deleteAccount()
-            Config.apiToken = ""
-            Config.reportedLanguage = nil
+            // The server has already revoked every session and both tokens
+            // for this account (see DELETE /me): nothing left to tell it, so
+            // this is the same local-only clear the 401 path uses, not
+            // Auth.signOut() -- that would just spend a network call getting
+            // a 401 back for a session already dead.
+            Config.endSession()
             deletion = .idle
             Feedback.saved()
-            NotificationCenter.default.post(name: .podcappSignedOut, object: nil)
         } catch {
             deletion = .failed(error.localizedDescription)
-            Feedback.refused()
-        }
-    }
-
-    // MARK: - Connexion
-
-    private var connectionSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 6) {
-                fieldLabel(String(localized: "API token"))
-                // No textContentType: an API token is not a website password, and
-                // declaring one makes iOS offer to save it as a login.
-                SecureField("Paste your token", text: $token)
-                    .inputField()
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                fieldLabel(String(localized: "Server"))
-                TextField(Config.defaultBaseURL, text: $server)
-                    .keyboardType(.URL)
-                    .textContentType(.URL)
-                    .inputField()
-            }
-
-            testButton
-            connectionStatus
-
-            Text("The token stays on this device and is shared with the extension. It is only ever sent to your server.")
-                .typo(Typo.metaSmall)
-                .foregroundStyle(Palette.muted2)
-                .padding(.horizontal, 4)
-        }
-    }
-
-    private var testButton: some View {
-        Button {
-            Task { await saveAndTest() }
-        } label: {
-            Text("Save and test")
-                .typo(Typo.buttonLarge)
-                .foregroundStyle(Palette.onDark)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .padding(.horizontal, 22)
-                .background(Palette.ink, in: Capsule())
-                // A lifted shadow under a button that cannot be pressed reads as
-                // enabled, so it goes with the fade the design uses for inert rows.
-                .shadow(color: Palette.ink.opacity(canTest ? 0.22 : 0), radius: 12, y: 8)
-        }
-        .buttonStyle(.plain)
-        .disabled(!canTest)
-        .opacity(canTest ? 1 : 0.55)
-    }
-
-    private var canTest: Bool {
-        !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && connection != .checking
-    }
-
-    @ViewBuilder
-    private var connectionStatus: some View {
-        switch connection {
-        case .idle:
-            if isConfigured {
-                statusLine(
-                    String(localized: "Token saved on this device. Test it to check the server still accepts it."),
-                    icon: "checkmark.seal",
-                    color: Palette.muted2
-                )
-            } else {
-                statusLine(
-                    String(localized: "No token yet. Add one to load your briefings and share links."),
-                    icon: "info.circle",
-                    color: Palette.muted2
-                )
-            }
-        case .checking:
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                ProgressView()
-                    .controlSize(.small)
-                Text("Testing")
-                    .typo(Typo.metaSmall)
-                    .foregroundStyle(Palette.muted2)
-                Spacer(minLength: 0)
-            }
-        case let .ok(message):
-            statusLine(message, icon: "checkmark.circle.fill", color: Palette.success)
-        case let .failed(message):
-            statusLine(message, icon: "exclamationmark.triangle.fill", color: Palette.danger)
-        }
-    }
-
-    private func statusLine(_ text: String, icon: String, color: Color) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 7) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .semibold))
-            Text(text)
-                .typo(Typo.metaSmall)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
-        }
-        .foregroundStyle(color)
-        .padding(.horizontal, 4)
-    }
-
-    private func fieldLabel(_ text: String) -> some View {
-        Text(text)
-            .typo(Typo.metaSmall)
-            .foregroundStyle(Palette.muted2)
-            .padding(.horizontal, 4)
-    }
-
-    // The test writes a real source: a round trip against production is the only
-    // way to know the token works, and a stray note is cheap to ignore.
-    private func saveAndTest() async {
-        let cleanToken = token.trimmingCharacters(in: .whitespacesAndNewlines)
-        let cleanServer = server.trimmingCharacters(in: .whitespacesAndNewlines)
-            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        // An emptied field would be stored as "" and every later call would fail
-        // on an invalid URL, with no way back except reinstalling the app.
-        let resolvedServer = cleanServer.isEmpty ? Config.defaultBaseURL : cleanServer
-
-        token = cleanToken
-        server = resolvedServer
-        Config.apiToken = cleanToken
-        Config.baseURL = resolvedServer
-        isConfigured = Config.isConfigured
-        connection = .checking
-
-        do {
-            try await Ingest.save(url: nil, text: String(localized: "Connection test from the Podcapp app."))
-            connection = .ok(String(localized: "Connected. Sharing is ready."))
-            Feedback.saved()
-        } catch {
-            connection = .failed(error.localizedDescription)
             Feedback.refused()
         }
     }
@@ -376,7 +429,7 @@ struct SettingsView: View {
             Feedback.select()
             Task {
                 do {
-                    me = try await API.shared.updateVoice(option.id)
+                    meState = .loaded(try await API.shared.updateVoice(option.id))
                     Feedback.saved()
                 } catch {
                     Feedback.refused()
@@ -534,8 +587,9 @@ struct SettingsView: View {
                 value: me.map { String(localized: "\($0.targetMinutes) min · max \($0.maxMinutes)") } ?? String(localized: "5 min max")
             ),
             GenerationRow(label: String(localized: "Generation"), sub: String(localized: "Every morning at 6:00, or from Today"), value: me.map { "\($0.dailyAt) · " + String(localized: "On") } ?? String(localized: "Daily")),
-            // States the fact, not a promise: a token can be stored and still be
-            // refused, and only the test above knows whether the server takes it.
+            // isConfigured is true from the moment Sign in with Apple succeeds
+            // until Sign out or Delete my account, so this states a fact about
+            // the signed-in session, not a promise about a pasted value.
             GenerationRow(
                 label: String(localized: "Share extension"),
                 sub: String(localized: "Share a link from Safari, then pick Podcapp"),
@@ -602,25 +656,6 @@ struct SettingsView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 15)
-    }
-}
-
-private extension View {
-    /// The input chrome of the design's capture bar: white .8 on a hairline border.
-    func inputField() -> some View {
-        self
-            .typo(Typo.rowTitle)
-            .foregroundStyle(Palette.ink)
-            .tint(Palette.accentDeep)
-            .textInputAutocapitalization(.never)
-            .autocorrectionDisabled()
-            .padding(.horizontal, 13)
-            .padding(.vertical, 11)
-            .background(Color.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(Palette.cardBorder, lineWidth: 1)
-            )
     }
 }
 

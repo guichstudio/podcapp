@@ -374,7 +374,7 @@ final class EpisodePlayer: ObservableObject {
         switch item.status {
         case .failed:
             pause()
-            playbackError = item.error?.localizedDescription ?? "Lecture impossible : fichier audio illisible."
+            playbackError = item.error?.localizedDescription ?? String(localized: "Playback failed: unreadable audio file.")
         case .readyToPlay:
             playbackError = nil
             refreshDuration()
@@ -491,7 +491,7 @@ struct MiniPlayerBar: View {
                     .padding(.vertical, 8)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(player.isPlaying ? "Pause" : "Lecture")
+            .accessibilityLabel(player.isPlaying ? "Pause" : "Play")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -738,7 +738,7 @@ struct PlayerView: View {
                     .shadow(color: Palette.ink.opacity(0.28), radius: 17, y: 14)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(player.isPlaying ? "Pause" : "Lecture")
+            .accessibilityLabel(player.isPlaying ? "Pause" : "Play")
 
             PlayerSkipButton(label: "+15") { Feedback.tap(); player.skip(15) }
 
@@ -1168,7 +1168,7 @@ private struct PlayerSkipButton: View {
                 .overlay(Circle().strokeBorder(Palette.ink.opacity(0.14), lineWidth: 1))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(label == "-15" ? "Reculer de 15 secondes" : "Avancer de 15 secondes")
+        .accessibilityLabel(label == "-15" ? "Skip back 15 seconds" : "Skip forward 15 seconds")
     }
 }
 

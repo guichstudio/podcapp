@@ -120,6 +120,11 @@ pnpm eval:run       # full pipeline from cached dataset → artifacts + auto-met
 pnpm test
 ```
 
+`pnpm dev` boots `src/api/index.ts`, an older Node implementation with no
+`/auth/*` or `/me/sessions` routes. Vercel serves `api/index.ts` (the Edge
+function) in production. The two are not reconciled, so the sign-in flow
+cannot be exercised locally through `pnpm dev`.
+
 ---
 
 ## Phase playbook
@@ -207,6 +212,7 @@ Session prompt: "Wire `POST /ingest` + Postmark inbound + per-user auth tokens; 
 | 2026-09-01 | Trou de confiance connu et NON corrigé : une page de blocage anti-bot (AP News, qualité 0,37 pour un seuil de 0,35) entre dans le matériau et l'outro affirme alors qu'aucune source n'a échoué | Le score d'extraction seul ne sépare pas un article maigre d'une page « Page unavailable » ; il faut un signal de forme. Corriger le seuil sans eval comparé à la ligne de base serait pire que le trou |
 | 2026-09-02 | Premier build sur TestFlight : b27, état VALID. Il aura fallu un certificat Apple Distribution créé à la main dans Xcode ET une clé API en rôle Admin | App Manager téléverse mais ne peut pas faire fabriquer le certificat ni régénérer les profils par la signature cloud. La clé Admin est créée pour l'upload puis révoquée : le privilège permanent n'est pas nécessaire |
 | 2026-09-02 | Le statut de commerçant DSA est repoussé, la bêta n'en dépend pas | Il ne conditionne que la disponibilité dans l'UE. Il bute par ailleurs sur un désaccord d'entité à trancher d'abord : le compte est au nom de louis guichard à Lyon, les justificatifs disponibles sont ceux de guich, LLC (Delaware, adresse Brooklyn) |
+| 2026-09-02 | Authentification : Sign in with Apple côté app, session opaque par appareil. La vérification Google existe côté serveur (`/auth/google`) mais aucun bouton ne la déclenche dans l'app — livrée Apple seul pour cette version | Personne d'autre que Louis ne pouvait créer un compte, ce qui bloquait les testeurs et aurait fait rejeter une mise en vente. La session vit là où vivait le jeton d'API, ce qui laisse l'extension de partage inchangée ; un jeton court à rafraîchir l'aurait obligée à savoir se rafraîchir. Google reste au chaud côté serveur pour une prochaine version plutôt que d'être retiré |
 
 ---
 

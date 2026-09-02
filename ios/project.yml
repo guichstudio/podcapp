@@ -65,7 +65,16 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Podcapp
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
-        CODE_SIGN_ENTITLEMENTS: Podcapp/Podcapp.entitlements
+    # XcodeGen writes this file itself (and points CODE_SIGN_ENTITLEMENTS at
+    # it), so the App Group and Sign in with Apple capabilities live here, not
+    # in a hand-edited plist that the next `generate` would overwrite anyway.
+    entitlements:
+      path: Podcapp/Podcapp.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.louisguichard.podcapp
+        com.apple.developer.applesignin:
+          - Default
     dependencies:
       - target: ShareExtension
         embed: true

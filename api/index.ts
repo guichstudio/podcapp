@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless'
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/neon-http'
-import { Hono } from 'hono'
+import { Hono, type Context } from 'hono'
 import { handle } from 'hono/vercel'
 import { z } from 'zod'
 import { ScriptSchema, type Script } from '../src/core/types.js'
@@ -9,7 +9,13 @@ import { CATEGORIES, MAX_TARGET_MINUTES, MIN_SOURCES_PER_EPISODE, VOICE_OPTIONS,
 import { feedKey } from '../src/rss/feed.js'
 import { countAvailableSources, hasEnoughSources, shortageMessage } from '../src/jobs/material.js'
 import { privacyHtml } from '../src/legal/privacy.js'
+import { termsHtml } from '../src/legal/terms.js'
 import * as schema from '../src/db/schema.js'
+import { resolveUserId } from '../src/auth/identity.js'
+import { authenticateWithPassword } from '../src/auth/password.js'
+import { createSession, listSessions, revokeAllSessions, revokeSession, sessionForToken } from '../src/auth/session.js'
+import { AuthError, type Provider } from '../src/auth/types.js'
+import { verifyIdentityToken } from '../src/auth/verify.js'
 
 // The endpoints that have to be reachable from a phone: capture, and reading
 // back what capture produced.
@@ -40,7 +46,10 @@ export const config = { runtime: 'edge' }
 const { episodes, events, sources, stories, users } = schema
 
 type Conn = ReturnType<typeof db>
-type Env = { Variables: { userId: string; conn: Conn } }
+// sessionId is null when the caller authenticated with users.api_token (the
+// CLI/eval service key) rather than a sessions.token: there is no session row
+// to point at, so nothing in the list can be "this one".
+type Env = { Variables: { userId: string; conn: Conn; sessionId: string | null } }
 
 // A malformed id reaching a uuid column is a driver error, not an empty result,
 // so it is rejected here. Case-insensitive: this guard exists to keep garbage
@@ -57,6 +66,25 @@ const EpisodeRequestSchema = z.object({
   target_min: z.number().int().min(1).max(MAX_TARGET_MINUTES).optional(),
   // One shelf of the library; the four-link rule then applies to that shelf.
   category: z.enum(CATEGORIES).optional(),
+})
+
+const SignInSchema = z.object({
+  token: z.string().min(1),
+  // The raw entropy: the server recomputes its hash and compares it to the
+  // token's `nonce` claim. This is what makes an intercepted token unusable.
+  nonce: z.string().min(8),
+  device_name: z.string().trim().min(1).max(64).default('iPhone'),
+})
+
+// App Review needs a way in without an Apple/Google account to sign in with.
+// This is a login path, not a signup product: there is no registration
+// endpoint here, accounts with a password are provisioned from the CLI
+// (`pnpm inspect set-password`), and there is deliberately no "forgot
+// password" flow (Postmark is not configured).
+const PasswordSignInSchema = z.object({
+  email: z.string().trim().email(),
+  password: z.string().min(1),
+  device_name: z.string().trim().min(1).max(64).default('iPhone'),
 })
 
 // Every status generateEpisode moves through before landing on ready or failed.
@@ -155,6 +183,15 @@ app.get('/privacy', (c) =>
   }),
 )
 
+// Same reasoning as /privacy: an app that lets you create an account has to say
+// on what terms, and the reviewer reaches this without credentials.
+app.get('/terms', (c) =>
+  c.html(termsHtml(c.req.header('accept-language')), 200, {
+    'Cache-Control': 'public, max-age=3600',
+    Vary: 'Accept-Language',
+  }),
+)
+
 // Postmark's inbound payload, reduced to what routing and extraction need.
 // Everything else Postmark sends is ignored by safeParse.
 const PostmarkInboundSchema = z.object({
@@ -242,6 +279,42 @@ app.post('/ingest/email', async (c) => {
   return c.json({ accepted: true, source_id: row.id, queued }, 200)
 })
 
+// Public by necessity: this is where a caller obtains the token the
+// authed middleware will demand everywhere else.
+async function signIn(c: Context<Env>, provider: Provider) {
+  const parsed = SignInSchema.safeParse(await c.req.json().catch(() => null))
+  if (!parsed.success) return c.json({ error: 'expected { token, nonce, device_name? }' }, 400)
+  const conn = db()
+  try {
+    const identity = await verifyIdentityToken({ provider, token: parsed.data.token, rawNonce: parsed.data.nonce })
+    const userId = await resolveUserId(conn, identity)
+    const token = await createSession(conn, userId, parsed.data.device_name)
+    return c.json({ token }, 200)
+  } catch (err) {
+    // A rejected token and a database outage don't get the same answer: the
+    // first is the caller's fault, the second is ours.
+    if (err instanceof AuthError) return c.json({ error: 'sign-in rejected' }, 401)
+    throw err
+  }
+}
+
+app.post('/auth/apple', (c) => signIn(c, 'apple'))
+app.post('/auth/google', (c) => signIn(c, 'google'))
+
+// Same public-by-necessity reasoning as signIn above, and the same flat 401
+// on any failure -- unknown email, no password on the account, wrong
+// password, or a lockout still in effect all look identical from the
+// outside. See src/auth/password.ts for why and how.
+app.post('/auth/password', async (c) => {
+  const parsed = PasswordSignInSchema.safeParse(await c.req.json().catch(() => null))
+  if (!parsed.success) return c.json({ error: 'expected { email, password, device_name? }' }, 400)
+  const conn = db()
+  const result = await authenticateWithPassword(conn, parsed.data.email, parsed.data.password)
+  if (!result) return c.json({ error: 'sign-in rejected' }, 401)
+  const token = await createSession(conn, result.userId, parsed.data.device_name)
+  return c.json({ token }, 200)
+})
+
 // Registered before the authed sub-app is mounted: mounting at '/' installs the
 // bearer check on '/*', which would otherwise also cover /health.
 const authed = new Hono<Env>()
@@ -250,10 +323,22 @@ authed.use('*', async (c, next) => {
   const token = c.req.header('Authorization')?.replace(/^Bearer\s+/i, '')
   if (!token) return c.json({ error: 'missing bearer token' }, 401)
   const conn = db()
-  const [user] = await conn.select({ id: users.id }).from(users).where(eq(users.apiToken, token))
-  if (!user) return c.json({ error: 'invalid token' }, 401)
+  // Session first: it's the front door of the app. api_token is now only a
+  // service key for the CLI and the eval runner, never written or read by the app.
+  let userId: string | null = null
+  let sessionId: string | null = null
+  const session = await sessionForToken(conn, token)
+  if (session) {
+    userId = session.userId
+    sessionId = session.id
+  } else {
+    const [service] = await conn.select({ id: users.id }).from(users).where(eq(users.apiToken, token))
+    userId = service?.id ?? null
+  }
+  if (!userId) return c.json({ error: 'invalid token' }, 401)
   c.set('conn', conn)
-  c.set('userId', user.id)
+  c.set('userId', userId)
+  c.set('sessionId', sessionId)
   await next()
 })
 
@@ -370,6 +455,46 @@ authed.put('/me', async (c) => {
   return c.json(meView(user))
 })
 
+authed.get('/me/sessions', async (c) => {
+  const rows = await listSessions(c.get('conn'), c.get('userId'))
+  const sessionId = c.get('sessionId')
+  return c.json({
+    sessions: rows.map((s) => ({
+      id: s.id,
+      device_name: s.deviceName,
+      created_at: s.createdAt,
+      last_seen_at: s.lastSeenAt,
+      // Marks the one row the app itself is authenticating with right now, so
+      // it can tell its own device apart from the others in the list. Always
+      // false when the caller used a service api_token: there is no session
+      // row behind that, so nothing in the list is "this one".
+      current: sessionId !== null && s.id === sessionId,
+    })),
+  })
+})
+
+authed.delete('/me/sessions/:id', async (c) => {
+  const id = c.req.param('id')
+  // Same 404 as a foreign id: the requester learns nothing about an id's shape.
+  if (!UUID_RE.test(id)) return c.json({ error: 'not found' }, 404)
+  const done = await revokeSession(c.get('conn'), c.get('userId'), id)
+  if (!done) return c.json({ error: 'not found' }, 404)
+  return c.json({ ok: true })
+})
+
+// The one route that needs no id: it revokes whichever session the caller is
+// authenticating with right now, which is the only thing an app that never
+// loaded the device list still knows for certain about itself. This is what
+// makes signing out actually end the session server-side, rather than merely
+// clearing the app's own copy of a token that stays live forever.
+authed.delete('/me/session', async (c) => {
+  const sessionId = c.get('sessionId')
+  // A caller on the service api_token has no session to revoke: nothing to do.
+  if (!sessionId) return c.json({ error: 'not a session' }, 400)
+  await revokeSession(c.get('conn'), c.get('userId'), sessionId)
+  return c.json({ ok: true })
+})
+
 authed.put('/me/language', async (c) => {
   const parsed = LanguageSchema.safeParse(await c.req.json().catch(() => null))
   if (!parsed.success) return c.json({ error: 'expected { language }' }, 400)
@@ -385,8 +510,14 @@ authed.put('/me/language', async (c) => {
 // App Review 5.1.1(v), and the privacy policy's "erasure is final". Two steps,
 // because this function has no bucket client: the durable task erases audio,
 // feed, console and rows, and right here both tokens are replaced with values
-// nobody holds, so the app, the share sheet and every podcast client holding
-// the feed URL are locked out before this request even returns.
+// nobody holds AND every live session is revoked, so the app, the share
+// sheet, every other signed-in device and every podcast client holding the
+// feed URL are all locked out before this request even returns. Revoking the
+// tokens alone used to be enough, back when the app authenticated with
+// api_token; it now authenticates with sessions.token, which the durable job
+// below only clears once it deletes the rows -- possibly never, if that job
+// fails, since it deletes bucket objects before rows. Revoking every session
+// here, synchronously, is what closes that gap.
 authed.delete('/me', async (c) => {
   if (!process.env.TRIGGER_SECRET_KEY) {
     return c.json({ error: 'account deletion needs the cloud worker' }, 503)
@@ -403,6 +534,7 @@ authed.delete('/me', async (c) => {
     .update(users)
     .set({ apiToken: `revoked:${crypto.randomUUID()}`, rssToken: `revoked:${crypto.randomUUID()}` })
     .where(eq(users.id, userId))
+  await revokeAllSessions(conn, userId)
   return c.json({ status: 'deleting' }, 202)
 })
 

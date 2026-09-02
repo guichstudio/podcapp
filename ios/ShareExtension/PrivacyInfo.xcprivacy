@@ -36,6 +36,10 @@
 				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
 			</array>
 		</dict>
+		<!-- No email address entry here on purpose: sign-in happens in the app
+		     process, not this one. The extension reads the session token
+		     Shared.swift already wrote to the App Group (the NSPrivacyCollectedDataTypeUserID
+		     dict above) and never sees the address the token was exchanged for. -->
 	</array>
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>

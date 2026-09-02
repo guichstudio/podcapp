@@ -36,6 +36,20 @@
       "when": 1788298696404,
       "tag": "0004_bent_wilson_fisk",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788359284677,
+      "tag": "0005_green_mockingbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788377418789,
+      "tag": "0006_glamorous_the_hunter",
+      "breakpoints": true
     }
   ]
 }

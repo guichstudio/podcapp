@@ -17,7 +17,10 @@ deux types du manifeste), et côté TestFlight la description bêta, l'e-mail de
 retour, l'URL marketing `https://podcapp.fr` et l'URL de confidentialité.
 
 Restent : le bloc contact de vérification (bloqué sur le numéro de téléphone,
-voir plus bas), le compte de démonstration, et l'upload du build.
+voir plus bas), la mise à jour du questionnaire de confidentialité (adresse
+e-mail désormais collectée à la connexion, voir plus bas), et l'upload du
+build. Le compte de démonstration n'est plus nécessaire : la connexion en
+libre-service (Sign in with Apple) remplace le jeton collé à la main.
 
 ## Identifiant d'équipe
 
@@ -76,39 +79,46 @@ est le champ qu'on oublie.
 
 ## Beta App Review — informations de connexion
 
-L'app ne montre rien sans jeton : **sans compte de démonstration, la revue
-échoue**. Cocher « Connexion requise » et remplir :
+Deux chemins entrent dans l'app, et le relecteur peut prendre l'un ou l'autre.
+
+**Sign in with Apple** est le chemin principal : le relecteur crée son propre
+compte avec son propre identifiant Apple, sans invitation ni code. C'est
+généralement suffisant.
+
+**Un compte email + mot de passe** existe pour le cas où le relecteur ne veut
+pas engager son Apple ID. Cocher « Connexion requise » et remplir :
 
 | Champ | Valeur |
 |---|---|
 | Nom d'utilisateur | `beta-review@podcapp.fr` |
-| Mot de passe | le jeton d'API du compte (**pas dans ce dépôt** : le jeton est une clé d'accès. Il est déjà collé dans App Store Connect ; s'il faut le retrouver, il vit sur la ligne `users.api_token` du compte en base) |
+| Mot de passe | **pas dans ce dépôt** — il a été imprimé une seule fois par `pnpm inspect set-password` et vit dans le gestionnaire de mots de passe. En regénérer un avec la même commande si besoin. |
 
-Le compte existe (créé le 2026-09-01, id `ca02f27c-06fa-4ab7-a1e4-6c6c000786cf`),
-réglé en **anglais**, voix Eric, cible 5 min, peuplé de six sources anglaises
-tirées du jeu d'eval et d'un épisode publié — un compte vide donne un écran vide
-au relecteur. Pour en refaire un :
+Ce compte a l'avantage d'être déjà peuplé : six sources traitées et un épisode
+publié de 4 min 50, donc le relecteur voit l'app en fonctionnement immédiatement
+plutôt qu'un compte vide.
 
-```
-pnpm inspect create-user <email>          # imprime le jeton UNE fois
-curl -X PUT $API/me -H "Authorization: Bearer $T" \
-     -d '{"language":"en","target_minutes":5}'
-curl -X POST $API/ingest ... x6           # >= 4 sources derriere des stories ouvertes
-curl -X POST $API/episodes
-```
+Il n'y a **pas d'inscription publique par mot de passe** et pas de
+réinitialisation : le mot de passe est un chemin de connexion réservé,
+provisionné en CLI. C'est délibéré, et c'est ce qui évite d'exposer une surface
+d'inscription pour un seul utilisateur.
 
 **Notes de revue** (en anglais) :
 
-> Podcapp is an audio briefing app, currently a closed beta. The interface and
-> the episodes follow the phone's language (English or French).
+> Podcapp is an audio briefing app. The interface and the episodes follow the
+> phone's language (English or French).
 >
-> The last onboarding screen asks for an API token instead of Sign in with
-> Apple, because token exchange endpoints do not exist yet. Tap through the
-> intro screens, then paste the token provided in the password field above.
-> The app then shows a published episode you can play.
+> Two ways in. Either create your own account from the last onboarding screen
+> with Sign in with Apple — no invitation or code is needed — or tap "Sign in
+> with email" and use the credentials above. The email account is already
+> populated with six sources and one published five-minute episode, so you can
+> hear the app working straight away; a brand-new Apple account starts empty by
+> design.
+>
+> To see an episode built from scratch: share three or four links from Safari,
+> then generate from the Today tab. Generation takes a few minutes.
 >
 > All content comes from links the account holder saved; nothing is generated
-> without user-submitted sources.
+> without user-submitted sources. The app requests no permissions.
 
 ## App Privacy (le questionnaire)
 
@@ -119,11 +129,31 @@ sinon Apple relève la contradiction :
 |---|---|
 | User Content → Other User Content | collectée, **liée** à l'utilisateur, **pas** de suivi, finalité : fonctionnement de l'app |
 | Identifiers → User ID | collectée, **liée** à l'utilisateur, **pas** de suivi, finalité : fonctionnement de l'app |
+| Contact Info → Email Address | collectée, **liée** à l'utilisateur, **pas** de suivi, finalité : fonctionnement de l'app — l'adresse rendue par Sign in with Apple, relais privé compris |
 | Tout le reste | non collecté |
 | Suivi publicitaire | non |
 
+**Reste à faire (App Store Connect, manuel) :** le questionnaire publié le
+2026-09-01 ne déclare encore que les deux premières lignes. Distribution →
+Confidentialité de l'app → Types de données → Modifier → cocher Coordonnées →
+Adresse e-mail, la configurer comme la ligne ci-dessus, publier.
+
 **Conformité à l'export** : rien à répondre. `ITSAppUsesNonExemptEncryption` est
 à `false` dans le bundle, la question ne sera pas posée.
+
+## App ID — activer Sign in with Apple avant de signer quoi que ce soit
+
+`project.yml` déclare l'entitlement Sign in with Apple côté app, mais Xcode ne
+peut pas signer avec un entitlement que le portail développeur ignore : dans
+**Certificates, Identifiers & Profiles → Identifiers → `com.louisguichard.podcapp`**,
+cocher la capacité **Sign In with Apple**, puis régénérer les profils de
+provisionnement (la signature automatique le fait au prochain build, si elle a
+les droits — voir juste en dessous ce que ça a coûté pour le certificat et les
+profils de build 27 ; l'ajout d'une capacité passe par le même mécanisme de
+signature dans le cloud). Sans cette étape, le build échoue avec une erreur de
+signature mentionnant l'entitlement manquant plutôt qu'un certificat ou un
+profil manquant — facile à confondre avec les erreurs ci-dessous si on ne sait
+pas laquelle des deux causes chercher en premier.
 
 ## Clé API pour l'upload
 

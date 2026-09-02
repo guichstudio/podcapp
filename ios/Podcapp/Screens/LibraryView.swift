@@ -12,6 +12,8 @@ struct LibraryView: View {
     @State private var category: String?
     @State private var generation: GenerationTarget?
     @State private var generationError: String?
+    // The server's own minimum, same source of truth Today reads it from.
+    @State private var minimum = 4
     @State private var phase: Phase = .loading
     @State private var filter: LibraryFilter = .all
     @State private var expanded: String?
@@ -67,6 +69,12 @@ struct LibraryView: View {
 
     private func count(in shelf: String) -> Int { sources.filter { $0.category == shelf }.count }
 
+    /// Same "ready" the row chip already uses (analysed or ready, never a
+    /// duplicate or a failure): the count that actually feeds an episode.
+    private func readyCount(in shelf: String) -> Int {
+        sources.filter { $0.category == shelf && LibraryStatus.of($0).isReady }.count
+    }
+
     private var categoryPills: some View {
         ScrollView(.horizontal) {
             HStack(spacing: 8) {
@@ -100,11 +108,14 @@ struct LibraryView: View {
         .buttonStyle(.plain)
     }
 
-    /// "Make a Finance episode": only on a shelf with something on it. The
-    /// server applies the four-link rule to that shelf and words the refusal.
+    /// "Make a Finance episode": only on a shelf with something on it. Gated
+    /// the same way Today gates its own Generate button, so a shelf under the
+    /// minimum explains the rule instead of letting the server's raw refusal
+    /// be the first the user hears of it.
     @ViewBuilder
     private var categoryGenerate: some View {
         if let shelf = category, count(in: shelf) > 0 {
+            let rule = MinimumSourcesRule(count: readyCount(in: shelf), minimum: minimum)
             VStack(alignment: .leading, spacing: 6) {
                 Button {
                     Task { await generate(shelf: shelf) }
@@ -116,10 +127,17 @@ struct LibraryView: View {
                     .foregroundStyle(Palette.onDark)
                     .padding(.vertical, 11)
                     .padding(.horizontal, 18)
-                    .background(Palette.ink, in: Capsule())
+                    .background(Palette.ink.opacity(rule.met ? 1 : 0.55), in: Capsule())
                 }
                 .buttonStyle(.plain)
-                if let generationError {
+                .disabled(!rule.met)
+
+                if !rule.met {
+                    Text(rule.explanation)
+                        .typo(Typo.metaSmall)
+                        .foregroundStyle(Palette.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else if let generationError {
                     Text(generationError)
                         .typo(Typo.metaSmall)
                         .foregroundStyle(Palette.danger)
@@ -380,6 +398,7 @@ struct LibraryView: View {
             let batch = try await API.shared.sources()
             sources = batch.sources
             if let shelves = batch.categories { categories = shelves }
+            if let serverMinimum = batch.minimum { minimum = serverMinimum }
             phase = .loaded
         } catch {
             phase = .failed(error.localizedDescription)

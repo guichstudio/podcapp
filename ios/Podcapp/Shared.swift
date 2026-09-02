@@ -31,12 +31,15 @@ enum Config {
         set { store.set(newValue, forKey: "baseURL") }
     }
 
-    static var apiToken: String {
+    // Le jeton de session emis par /auth/apple ou /auth/google. Il occupe la
+    // place ou vivait le jeton d'API : l'extension de partage lit cette meme
+    // case et n'a donc pas eu a changer.
+    static var sessionToken: String {
         get { store.string(forKey: "apiToken") ?? "" }
         set { store.set(newValue, forKey: "apiToken") }
     }
 
-    static var isConfigured: Bool { !apiToken.isEmpty }
+    static var isConfigured: Bool { !sessionToken.isEmpty }
 
     /// The language last accepted by the server, so the app does not repeat
     /// itself on every launch.
@@ -61,6 +64,23 @@ enum Config {
     // replay the whole story, it only asks for the token again.
     static var hasSeenOnboarding: Bool { store.bool(forKey: "sawOnboarding") }
     static func markOnboardingSeen() { store.set(true, forKey: "sawOnboarding") }
+
+    /// Clears the session locally, whichever side decided it should end: the
+    /// API layer discovering a 401 on a call that was supposed to be
+    /// authenticated (revoked server-side, an admin action, the account
+    /// itself gone -- the token is already dead, so there is nothing left to
+    /// tell the server), or a caller that has already dealt with the server
+    /// side itself (Auth.signOut() revokes the session first, then calls this
+    /// unconditionally -- see it for why "unconditionally" is the point).
+    /// Clears what the share extension reads too -- that is the whole point
+    /// -- and tells the app shell to fall back to onboarding. Never call this
+    /// directly from a sign-out button: that is Auth.signOut(), which also
+    /// tells the server so the session's row does not stay live forever.
+    static func endSession() {
+        sessionToken = ""
+        reportedLanguage = nil
+        NotificationCenter.default.post(name: .podcappSignedOut, object: nil)
+    }
 }
 
 /// The locale of the language the app actually resolved to, which is not
@@ -91,7 +111,7 @@ enum IngestError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notConfigured:
-            return String(localized: "Add your token in the Podcapp app before sharing.")
+            return String(localized: "Sign in to the Podcapp app before sharing.")
         case .badURL:
             return String(localized: "Invalid server address.")
         case let .http(code, body):
@@ -117,7 +137,7 @@ struct Ingest {
 
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(Config.apiToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(Config.sessionToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         request.timeoutInterval = 20

@@ -119,6 +119,19 @@ struct SavedSource: Decodable, Identifiable, Sendable {
     var link: URL? { url.flatMap(URL.init(string:)) }
 }
 
+// GET /me/sessions is snake_case on the wire like the write endpoints (see the
+// top-of-file note): the property names below are the JSON keys verbatim.
+struct DeviceSession: Decodable, Identifiable, Sendable {
+    let id: String
+    let device_name: String
+    let last_seen_at: Date
+    // The one row whose token this request is authenticating with. The list
+    // has no other way to tell which one that is: two iPhones look identical
+    // (device_name is always "iPhone", see Auth.deviceName), and the ids are
+    // opaque.
+    let current: Bool
+}
+
 enum APIError: LocalizedError {
     case notConfigured
     case badURL
@@ -223,8 +236,9 @@ actor API {
         }
     }
 
-    /// DELETE /me. The server kills both tokens before it answers and erases
-    /// the rest durably: from this side the account is gone when this returns.
+    /// DELETE /me. The server kills both tokens and every session -- this
+    /// device's and every other one's -- before it answers, and erases the
+    /// rest durably: from this side the account is gone when this returns.
     func deleteAccount() async throws {
         var request = try makeRequest(for: "/me")
         request.httpMethod = "DELETE"
@@ -232,6 +246,36 @@ actor API {
     }
 
     private struct DeleteAck: Decodable { let status: String }
+
+    /// GET /me/sessions: every device still signed into this account, most
+    /// recently seen first.
+    func sessions() async throws -> [DeviceSession] {
+        struct Reply: Decodable { let sessions: [DeviceSession] }
+        return try await get("/me/sessions", as: Reply.self).sessions
+    }
+
+    /// DELETE /me/sessions/:id, for revoking *another* device's session (its
+    /// `current` is false in `sessions()`). A missing or foreign id answers
+    /// 404, same as any other lookup scoped to the caller. Revoking is
+    /// server-side only: it does not touch this device's own stored token, so
+    /// it is never the right call for the row this device is itself
+    /// authenticating with -- that is `revokeCurrentSession()`, below.
+    func revokeSession(id: String) async throws {
+        struct Ack: Decodable { let ok: Bool }
+        _ = try await delete("/me/sessions/\(id)", as: Ack.self)
+    }
+
+    /// DELETE /me/session (singular, no id): revokes whichever session the
+    /// bearer token on this very request belongs to. This is what lets the
+    /// app end its own session server-side without first fetching the device
+    /// list to learn its own row's id. See `Auth.signOut()`, the only caller.
+    func revokeCurrentSession() async throws {
+        struct Ack: Decodable { let ok: Bool }
+        var request = try makeRequest(for: "/me/session")
+        request.httpMethod = "DELETE"
+        _ = try await perform(request, as: Ack.self)
+    }
+
     /// The account as the server shows it. snake_case on the wire like the
     /// other write endpoints, because PUT /me answers with the same shape.
     struct VoiceOption: Decodable, Identifiable, Sendable, Equatable {
@@ -295,6 +339,12 @@ actor API {
         try await perform(makeRequest(for: path), as: type)
     }
 
+    private func delete<T: Decodable>(_ path: String, as type: T.Type) async throws -> T {
+        var request = try makeRequest(for: path)
+        request.httpMethod = "DELETE"
+        return try await perform(request, as: type)
+    }
+
     private func post<T: Decodable, Body: Encodable>(_ path: String, body: Body, as type: T.Type) async throws -> T {
         var request = try makeRequest(for: path)
         request.httpMethod = "POST"
@@ -324,12 +374,45 @@ actor API {
         return try await perform(request, as: type)
     }
 
+    /// The two sign-in endpoints are the only calls with no bearer token: they
+    /// are what mints one, so they skip `makeRequest`'s isConfigured guard.
+    /// Mirrors `perform`'s request/response handling so a sign-in failure reads
+    /// like every other one, just wrapped in AuthError instead of APIError.
+    func postUnauthenticated<Body: Encodable, T: Decodable>(path: String, body: Body, as type: T.Type) async throws -> T {
+        guard let endpoint = URL(string: Config.baseURL + path) else { throw APIError.badURL }
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(body)
+        request.timeoutInterval = 20
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch {
+            throw AuthError.server(error.localizedDescription)
+        }
+
+        let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+        guard (200..<300).contains(code) else {
+            let message = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+            throw AuthError.server(message ?? String(localized: "Sign-in was refused. Please try again."))
+        }
+
+        do {
+            return try decoder.decode(type, from: data)
+        } catch {
+            throw AuthError.server(Self.reason(error))
+        }
+    }
+
     private func makeRequest(for path: String) throws -> URLRequest {
         guard Config.isConfigured else { throw APIError.notConfigured }
         guard let endpoint = URL(string: Config.baseURL + path) else { throw APIError.badURL }
 
         var request = URLRequest(url: endpoint)
-        request.setValue("Bearer \(Config.apiToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(Config.sessionToken)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = 20
         return request
     }
@@ -347,6 +430,15 @@ actor API {
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(code) else {
             let message = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+            // Every caller of `perform` went through `makeRequest`, which already
+            // required Config.isConfigured -- so a 401 here is not "this call was
+            // refused", it is "the token this app is holding no longer exists"
+            // (revoked from another device, an admin action, the account gone).
+            // `postUnauthenticated` (sign-in itself) never calls `perform`, so a
+            // rejected Apple/Google sign-in cannot loop back into this.
+            if code == 401 {
+                await MainActor.run { Config.endSession() }
+            }
             throw APIError.http(code, message ?? "")
         }
 

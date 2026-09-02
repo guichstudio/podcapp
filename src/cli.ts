@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { extname } from 'node:path'
 import { desc, eq } from 'drizzle-orm'
+import { hashPassword } from './auth/password.js'
 import { PUBLIC_BASE_URL } from './config.js'
 import { createDb } from './db/client.js'
 import { sources, stories, users } from './db/schema.js'
@@ -17,6 +18,7 @@ const COVER_REQUIREMENT =
 //   pnpm inspect sources
 //   pnpm inspect source <id>
 //   pnpm inspect create-user <email>
+//   pnpm inspect set-password <email>
 //   pnpm inspect cover [path-to-jpg-or-png]
 
 const db = await createDb({ pglitePath: process.env.EVAL_DB ?? '.data/eval' })
@@ -55,6 +57,25 @@ if (cmd === 'stories') {
   console.log(`api token ${apiToken}`)
   console.log(`rss token ${rssToken}`)
   console.log(`feed url  ${PUBLIC_BASE_URL}/rss/${rssToken}.xml`)
+} else if (cmd === 'set-password' && arg) {
+  // Sets or replaces the password on an existing account -- see POST
+  // /auth/password. Never takes the password as an argument: that would put
+  // it in shell history and in `ps` output for the process's whole run.
+  // Instead the CLI generates a strong one and prints it exactly once; there
+  // is no "forgot password" flow, so this is also the only way to recover if
+  // it's lost -- run the command again.
+  const appDb = await createDb()
+  const [existing] = await appDb.select({ id: users.id }).from(users).where(eq(users.email, arg))
+  if (!existing) throw new Error(`no account with email ${arg} (use create-user first)`)
+  const password = randomBytes(18).toString('base64url')
+  const hashed = await hashPassword(password)
+  await appDb
+    .update(users)
+    .set({ password: hashed, passwordFailCount: 0, passwordLockedUntil: null })
+    .where(eq(users.id, existing.id))
+  console.log(`password set for ${arg}`)
+  console.log(`password  ${password}`)
+  console.log('This will not be shown again. Store it now.')
 } else if (cmd === 'cover') {
   const storage = createStorage({ baseUrl: PUBLIC_BASE_URL })
   // The feed picks the first cover that exists, so the CLI resolves it the same
@@ -94,7 +115,7 @@ if (cmd === 'stories') {
   }
 } else {
   console.log(
-    'usage: pnpm inspect stories | story <id> | sources | source <id> | create-user <email> | cover [path-to-jpg-or-png]',
+    'usage: pnpm inspect stories | story <id> | sources | source <id> | create-user <email> | set-password <email> | cover [path-to-jpg-or-png]',
   )
 }
 process.exit(0)
