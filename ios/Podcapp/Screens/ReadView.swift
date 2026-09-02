@@ -153,8 +153,13 @@ private struct ArticleScreen: View {
             VStack(alignment: .leading, spacing: 0) {
                 Button(action: onBack) {
                     HStack(spacing: 6) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 11, weight: .semibold))
+                        // The prototype writes the chevron as a glyph in the
+                        // label's own font, not as a symbol: an SF chevron at a
+                        // readable size draws twice the ink and turns a quiet
+                        // back link into a control. Same treatment as the
+                        // disclosure arrow in Reglages.
+                        Text(verbatim: "‹")
+                            .typo(Typo.navButton)
                         Text("All episodes")
                             .typo(Typo.navButton)
                     }
