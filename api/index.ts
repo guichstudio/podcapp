@@ -9,6 +9,7 @@ import { CATEGORIES, MAX_TARGET_MINUTES, MIN_SOURCES_PER_EPISODE, VOICE_OPTIONS,
 import { feedKey } from '../src/rss/feed.js'
 import { countAvailableSources, hasEnoughSources, shortageMessage } from '../src/jobs/material.js'
 import { privacyHtml } from '../src/legal/privacy.js'
+import { termsHtml } from '../src/legal/terms.js'
 import * as schema from '../src/db/schema.js'
 import { resolveUserId } from '../src/auth/identity.js'
 import { createSession, listSessions, revokeAllSessions, revokeSession, sessionForToken } from '../src/auth/session.js'
@@ -165,6 +166,15 @@ app.get('/health', (c) => c.json({ ok: true }))
 app.get('/privacy', (c) =>
   c.html(privacyHtml(c.req.header('accept-language')), 200, {
     // Vary, or a cache would hand the French page to an English reader.
+    'Cache-Control': 'public, max-age=3600',
+    Vary: 'Accept-Language',
+  }),
+)
+
+// Same reasoning as /privacy: an app that lets you create an account has to say
+// on what terms, and the reviewer reaches this without credentials.
+app.get('/terms', (c) =>
+  c.html(termsHtml(c.req.header('accept-language')), 200, {
     'Cache-Control': 'public, max-age=3600',
     Vary: 'Accept-Language',
   }),

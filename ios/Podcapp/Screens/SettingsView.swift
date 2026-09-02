@@ -74,7 +74,7 @@ struct SettingsView: View {
                     .padding(.horizontal, 4)
 
                 HStack(spacing: 18) {
-                    privacyLink
+                    legalLinks
                     replayLink
                 }
                 .padding(.top, 20)
@@ -109,19 +109,27 @@ struct SettingsView: View {
     }
 
     // App Review 5.1.1 wants the privacy policy reachable from inside the app,
-    // not only from the App Store listing. It follows Config.baseURL, so a
-    // build pointed elsewhere reads that server's policy rather than a
-    // hardcoded one.
+    // not only from the App Store listing, and an app that lets you create an
+    // account has to state its terms somewhere a user can find them. Both
+    // follow Config.baseURL, so a build pointed elsewhere reads that server's
+    // documents rather than hardcoded ones.
+    private var legalLinks: some View {
+        HStack(spacing: 14) {
+            legalLink(path: "/privacy", label: Text("Privacy policy"))
+            legalLink(path: "/terms", label: Text("Terms of Use"))
+        }
+    }
+
     @ViewBuilder
-    private var privacyLink: some View {
+    private func legalLink(path: String, label: Text) -> some View {
         let base = Config.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         let origin = base.hasSuffix("/") ? String(base.dropLast()) : base
-        if let url = URL(string: origin + "/privacy"), url.scheme?.hasPrefix("http") == true {
+        if let url = URL(string: origin + path), url.scheme?.hasPrefix("http") == true {
             // The underline goes on the Text, not on the Link: on the Link the
             // modifier compiles and does nothing, and a caption-coloured line of
             // text with no affordance does not read as tappable.
             Link(destination: url) {
-                Text("Privacy policy")
+                label
                     .typo(Typo.metaSmall)
                     .underline()
             }
