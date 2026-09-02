@@ -248,7 +248,11 @@ struct LibraryView: View {
     private var ingestLine: some View {
         if let ingestAddress {
             HStack(spacing: 5) {
-                Text(verbatim: "✉")
+                // U+FE0E pins the text presentation. Without it iOS resolves
+                // the envelope to the colour emoji, which draws wider and taller
+                // than the line it sits on; the design wants a glyph, not a
+                // picture.
+                Text(verbatim: "\u{2709}\u{FE0E}")
                     .typo(Typo.metaSmall)
                     .foregroundStyle(Palette.muted)
                 Text(verbatim: ingestAddress)
@@ -657,7 +661,7 @@ private struct LibraryStatus {
             // Three ways to end up without usable text; the row's error line says
             // which one, so they share the one chip the design gives them.
             return LibraryStatus(
-                chip: String(localized: "FAILED"), kind: .danger, icon: "⚠",
+                chip: String(localized: "FAILED"), kind: .danger, icon: "\u{26A0}\u{FE0E}",
                 isReady: false, isProblem: true
             )
         default:
@@ -669,7 +673,9 @@ private struct LibraryStatus {
     }
 
     private static func glyph(_ source: SavedSource) -> String {
-        source.type == "email" ? "✉" : "¶"
+        // Text presentation, as in `ingestLine`: the bare envelope and the
+        // bare warning sign both default to colour emoji on iOS.
+        source.type == "email" ? "\u{2709}\u{FE0E}" : "¶"
     }
 }
 
