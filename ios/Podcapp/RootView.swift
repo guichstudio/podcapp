@@ -23,14 +23,16 @@ enum RootTab: String, CaseIterable, Identifiable {
         }
     }
 
-    /// U+FE0E on the cog: without the variation selector iOS picks its emoji
-    /// form and the icon comes out in colour, ignoring the tab's tint.
+    /// SF Symbols standing in for the line icons in v3.html's tab bar (a
+    /// calendar, an open book, a list and adjustment sliders) — those are
+    /// bespoke SVG paths with no font-glyph equivalent, so the system's own
+    /// line-icon vocabulary is the nearest honest match.
     var icon: String {
         switch self {
-        case .today: return "\u{25CF}"
-        case .read: return "\u{00B6}"
-        case .sources: return "\u{2630}"
-        case .settings: return "\u{2699}\u{FE0E}"
+        case .today: return "calendar"
+        case .read: return "book"
+        case .sources: return "line.3.horizontal"
+        case .settings: return "slider.horizontal.3"
         }
     }
 }
@@ -40,6 +42,9 @@ struct RootView: View {
     // A tab keeps its scroll position and its loaded rows once it has been
     // opened, and no tab calls the API before it is first shown.
     @State private var opened: Set<RootTab> = [.today]
+    // Ties the selection pill in every tab button to one moving element:
+    // matchedGeometryEffect diffs the two frames and animates between them.
+    @Namespace private var tabSelection
 
     var body: some View {
         ZStack {
@@ -91,18 +96,37 @@ struct RootView: View {
                     // Silent on the tab you are already on: a tab bar that
                     // ticks when nothing moves reads as a glitch.
                     if candidate != tab { Feedback.select() }
-                    tab = candidate
+                    // Fast response so the pill reads as attached to your tap,
+                    // with damping high enough that it settles into the new
+                    // tab rather than overshooting and wobbling back.
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
+                        tab = candidate
+                    }
                     opened.insert(candidate)
                 } label: {
                     VStack(spacing: 3) {
-                        Text(candidate.icon)
-                            .font(Typo.font(size: 17, weight: .regular))
+                        Image(systemName: candidate.icon)
+                            .font(.system(size: 17))
                         Text(candidate.label)
                             .typo(Typo.tabLabel)
                     }
-                    .foregroundStyle(candidate == tab ? Palette.ink : Palette.faint)
+                    .foregroundStyle(candidate == tab ? Palette.ink : Palette.tabInactive)
+                    .padding(.top, 8)
+                    .padding(.bottom, 7)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
+                    .background {
+                        // A bare Capsule has no intrinsic size, so it must ride
+                        // along in .background rather than sit beside the label
+                        // in a ZStack — background is guaranteed the label's
+                        // already-resolved frame, where a ZStack sibling would
+                        // be free to propose its own (and blow up to fill the
+                        // screen, which is exactly what happened here first).
+                        if candidate == tab {
+                            Capsule()
+                                .fill(Palette.ink.opacity(0.07))
+                                .matchedGeometryEffect(id: "selectedTab", in: tabSelection)
+                        }
+                    }
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -110,22 +134,32 @@ struct RootView: View {
                 .accessibilityAddTraits(candidate == tab ? [.isSelected, .isButton] : .isButton)
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.top, 6)
+        .padding(5)
         .background {
-            // The bar's own bottom padding in the design is the home indicator
-            // strip, which the safe area already reserves: the material just has
-            // to reach the physical edge.
-            Rectangle()
-                .fill(Color(hex: 0xFAFAF8, opacity: 0.82))
-                .background(.ultraThinMaterial)
-                .ignoresSafeArea(edges: .bottom)
+            Capsule()
+                .fill(Palette.tabBarFill)
+                .background(.ultraThinMaterial, in: Capsule())
+                .overlay {
+                    // The design's box-shadow carries a 1px white inset highlight
+                    // along the top edge on top of the solid border; SwiftUI has
+                    // no inset-shadow primitive, so the border itself fades from
+                    // brighter (top) to the base alpha (bottom) to fake it.
+                    Capsule().strokeBorder(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.95), Palette.tabBarBorder],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 1
+                    )
+                }
+                .shadow(color: Palette.tabBarShadow, radius: 22, y: 18)
         }
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(Palette.cardBorder)
-                .frame(height: 1)
-        }
+        // Floats above the safe area rather than sitting flush against it —
+        // the prototype insets the pill from all three edges instead of
+        // docking a full-width bar to the bottom.
+        .padding(.horizontal, 14)
+        .padding(.bottom, 16)
     }
 }
 

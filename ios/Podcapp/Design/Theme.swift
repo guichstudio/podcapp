@@ -45,6 +45,14 @@ enum Palette {
     static let glassBorder = Color(hex: 0x6C5CC8, opacity: 0.28)
     static let glassShadow = Color(hex: 0x3C3278, opacity: 0.16)
 
+    // Tab bar (floating capsule, from v3.html's #dc-root markup)
+    static let tabInactive = Color(hex: 0x8A87A0)
+    static let tabBarFill = Color(hex: 0xFCFCFA, opacity: 0.55)
+    static let tabBarBorder = Color.white.opacity(0.88)
+    /// Same hue as `glassShadow`; the tab bar's own ambient shadow just carries
+    /// more opacity (0.2 vs 0.16) to read as a floating pill, not a flat card.
+    static let tabBarShadow = Color(hex: 0x3C3278, opacity: 0.2)
+
     /// Screen background: linear-gradient(180deg, #E9E5F7, #F6F5F1 34%, #FAFAF8).
     static let screenGradient = LinearGradient(
         stops: [
