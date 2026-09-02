@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import {
   bigserial,
+  boolean,
   customType,
   integer,
   jsonb,
@@ -31,13 +32,45 @@ const vector = customType<{ data: number[]; driverData: string }>({
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
-  email: text('email').unique().notNull(),
+  // Nullable depuis l'arrivee de Sign in with Apple : Apple peut n'envoyer
+  // aucune adresse si l'utilisateur la masque et qu'aucun relais n'est cree.
+  email: text('email').unique(),
   apiToken: text('api_token').unique().notNull(),
   rssToken: text('rss_token').unique().notNull(),
   outputLanguage: text('output_language').notNull().default('fr'),
   voiceId: text('voice_id'),
   targetMinutes: integer('target_minutes').notNull().default(10),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const identities = pgTable(
+  'identities',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    // 'apple' | 'google'
+    provider: text('provider').notNull(),
+    // Le claim `sub` du fournisseur : stable, opaque, propre a notre app.
+    subject: text('subject').notNull(),
+    email: text('email'),
+    emailVerified: boolean('email_verified').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({ providerSubject: unique('identities_provider_subject').on(t.provider, t.subject) }),
+)
+
+export const sessions = pgTable('sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  token: text('token').unique().notNull(),
+  deviceName: text('device_name').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
 })
 
 export const sources = pgTable(
