@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { ScriptSchema } from '../core/types.js'
 import type { Db } from '../db/client.js'
-import { episodes, events, explainedConcepts, sources, stories, users } from '../db/schema.js'
+import { episodes, events, explainedConcepts, identities, sessions, sources, stories, users } from '../db/schema.js'
 import { consoleToken } from '../rss/feed-data.js'
 import { feedKey } from '../rss/feed.js'
 import type { Storage } from '../storage/index.js'
@@ -54,6 +54,8 @@ export async function deleteAccount(
   await db.delete(episodes).where(eq(episodes.userId, userId))
   await db.delete(stories).where(eq(stories.userId, userId))
   await db.delete(sources).where(eq(sources.userId, userId))
+  await db.delete(sessions).where(eq(sessions.userId, userId))
+  await db.delete(identities).where(eq(identities.userId, userId))
   await db.delete(users).where(eq(users.id, userId))
   return { episodes: rows.length, objects: keys.length }
 }
