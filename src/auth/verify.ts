@@ -47,8 +47,12 @@ export function createVerifier(keyFor: (p: Provider) => JWTVerifyGetKey = remote
 
     let payload: Record<string, unknown>
     try {
-      // algorithms est explicite : sans lui, un jeton `alg: none` ou signe avec
-      // un algorithme symetrique pourrait passer.
+      // algorithms est explicite en defense en profondeur, pas parce que c'est ce
+      // qui arrete `alg: none` ou la confusion d'algorithme ici : avec un
+      // resolveur JWKS (createLocalJWKSet / createRemoteJWKSet), jose refuse deja
+      // ces deux cas au moment de choisir la cle, puisque le resolveur ne vend
+      // que des cles de son propre type. Cette option protege un futur keyFor
+      // qui melangerait des types de cles.
       const result = await jwtVerify(input.token, keyFor(input.provider), {
         issuer: rule.issuers,
         audience,
