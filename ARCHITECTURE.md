@@ -303,7 +303,13 @@ GET  /rss/:rss_token.xml    public-by-token    podcast feed
 GET  /admin/runs/:episodeId Bearer (owner)     links to every persisted artifact
 ```
 
-Auth V1 = manually issued `api_token` per user. No signup flow yet.
+Auth V1 = Sign in with Apple → an opaque per-device session token
+(`sessions.token`), revocable from Réglages. The server also verifies Google
+identity tokens (`POST /auth/google`) and rejects every request while
+`GOOGLE_CLIENT_ID` is unset — that route is ready, but no button in the iOS
+app calls it yet, so Google sign-in is not something the shipped app does.
+`users.api_token` subsists as a service key for the CLI and eval, and for the
+Apple Shortcut capture path (§8); the app never uses it.
 
 ---
 
