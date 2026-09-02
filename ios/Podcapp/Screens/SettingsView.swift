@@ -26,7 +26,13 @@ struct SettingsView: View {
     @State private var showingShareHelp = false
     @State private var copiedFeed = false
     // The devices signed into this account. Loaded once per visit, same as `me`.
-    @State private var devices: [DeviceSession] = []
+    // A separate state so a network hiccup does not read as "no other devices".
+    @State private var devicesState: DevicesState = .loading
+    private enum DevicesState {
+        case loading
+        case loaded([DeviceSession])
+        case failed(String)
+    }
 
     enum Connection: Equatable {
         case idle
@@ -143,19 +149,28 @@ struct SettingsView: View {
                 Text("Signed-in devices")
                     .typo(Typo.listTitle)
                     .foregroundStyle(Palette.ink)
-                VStack(spacing: 0) {
-                    ForEach(Array(devices.enumerated()), id: \.element.id) { index, device in
-                        deviceRow(device)
-                        if index < devices.count - 1 {
-                            Rectangle().fill(Palette.hairline).frame(height: 1)
+                switch devicesState {
+                case .loading:
+                    EmptyView()
+                case let .loaded(devices):
+                    VStack(spacing: 0) {
+                        ForEach(Array(devices.enumerated()), id: \.element.id) { index, device in
+                            deviceRow(device)
+                            if index < devices.count - 1 {
+                                Rectangle().fill(Palette.hairline).frame(height: 1)
+                            }
                         }
                     }
+                case let .failed(message):
+                    Text(message)
+                        .typo(Typo.metaSmall)
+                        .foregroundStyle(Palette.danger)
                 }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 15)
         }
-        .task { devices = (try? await API.shared.sessions()) ?? [] }
+        .task { await loadDevices() }
     }
 
     private func deviceRow(_ device: DeviceSession) -> some View {
@@ -177,12 +192,21 @@ struct SettingsView: View {
         .padding(.vertical, 6)
     }
 
-    // Revokes on the server only: it does not touch this device's own token,
-    // so revoking the row for the phone you are holding leaves the app signed
-    // in locally with a token the server now refuses. Use signOut() for that.
+    // Revokes on the server only. If the row was this device's own session,
+    // the reload just below then 401s on its own -- Config.endSession() (see
+    // API.swift's `perform`) is what actually walks this device back to
+    // onboarding at that point, not this function.
     private func revoke(_ device: DeviceSession) async {
         try? await API.shared.revokeSession(id: device.id)
-        devices = (try? await API.shared.sessions()) ?? []
+        await loadDevices()
+    }
+
+    private func loadDevices() async {
+        do {
+            devicesState = .loaded(try await API.shared.sessions())
+        } catch {
+            devicesState = .failed(error.localizedDescription)
+        }
     }
 
     // MARK: - Deconnexion
@@ -202,11 +226,9 @@ struct SettingsView: View {
 
     private func signOut() {
         Feedback.tap()
-        // Efface aussi ce que lit l'extension de partage : la garder connectee
-        // alors que l'app ne l'est plus serait une surprise desagreable.
-        Config.sessionToken = ""
-        Config.reportedLanguage = nil
-        NotificationCenter.default.post(name: .podcappSignedOut, object: nil)
+        // Config.endSession() is also what a 401 from the API layer triggers:
+        // one way for a session to end, not two.
+        Config.endSession()
     }
 
     // MARK: - Suppression du compte

@@ -64,6 +64,18 @@ enum Config {
     // replay the whole story, it only asks for the token again.
     static var hasSeenOnboarding: Bool { store.bool(forKey: "sawOnboarding") }
     static func markOnboardingSeen() { store.set(true, forKey: "sawOnboarding") }
+
+    /// The one way a session ends, whichever side decided it should: the user
+    /// tapping Sign out in Réglages, or the API layer discovering a 401 on a
+    /// call that was supposed to be authenticated (session.swift revoked it
+    /// server-side, an admin action, the account itself gone). Clears what the
+    /// share extension reads too -- that is the whole point -- and tells the
+    /// app shell to fall back to onboarding.
+    static func endSession() {
+        sessionToken = ""
+        reportedLanguage = nil
+        NotificationCenter.default.post(name: .podcappSignedOut, object: nil)
+    }
 }
 
 /// The locale of the language the app actually resolved to, which is not

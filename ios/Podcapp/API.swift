@@ -412,6 +412,15 @@ actor API {
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(code) else {
             let message = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+            // Every caller of `perform` went through `makeRequest`, which already
+            // required Config.isConfigured -- so a 401 here is not "this call was
+            // refused", it is "the token this app is holding no longer exists"
+            // (revoked from another device, an admin action, the account gone).
+            // `postUnauthenticated` (sign-in itself) never calls `perform`, so a
+            // rejected Apple/Google sign-in cannot loop back into this.
+            if code == 401 {
+                await MainActor.run { Config.endSession() }
+            }
             throw APIError.http(code, message ?? "")
         }
 
