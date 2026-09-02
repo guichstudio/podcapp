@@ -111,7 +111,7 @@ enum IngestError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notConfigured:
-            return String(localized: "Add your token in the Podcapp app before sharing.")
+            return String(localized: "Sign in to the Podcapp app before sharing.")
         case .badURL:
             return String(localized: "Invalid server address.")
         case let .http(code, body):

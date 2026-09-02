@@ -112,7 +112,6 @@ struct EpisodeBackstage: View {
     private func runLine(_ episode: EpisodeDetail) -> some View {
         var parts: [String] = []
         if let sec = episode.actualSec { parts.append("\(sec / 60) min \(String(format: "%02d", sec % 60)) s") }
-        if let usd = episode.usd { parts.append(String(format: "%.2f $", usd)) }
         return Text(parts.joined(separator: " · "))
             .typo(Typo.metaTiny)
             .foregroundStyle(Palette.muted2)

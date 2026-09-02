@@ -18,8 +18,18 @@ struct SettingsView: View {
     @State private var haptics = Config.hapticsEnabled
     @State private var sounds = Config.soundEnabled
     // The account as the server sees it: voice, language, feed link. Loaded
-    // once per visit; nil until then, and the cards that need it wait.
-    @State private var me: API.Me?
+    // once per visit, same shape as `devicesState` below so a failed load
+    // reads as an error rather than as an account with nothing in it.
+    @State private var meState: MeState = .loading
+    private enum MeState {
+        case loading
+        case loaded(API.Me)
+        case failed(String)
+    }
+    private var me: API.Me? {
+        if case let .loaded(value) = meState { return value }
+        return nil
+    }
     @State private var showingShareHelp = false
     @State private var copiedFeed = false
     // The devices signed into this account. Loaded once per visit, same as `me`.
@@ -62,6 +72,18 @@ struct SettingsView: View {
                     .padding(.horizontal, 4)
                     .padding(.bottom, 8)
 
+                if case let .failed(message) = meState {
+                    // Without this, the rows below quietly fall back to
+                    // placeholder values with nothing saying they are not the
+                    // account's real settings.
+                    Text(message)
+                        .typo(Typo.metaSmall)
+                        .foregroundStyle(Palette.danger)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 4)
+                        .padding(.bottom, 8)
+                }
+
                 generationCard
 
                 shareHelpCard
@@ -95,7 +117,13 @@ struct SettingsView: View {
         }
         .background(ScreenBackground())
         .scrollDismissesKeyboard(.interactively)
-        .task { me = try? await API.shared.me() }
+        .task {
+            do {
+                meState = .loaded(try await API.shared.me())
+            } catch {
+                meState = .failed(error.localizedDescription)
+            }
+        }
         .sheet(isPresented: $showingShareHelp) { ShareHelpSheet() }
         .onChange(of: haptics) { _, on in
             Config.hapticsEnabled = on
@@ -220,8 +248,14 @@ struct SettingsView: View {
             await Auth.signOut()
             return
         }
-        try? await API.shared.revokeSession(id: device.id)
-        await loadDevices()
+        do {
+            try await API.shared.revokeSession(id: device.id)
+            await loadDevices()
+        } catch {
+            // Without this, a failed revoke and a successful one look
+            // identical: the row just persists either way.
+            devicesState = .failed(error.localizedDescription)
+        }
     }
 
     private func loadDevices() async {
@@ -395,7 +429,7 @@ struct SettingsView: View {
             Feedback.select()
             Task {
                 do {
-                    me = try await API.shared.updateVoice(option.id)
+                    meState = .loaded(try await API.shared.updateVoice(option.id))
                     Feedback.saved()
                 } catch {
                     Feedback.refused()

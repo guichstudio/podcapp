@@ -148,14 +148,29 @@ struct OnboardingView: View {
             appleButton
                 .frame(width: 272)
                 .padding(.top, 32)
+                .disabled(status == .checking)
+                .opacity(status == .checking ? 0.5 : 1)
 
-            if case let .failed(message) = status {
+            switch status {
+            case .checking:
+                // The Apple exchange is a network round trip; without this the
+                // first interactive screen in the app looks frozen after Face ID.
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small).tint(Palette.muted)
+                    Text("Signing in…")
+                        .typo(Typo.metaSmall)
+                        .foregroundStyle(Palette.muted)
+                }
+                .padding(.top, 10)
+            case let .failed(message):
                 Text(message)
                     .typo(Typo.metaSmall)
                     .foregroundStyle(Palette.danger)
                     .multilineTextAlignment(.center)
                     .frame(width: 272)
                     .padding(.top, 10)
+            case .idle:
+                EmptyView()
             }
 
             Text("No password · private RSS feed included")

@@ -31,7 +31,6 @@
 "ANALYSED" = "ANALYSED";
 "Add" = "Add";
 "Add your token in Settings to load your briefings." = "Add your token in Settings to load your briefings.";
-"Add your token in the Podcapp app before sharing." = "Add your token in the Podcapp app before sharing.";
 "Airtime budget fixed before writing" = "Airtime budget fixed before writing";
 "Airtime budget, set before writing" = "Airtime budget, set before writing";
 "All" = "All";
@@ -106,7 +105,6 @@
 "Every morning at 6:00, or from Today" = "Every morning at 6:00, or from Today";
 "Every sentence against its source" = "Every sentence against its source";
 "Everything you never had time to " = "Everything you never had time to ";
-"Excluded" = "Excluded";
 "Extracting" = "Extracting";
 "Extracting…" = "Extracting…";
 "Extraction failed, with no detail from the server." = "Extraction failed, with no detail from the server.";
@@ -130,10 +128,8 @@
 "How it was made" = "How it was made";
 "How this episode was made →" = "How this episode was made →";
 "How to share a link in Podcapp" = "How to share a link in Podcapp";
-"In or out stays on this iPhone: the selection is not sent to the server yet." = "In or out stays on this iPhone: the selection is not sent to the server yet.";
 "In progress" = "In progress";
 "In the iOS share sheet" = "In the iOS share sheet";
-"Included" = "Included";
 "Ingest address" = "Ingest address";
 "Interface and narration follow your phone. Change it in iOS Settings." = "Interface and narration follow your phone. Change it in iOS Settings.";
 "Intro/outro: no external fact." = "Intro/outro: no external fact.";
@@ -193,8 +189,11 @@
 "Outline" = "Outline";
 "Output language" = "Output language";
 "Paste a link or some text…" = "Paste a link or some text…";
+"Pause" = "Pause";
 "Pick Podcapp" = "Pick Podcapp";
 "Pipeline" = "Pipeline";
+"Play" = "Play";
+"Playback failed: unreadable audio file." = "Playback failed: unreadable audio file.";
 "Politics" = "Politics";
 "Previous chapter" = "Previous chapter";
 "Privacy policy" = "Privacy policy";
@@ -234,10 +233,14 @@
 "Share a link from Safari, then pick Podcapp" = "Share a link from Safari, then pick Podcapp";
 "Share extension" = "Share extension";
 "Share it." = "Share it.";
+"Sign in to the Podcapp app before sharing." = "Sign in to the Podcapp app before sharing.";
 "Sign out" = "Sign out";
 "Sign-in cancelled." = "Sign-in cancelled.";
 "Sign-in was refused. Please try again." = "Sign-in was refused. Please try again.";
 "Signed-in devices" = "Signed-in devices";
+"Signing in…" = "Signing in…";
+"Skip back 15 seconds" = "Skip back 15 seconds";
+"Skip forward 15 seconds" = "Skip forward 15 seconds";
 "Sounds" = "Sounds";
 "Source" = "Source";
 "Source: %@" = "Source: %@";
