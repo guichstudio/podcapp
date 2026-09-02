@@ -1,6 +1,6 @@
-import { randomBytes } from 'node:crypto'
 import { and, eq } from 'drizzle-orm'
 import { identities, users } from '../db/schema.js'
+import { randomToken } from './crypto.js'
 import type { AnyDb, VerifiedIdentity } from './types.js'
 
 // Apple fabrique ces adresses par app et par utilisateur : deux d'entre elles
@@ -13,7 +13,7 @@ export function isMergeable(email: string | null, verified: boolean): boolean {
   return !email.toLowerCase().endsWith(PRIVATE_RELAY_SUFFIX)
 }
 
-const token = () => randomBytes(32).toString('base64url')
+const token = () => randomToken()
 
 /// Trouve, rattache ou cree. Renvoie l'id du compte a qui appartient l'identite.
 export async function resolveUserId(db: AnyDb, identity: VerifiedIdentity): Promise<string> {

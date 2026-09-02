@@ -44,4 +44,20 @@ enum Auth {
         Config.sessionToken = session.token
         return session.token
     }
+
+    /// The one way a sign-out button should end this device's own session:
+    /// revoke it server-side, then clear it locally regardless of whether
+    /// that call succeeded. The order matters for what it does NOT do wrong --
+    /// clearing locally first would throw away the very token the revoke call
+    /// needs -- but the outcome does not depend on the network call landing:
+    /// offline, timed out, or the session already gone all end the same way,
+    /// signed out on this device. Config.endSession() alone (still used
+    /// as-is for the 401 auto-sign-out in API.swift's `perform`, which has
+    /// already learned the token is dead) never told the server anything, so
+    /// a revoked_at row would sit NULL forever and a token recovered from a
+    /// backup would keep working.
+    static func signOut() async {
+        try? await API.shared.revokeCurrentSession()
+        await MainActor.run { Config.endSession() }
+    }
 }

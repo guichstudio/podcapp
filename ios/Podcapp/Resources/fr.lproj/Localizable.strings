@@ -29,7 +29,6 @@
 "5 min max" = "5 min max";
 "A tap under your finger on tabs, playback and chapters." = "Un retour sous le doigt sur les onglets, la lecture et les chapitres.";
 "ANALYSED" = "ANALYSÉ";
-"API token" = "Jeton d’API";
 "Add" = "Ajouter";
 "Add your token in Settings to load your briefings." = "Ajoutez votre jeton dans les réglages pour charger vos briefings.";
 "Add your token in the Podcapp app before sharing." = "Ajoutez votre jeton dans l’app Podcapp avant de partager.";
@@ -144,6 +143,7 @@
 "It’s captured." = "C’est capturé.";
 "Kept + set aside, with reasons" = "Retenus + écartés, avec raisons";
 "Language" = "Langue de l’app";
+"Last seen %@" = "Dernière connexion %@";
 "Latest briefing · %@" = "Dernier briefing · %@";
 "Library" = "Bibliothèque";
 "Link" = "Lien";
@@ -176,7 +176,6 @@
 "No source" = "Aucune source";
 "No source saved yet." = "Aucune source enregistrée.";
 "No text for this chapter: the episode has no readable script yet." = "Pas de texte pour ce chapitre : l’épisode n’a pas encore de script lisible.";
-"No token yet. Add one to load your briefings and share links." = "Aucun jeton. Ajoutez-le pour charger vos briefings et partager des liens.";
 "No verification report for this episode." = "Aucun rapport de vérification pour cet épisode.";
 "Not found on the server." = "Introuvable sur le serveur.";
 "Not shown" = "Non affiché";
@@ -194,7 +193,6 @@
 "Outline" = "Plan";
 "Output language" = "Langue de sortie";
 "Paste a link or some text…" = "Coller un lien ou un texte…";
-"Paste your token" = "Collez votre jeton";
 "Pick Podcapp" = "Choisissez Podcapp";
 "Pipeline" = "Pipeline";
 "Politics" = "Politique";
@@ -216,9 +214,9 @@
 "Really, anything." = "Vraiment tout.";
 "Received" = "Reçu";
 "Replay the intro" = "Revoir l’intro";
+"Revoke" = "Révoquer";
 "SOURCE" = "SOURCE";
 "Save a few sources, then generate a briefing from the Today tab." = "Enregistrez des sources, puis générez un briefing depuis l’onglet Aujourd’hui.";
-"Save and test" = "Enregistrer et tester";
 "Saved" = "Sauvegardé";
 "Saved. It will join your next briefing." = "Enregistré. Il rejoindra votre prochain briefing.";
 "Saving" = "Enregistrement";
@@ -227,7 +225,6 @@
 "Scripts and narration" = "Scripts et narration";
 "Selecting" = "Sélection";
 "Sending…" = "Envoi en cours…";
-"Server" = "Serveur";
 "Server unreachable. %@" = "Serveur injoignable. %@";
 "Set aside" = "Écarté";
 "Settings" = "Réglages";
@@ -257,7 +254,6 @@
 "Target length" = "Durée cible";
 "Target set before writing" = "Cible fixée avant l’écriture";
 "Technology" = "Technologie";
-"Testing" = "Test en cours";
 "That’s it: you stay in your app." = "C’est tout : vous restez sur votre app.";
 "The Echo · Markets · 28 August 2026" = "L’Echo · Marchés · 28 août 2026";
 "The RSS feed works in Apple Podcasts, Overcast and the rest." = "Le flux RSS reste compatible avec Apple Podcasts, Overcast et les autres.";
@@ -270,15 +266,14 @@
 "The provider returned no identity token." = "Le fournisseur n'a renvoyé aucun jeton d'identité.";
 "The run stopped before publishing. Try again from Today." = "Le run s’est arrêté avant la publication. Relancez depuis Aujourd’hui.";
 "The script is still being written. Come back in a few minutes." = "Le script est en cours d’écriture. Revenez dans quelques minutes.";
-"The token stays on this device and is shared with the extension. It is only ever sent to your server." = "Le jeton est stocké sur l’appareil et partagé avec l’extension. Il n’est envoyé qu’à votre serveur.";
 "These are shown, not set: they live on the machine that generates the episodes." = "Ces réglages s’affichent seulement, ils se changent sur l’ordinateur qui génère les épisodes.";
 "This briefing has no text yet." = "Ce briefing n’a pas encore de texte.";
+"This device" = "Cet appareil";
 "This episode has no chapters yet." = "Cet épisode n’a pas encore de chapitres.";
 "Today" = "Aujourd’hui";
 "Token needed" = "Jeton requis";
 "Token refused by the server." = "Jeton refusé par le serveur.";
 "Token saved" = "Jeton enregistré";
-"Token saved on this device. Test it to check the server still accepts it." = "Jeton enregistré sur cet appareil. Testez pour vérifier qu’il est toujours accepté.";
 "Tomorrow" = "Demain";
 "Transcript" = "Transcription";
 "Try again" = "Réessayer";

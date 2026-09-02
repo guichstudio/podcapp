@@ -125,6 +125,11 @@ struct DeviceSession: Decodable, Identifiable, Sendable {
     let id: String
     let device_name: String
     let last_seen_at: Date
+    // The one row whose token this request is authenticating with. The list
+    // has no other way to tell which one that is: two iPhones look identical
+    // (device_name is always "iPhone", see Auth.deviceName), and the ids are
+    // opaque.
+    let current: Bool
 }
 
 enum APIError: LocalizedError {
@@ -231,8 +236,9 @@ actor API {
         }
     }
 
-    /// DELETE /me. The server kills both tokens before it answers and erases
-    /// the rest durably: from this side the account is gone when this returns.
+    /// DELETE /me. The server kills both tokens and every session -- this
+    /// device's and every other one's -- before it answers, and erases the
+    /// rest durably: from this side the account is gone when this returns.
     func deleteAccount() async throws {
         var request = try makeRequest(for: "/me")
         request.httpMethod = "DELETE"
@@ -248,14 +254,26 @@ actor API {
         return try await get("/me/sessions", as: Reply.self).sessions
     }
 
-    /// DELETE /me/sessions/:id. A missing or foreign id answers 404, same as
-    /// any other lookup scoped to the caller. Revoking is server-side only:
-    /// it does not touch this device's own stored token, so a device signing
-    /// itself out this way keeps calling with a now-dead token until it also
-    /// clears Config.sessionToken (see Settings' signOut()).
+    /// DELETE /me/sessions/:id, for revoking *another* device's session (its
+    /// `current` is false in `sessions()`). A missing or foreign id answers
+    /// 404, same as any other lookup scoped to the caller. Revoking is
+    /// server-side only: it does not touch this device's own stored token, so
+    /// it is never the right call for the row this device is itself
+    /// authenticating with -- that is `revokeCurrentSession()`, below.
     func revokeSession(id: String) async throws {
         struct Ack: Decodable { let ok: Bool }
         _ = try await delete("/me/sessions/\(id)", as: Ack.self)
+    }
+
+    /// DELETE /me/session (singular, no id): revokes whichever session the
+    /// bearer token on this very request belongs to. This is what lets the
+    /// app end its own session server-side without first fetching the device
+    /// list to learn its own row's id. See `Auth.signOut()`, the only caller.
+    func revokeCurrentSession() async throws {
+        struct Ack: Decodable { let ok: Bool }
+        var request = try makeRequest(for: "/me/session")
+        request.httpMethod = "DELETE"
+        _ = try await perform(request, as: Ack.self)
     }
 
     /// The account as the server shows it. snake_case on the wire like the

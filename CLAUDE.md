@@ -120,6 +120,11 @@ pnpm eval:run       # full pipeline from cached dataset → artifacts + auto-met
 pnpm test
 ```
 
+`pnpm dev` boots `src/api/index.ts`, an older Node implementation with no
+`/auth/*` or `/me/sessions` routes. Vercel serves `api/index.ts` (the Edge
+function) in production. The two are not reconciled, so the sign-in flow
+cannot be exercised locally through `pnpm dev`.
+
 ---
 
 ## Phase playbook

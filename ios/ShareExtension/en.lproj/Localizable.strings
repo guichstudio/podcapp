@@ -29,7 +29,6 @@
 "5 min max" = "5 min max";
 "A tap under your finger on tabs, playback and chapters." = "A tap under your finger on tabs, playback and chapters.";
 "ANALYSED" = "ANALYSED";
-"API token" = "API token";
 "Add" = "Add";
 "Add your token in Settings to load your briefings." = "Add your token in Settings to load your briefings.";
 "Add your token in the Podcapp app before sharing." = "Add your token in the Podcapp app before sharing.";
@@ -144,6 +143,7 @@
 "It’s captured." = "It’s captured.";
 "Kept + set aside, with reasons" = "Kept + set aside, with reasons";
 "Language" = "Language";
+"Last seen %@" = "Last seen %@";
 "Latest briefing · %@" = "Latest briefing · %@";
 "Library" = "Library";
 "Link" = "Link";
@@ -176,7 +176,6 @@
 "No source" = "No source";
 "No source saved yet." = "No source saved yet.";
 "No text for this chapter: the episode has no readable script yet." = "No text for this chapter: the episode has no readable script yet.";
-"No token yet. Add one to load your briefings and share links." = "No token yet. Add one to load your briefings and share links.";
 "No verification report for this episode." = "No verification report for this episode.";
 "Not found on the server." = "Not found on the server.";
 "Not shown" = "Not shown";
@@ -194,7 +193,6 @@
 "Outline" = "Outline";
 "Output language" = "Output language";
 "Paste a link or some text…" = "Paste a link or some text…";
-"Paste your token" = "Paste your token";
 "Pick Podcapp" = "Pick Podcapp";
 "Pipeline" = "Pipeline";
 "Politics" = "Politics";
@@ -216,9 +214,9 @@
 "Really, anything." = "Really, anything.";
 "Received" = "Received";
 "Replay the intro" = "Replay the intro";
+"Revoke" = "Revoke";
 "SOURCE" = "SOURCE";
 "Save a few sources, then generate a briefing from the Today tab." = "Save a few sources, then generate a briefing from the Today tab.";
-"Save and test" = "Save and test";
 "Saved" = "Saved";
 "Saved. It will join your next briefing." = "Saved. It will join your next briefing.";
 "Saving" = "Saving";
@@ -227,7 +225,6 @@
 "Scripts and narration" = "Scripts and narration";
 "Selecting" = "Selecting";
 "Sending…" = "Sending…";
-"Server" = "Server";
 "Server unreachable. %@" = "Server unreachable. %@";
 "Set aside" = "Set aside";
 "Settings" = "Settings";
@@ -257,7 +254,6 @@
 "Target length" = "Target length";
 "Target set before writing" = "Target set before writing";
 "Technology" = "Technology";
-"Testing" = "Testing";
 "That’s it: you stay in your app." = "That’s it: you stay in your app.";
 "The Echo · Markets · 28 August 2026" = "The Echo · Markets · 28 August 2026";
 "The RSS feed works in Apple Podcasts, Overcast and the rest." = "The RSS feed works in Apple Podcasts, Overcast and the rest.";
@@ -270,15 +266,14 @@
 "The provider returned no identity token." = "The provider returned no identity token.";
 "The run stopped before publishing. Try again from Today." = "The run stopped before publishing. Try again from Today.";
 "The script is still being written. Come back in a few minutes." = "The script is still being written. Come back in a few minutes.";
-"The token stays on this device and is shared with the extension. It is only ever sent to your server." = "The token stays on this device and is shared with the extension. It is only ever sent to your server.";
 "These are shown, not set: they live on the machine that generates the episodes." = "These are shown, not set: they live on the machine that generates the episodes.";
 "This briefing has no text yet." = "This briefing has no text yet.";
+"This device" = "This device";
 "This episode has no chapters yet." = "This episode has no chapters yet.";
 "Today" = "Today";
 "Token needed" = "Token needed";
 "Token refused by the server." = "Token refused by the server.";
 "Token saved" = "Token saved";
-"Token saved on this device. Test it to check the server still accepts it." = "Token saved on this device. Test it to check the server still accepts it.";
 "Tomorrow" = "Tomorrow";
 "Transcript" = "Transcript";
 "Try again" = "Try again";

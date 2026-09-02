@@ -1,6 +1,6 @@
-import { randomBytes } from 'node:crypto'
 import { and, desc, eq, isNull, lt } from 'drizzle-orm'
 import { sessions } from '../db/schema.js'
+import { randomToken } from './crypto.js'
 import type { AnyDb } from './types.js'
 
 // Une ecriture par requete sur Neon en HTTP coute une latence reelle, pour une
@@ -9,12 +9,15 @@ import type { AnyDb } from './types.js'
 export const LAST_SEEN_THROTTLE_MS = 3_600_000
 
 export async function createSession(db: AnyDb, userId: string, deviceName: string): Promise<string> {
-  const token = randomBytes(32).toString('base64url')
+  const token = randomToken()
   await db.insert(sessions).values({ userId, token, deviceName })
   return token
 }
 
-export async function userIdForToken(db: AnyDb, token: string): Promise<string | null> {
+/// La ligne complete derriere un jeton encore valide, ou null. Sert a la fois
+/// a authentifier (userId) et a distinguer, dans /me/sessions, laquelle des
+/// lignes de l'appelant est celle de cette requete meme (id).
+export async function sessionForToken(db: AnyDb, token: string): Promise<{ id: string; userId: string } | null> {
   const [row] = await db
     .select({ id: sessions.id, userId: sessions.userId })
     .from(sessions)
@@ -25,7 +28,12 @@ export async function userIdForToken(db: AnyDb, token: string): Promise<string |
     .update(sessions)
     .set({ lastSeenAt: new Date() })
     .where(and(eq(sessions.id, row.id), lt(sessions.lastSeenAt, stale)))
-  return row.userId
+  return row
+}
+
+export async function userIdForToken(db: AnyDb, token: string): Promise<string | null> {
+  const session = await sessionForToken(db, token)
+  return session?.userId ?? null
 }
 
 export async function listSessions(db: AnyDb, userId: string) {
@@ -50,4 +58,16 @@ export async function revokeSession(db: AnyDb, userId: string, sessionId: string
     .where(and(eq(sessions.id, sessionId), eq(sessions.userId, userId), isNull(sessions.revokedAt)))
     .returning({ id: sessions.id })
   return rows.length > 0
+}
+
+/// Revoque toutes les sessions vivantes d'un compte d'un coup : ce que
+/// DELETE /me doit faire pour qu'aucun autre appareil ne reste connecte apres
+/// une suppression de compte. Renvoie le nombre de lignes touchees.
+export async function revokeAllSessions(db: AnyDb, userId: string): Promise<number> {
+  const rows = await db
+    .update(sessions)
+    .set({ revokedAt: new Date() })
+    .where(and(eq(sessions.userId, userId), isNull(sessions.revokedAt)))
+    .returning({ id: sessions.id })
+  return rows.length
 }

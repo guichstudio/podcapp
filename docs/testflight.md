@@ -121,6 +121,20 @@ Adresse e-mail, la configurer comme la ligne ci-dessus, publier.
 **Conformité à l'export** : rien à répondre. `ITSAppUsesNonExemptEncryption` est
 à `false` dans le bundle, la question ne sera pas posée.
 
+## App ID — activer Sign in with Apple avant de signer quoi que ce soit
+
+`project.yml` déclare l'entitlement Sign in with Apple côté app, mais Xcode ne
+peut pas signer avec un entitlement que le portail développeur ignore : dans
+**Certificates, Identifiers & Profiles → Identifiers → `com.louisguichard.podcapp`**,
+cocher la capacité **Sign In with Apple**, puis régénérer les profils de
+provisionnement (la signature automatique le fait au prochain build, si elle a
+les droits — voir juste en dessous ce que ça a coûté pour le certificat et les
+profils de build 27 ; l'ajout d'une capacité passe par le même mécanisme de
+signature dans le cloud). Sans cette étape, le build échoue avec une erreur de
+signature mentionnant l'entitlement manquant plutôt qu'un certificat ou un
+profil manquant — facile à confondre avec les erreurs ci-dessous si on ne sait
+pas laquelle des deux causes chercher en premier.
+
 ## Clé API pour l'upload
 
 App Store Connect → Users and Access → Integrations → App Store Connect API.

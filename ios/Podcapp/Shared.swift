@@ -65,12 +65,17 @@ enum Config {
     static var hasSeenOnboarding: Bool { store.bool(forKey: "sawOnboarding") }
     static func markOnboardingSeen() { store.set(true, forKey: "sawOnboarding") }
 
-    /// The one way a session ends, whichever side decided it should: the user
-    /// tapping Sign out in Réglages, or the API layer discovering a 401 on a
-    /// call that was supposed to be authenticated (session.swift revoked it
-    /// server-side, an admin action, the account itself gone). Clears what the
-    /// share extension reads too -- that is the whole point -- and tells the
-    /// app shell to fall back to onboarding.
+    /// Clears the session locally, whichever side decided it should end: the
+    /// API layer discovering a 401 on a call that was supposed to be
+    /// authenticated (revoked server-side, an admin action, the account
+    /// itself gone -- the token is already dead, so there is nothing left to
+    /// tell the server), or a caller that has already dealt with the server
+    /// side itself (Auth.signOut() revokes the session first, then calls this
+    /// unconditionally -- see it for why "unconditionally" is the point).
+    /// Clears what the share extension reads too -- that is the whole point
+    /// -- and tells the app shell to fall back to onboarding. Never call this
+    /// directly from a sign-out button: that is Auth.signOut(), which also
+    /// tells the server so the session's row does not stay live forever.
     static func endSession() {
         sessionToken = ""
         reportedLanguage = nil
