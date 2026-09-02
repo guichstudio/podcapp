@@ -183,7 +183,10 @@ struct SettingsView: View {
             .typo(Typo.buttonMedium)
             .foregroundStyle(color)
             .underline()
-            .padding(.vertical, 7)
+            // The prototype's "Replay intro" carries `padding: 10px 4px`; the
+            // horizontal half lives on the footer stack, which insets all of
+            // these links together.
+            .padding(.vertical, 10)
             .contentShape(Rectangle())
     }
 
@@ -442,11 +445,15 @@ struct SettingsView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 0)
+                // One line, cut with an ellipsis, the way the prototype writes
+                // its own address ("ingest+louis@..."). Letting it wrap leaves
+                // the tail of the address alone on a second line, under a row
+                // built to be read left label / right value.
                 Text(row.value)
                     .typo(Typo.buttonMedium)
                     .foregroundStyle(Palette.body)
-                    .multilineTextAlignment(.trailing)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
         )
     }
@@ -498,7 +505,11 @@ struct SettingsView: View {
     private var devicesSection: some View {
         SettingsCard {
             rowPadding(
-                VStack(alignment: .leading, spacing: 11) {
+                // Spacing 0 and the 11pt carried by each branch: a stack that
+                // spaces its children would keep that gap while the list is
+                // still loading, leaving the header floating over a band of
+                // empty card.
+                VStack(alignment: .leading, spacing: 0) {
                     Text("Signed-in devices")
                         .typo(Typo.rowLabel)
                         .foregroundStyle(Palette.ink)
@@ -506,19 +517,23 @@ struct SettingsView: View {
                     case .loading:
                         EmptyView()
                     case let .loaded(devices):
-                        VStack(spacing: 0) {
-                            ForEach(Array(devices.enumerated()), id: \.element.id) { index, device in
-                                deviceRow(device)
-                                if index < devices.count - 1 {
-                                    hairline()
+                        if !devices.isEmpty {
+                            VStack(spacing: 0) {
+                                ForEach(Array(devices.enumerated()), id: \.element.id) { index, device in
+                                    deviceRow(device)
+                                    if index < devices.count - 1 {
+                                        hairline()
+                                    }
                                 }
                             }
+                            .padding(.top, 11)
                         }
                     case let .failed(message):
                         Text(message)
                             .typo(Typo.note)
                             .foregroundStyle(Palette.danger)
                             .fixedSize(horizontal: false, vertical: true)
+                            .padding(.top, 11)
                     }
                 }
             )
