@@ -79,26 +79,46 @@ est le champ qu'on oublie.
 
 ## Beta App Review — informations de connexion
 
-Le compte de démonstration n'est plus nécessaire : la dernière étape de
-l'onboarding propose Sign in with Apple, donc le relecteur crée son propre
-compte avec son propre identifiant Apple, sans invitation ni code. Décocher
-« Connexion requise ».
+Deux chemins entrent dans l'app, et le relecteur peut prendre l'un ou l'autre.
 
-Le compte `beta-review@podcapp.fr` (créé le 2026-09-01, id
-`ca02f27c-06fa-4ab7-a1e4-6c6c000786cf`) peut être supprimé une fois cette
-version passée en revue — il ne sert plus qu'à l'eval interne d'ici là.
+**Sign in with Apple** est le chemin principal : le relecteur crée son propre
+compte avec son propre identifiant Apple, sans invitation ni code. C'est
+généralement suffisant.
+
+**Un compte email + mot de passe** existe pour le cas où le relecteur ne veut
+pas engager son Apple ID. Cocher « Connexion requise » et remplir :
+
+| Champ | Valeur |
+|---|---|
+| Nom d'utilisateur | `beta-review@podcapp.fr` |
+| Mot de passe | **pas dans ce dépôt** — il a été imprimé une seule fois par `pnpm inspect set-password` et vit dans le gestionnaire de mots de passe. En regénérer un avec la même commande si besoin. |
+
+Ce compte a l'avantage d'être déjà peuplé : six sources traitées et un épisode
+publié de 4 min 50, donc le relecteur voit l'app en fonctionnement immédiatement
+plutôt qu'un compte vide.
+
+Il n'y a **pas d'inscription publique par mot de passe** et pas de
+réinitialisation : le mot de passe est un chemin de connexion réservé,
+provisionné en CLI. C'est délibéré, et c'est ce qui évite d'exposer une surface
+d'inscription pour un seul utilisateur.
 
 **Notes de revue** (en anglais) :
 
 > Podcapp is an audio briefing app. The interface and the episodes follow the
 > phone's language (English or French).
 >
-> Create an account from the last onboarding screen with Sign in with Apple —
-> no invitation or code is needed. A new account starts empty: share three or
-> four links from Safari to see an episode built.
+> Two ways in. Either create your own account from the last onboarding screen
+> with Sign in with Apple — no invitation or code is needed — or tap "Sign in
+> with email" and use the credentials above. The email account is already
+> populated with six sources and one published five-minute episode, so you can
+> hear the app working straight away; a brand-new Apple account starts empty by
+> design.
+>
+> To see an episode built from scratch: share three or four links from Safari,
+> then generate from the Today tab. Generation takes a few minutes.
 >
 > All content comes from links the account holder saved; nothing is generated
-> without user-submitted sources.
+> without user-submitted sources. The app requests no permissions.
 
 ## App Privacy (le questionnaire)
 
