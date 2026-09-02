@@ -12,6 +12,7 @@ import { privacyHtml } from '../src/legal/privacy.js'
 import { termsHtml } from '../src/legal/terms.js'
 import * as schema from '../src/db/schema.js'
 import { resolveUserId } from '../src/auth/identity.js'
+import { authenticateWithPassword } from '../src/auth/password.js'
 import { createSession, listSessions, revokeAllSessions, revokeSession, sessionForToken } from '../src/auth/session.js'
 import { AuthError, type Provider } from '../src/auth/types.js'
 import { verifyIdentityToken } from '../src/auth/verify.js'
@@ -72,6 +73,17 @@ const SignInSchema = z.object({
   // The raw entropy: the server recomputes its hash and compares it to the
   // token's `nonce` claim. This is what makes an intercepted token unusable.
   nonce: z.string().min(8),
+  device_name: z.string().trim().min(1).max(64).default('iPhone'),
+})
+
+// App Review needs a way in without an Apple/Google account to sign in with.
+// This is a login path, not a signup product: there is no registration
+// endpoint here, accounts with a password are provisioned from the CLI
+// (`pnpm inspect set-password`), and there is deliberately no "forgot
+// password" flow (Postmark is not configured).
+const PasswordSignInSchema = z.object({
+  email: z.string().trim().email(),
+  password: z.string().min(1),
   device_name: z.string().trim().min(1).max(64).default('iPhone'),
 })
 
@@ -288,6 +300,20 @@ async function signIn(c: Context<Env>, provider: Provider) {
 
 app.post('/auth/apple', (c) => signIn(c, 'apple'))
 app.post('/auth/google', (c) => signIn(c, 'google'))
+
+// Same public-by-necessity reasoning as signIn above, and the same flat 401
+// on any failure -- unknown email, no password on the account, wrong
+// password, or a lockout still in effect all look identical from the
+// outside. See src/auth/password.ts for why and how.
+app.post('/auth/password', async (c) => {
+  const parsed = PasswordSignInSchema.safeParse(await c.req.json().catch(() => null))
+  if (!parsed.success) return c.json({ error: 'expected { email, password, device_name? }' }, 400)
+  const conn = db()
+  const result = await authenticateWithPassword(conn, parsed.data.email, parsed.data.password)
+  if (!result) return c.json({ error: 'sign-in rejected' }, 401)
+  const token = await createSession(conn, result.userId, parsed.data.device_name)
+  return c.json({ token }, 200)
+})
 
 // Registered before the authed sub-app is mounted: mounting at '/' installs the
 // bearer check on '/*', which would otherwise also cover /health.

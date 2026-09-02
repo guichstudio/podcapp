@@ -37,6 +37,16 @@ export const users = pgTable('users', {
   email: text('email').unique(),
   apiToken: text('api_token').unique().notNull(),
   rssToken: text('rss_token').unique().notNull(),
+  // Null for every Apple/Google-only account -- that is the normal state, not
+  // an error. Set only by `pnpm inspect set-password` for the App Review
+  // reviewer account (see POST /auth/password). Self-describing so the cost
+  // can be raised later without a migration that cannot tell old rows from
+  // new: "pbkdf2-sha256$<iterations>$<saltB64url>$<hashB64url>" (src/auth/password.ts).
+  password: text('password'),
+  // Consecutive-failure counter and lockout deadline for POST /auth/password
+  // (src/auth/password.ts). Reset to 0 / null on a successful sign-in.
+  passwordFailCount: integer('password_fail_count').notNull().default(0),
+  passwordLockedUntil: timestamp('password_locked_until', { withTimezone: true }),
   outputLanguage: text('output_language').notNull().default('fr'),
   voiceId: text('voice_id'),
   targetMinutes: integer('target_minutes').notNull().default(10),
