@@ -108,7 +108,7 @@ struct TodayView: View {
     @ViewBuilder
     private func heroStrip(_ data: TodayData) -> some View {
         if data.featured == nil && data.past.isEmpty {
-            noEpisodeCard.padding(.horizontal, 20)
+            noEpisodeCard.padding(.horizontal, 20).padding(.top, 6)
         } else {
             ScrollView(.horizontal) {
                 LazyHStack(alignment: .top, spacing: TodayMetric.stripGap) {
@@ -118,9 +118,11 @@ struct TodayView: View {
                             detail: featured.detail,
                             onBackstage: { backstage = featured.detail }
                         )
-                        // 338 of the prototype's 402: the next card peeks in by
-                        // its 12pt gap plus the 20pt margin it scrolls under.
-                        .containerRelativeFrame(.horizontal) { width, _ in width - 64 }
+                        // The prototype's hero is 338 wide on a 402 screen, so
+                        // the next card peeks in by 44. `width` here is what
+                        // contentMargins leaves of the screen (362), not the
+                        // screen itself, hence 24 rather than 64.
+                        .containerRelativeFrame(.horizontal) { width, _ in width - 24 }
                         .background {
                             GeometryReader { geo in
                                 Color.clear.preference(key: TodayHeroHeight.self, value: geo.size.height)
@@ -129,17 +131,24 @@ struct TodayView: View {
                     }
                     ForEach(data.past) { episode in
                         TodayPastCard(episode: episode, minHeight: heroHeight)
-                            .containerRelativeFrame(.horizontal) { width, _ in width - 128 }
+                            // 274: the prototype's 236pt card plus its 18pt
+                            // padding and 1pt edge on both sides.
+                            .containerRelativeFrame(.horizontal) { width, _ in width - 88 }
                     }
                 }
                 .scrollTargetLayout()
                 // A horizontal ScrollView clips its content, and the cards cast a
                 // 20pt shadow 16pt down; without this it lands on a hard edge.
+                // The prototype pays for that room the same way, with padding it
+                // then takes back as a negative margin -- and keeps 6pt of it,
+                // which is the whole gap between the header and the strip.
+                .padding(.top, 32)
                 .padding(.bottom, 26)
             }
             .contentMargins(.horizontal, 20, for: .scrollContent)
             .scrollTargetBehavior(.viewAligned)
             .scrollIndicators(.hidden)
+            .padding(.top, -26)
             .padding(.bottom, -26)
             .onPreferenceChange(TodayHeroHeight.self) { if $0 > 0 { heroHeight = $0 } }
         }
@@ -158,7 +167,9 @@ struct TodayView: View {
                 targetMinutes: $targetMinutes
             )
             .padding(.horizontal, 20)
-            .padding(.top, 18)
+            // What the prototype's strip leaves under the cards once its 66pt
+            // of shadow room is pulled back by a -36 margin.
+            .padding(.top, 30)
 
             focusSection(data)
         }
@@ -214,8 +225,12 @@ struct TodayView: View {
                     }
                 }
                 .padding(.horizontal, 20)
+                // Shadow room paid for and taken back, as in the hero strip;
+                // the 6pt left over is the gap under the section head.
+                .padding(.top, 32)
                 .padding(.bottom, 26)
             }
+            .padding(.top, -26)
             .padding(.bottom, -26)
         }
     }
@@ -315,8 +330,10 @@ private enum TodayMetric {
     static let ringBox: CGFloat = 46
     static let ringDiameter: CGFloat = 36.8
     static let ringStroke: CGFloat = 4.14
-    /// Story cards are a fixed 230x125 in the prototype, minus padding and border.
-    static let storyWidth: CGFloat = 200
+    /// Story cards render 230x125 in the prototype. Only the 14pt padding comes
+    /// off here: `TodayCard` strokes its edge inside the card, so the border is
+    /// already inside the 230 rather than added to it.
+    static let storyWidth: CGFloat = 202
     static let storyMinHeight: CGFloat = 95
 }
 
@@ -668,11 +685,12 @@ private struct TodayGenerateCard: View {
                             Capsule().strokeBorder(Palette.accentEdge, lineWidth: 1)
                         }
                         .dropShadow(Palette.ctaShadow)
-                        // The design dims the whole button rather than swapping
-                        // its fill, so a refused tap still reads as the same one.
-                        .opacity(isGenerating || !rule.met ? 0.5 : 1)
                 }
                 .buttonStyle(.plain)
+                // The design dims the whole button rather than swapping its
+                // fill, so a refused tap still reads as the same one. That is
+                // what `disabled` already does, and to about the prototype's
+                // `opacity:.5`; dimming the label as well only halved it twice.
                 .disabled(isGenerating || !rule.met)
 
                 switch outcome {
