@@ -114,6 +114,11 @@ export const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL ?? 'http://localhost
 
 export const JINA_READER_BASE = 'https://r.jina.ai/'
 
+// Le `aud` que doit porter un jeton Apple : notre bundle id, pas un id client.
+export const APPLE_AUDIENCE = 'com.louisguichard.podcapp'
+// L'id client OAuth iOS du projet Google Cloud. Sans lui, /auth/google refuse.
+export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? ''
+
 export function env(name: string): string {
   const v = process.env[name]
   if (!v) throw new Error(`Missing env var ${name}`)
