@@ -875,29 +875,39 @@ authed.post('/sources/delete', async (c) => {
   // belongs to somebody else simply does not match, and the count below is what
   // the app is told was deleted.
   const owned = await conn
-    .select({ id: schema.sources.id })
-    .from(schema.sources)
-    .where(and(eq(schema.sources.userId, userId), inArray(schema.sources.id, ids)))
+    .select({ id: sources.id })
+    .from(sources)
+    .where(and(eq(sources.userId, userId), inArray(sources.id, ids)))
   if (owned.length === 0) return c.json({ deleted: 0 })
-  const found = owned.map((row) => row.id)
+  const found = new Set(owned.map((row) => row.id))
 
-  // array_remove only takes one element, so the whole array is rebuilt without
-  // the deleted ids in a single pass.
-  await conn.execute(sql`
-    update stories
-       set source_ids = coalesce(
-         (select array_agg(sid) from unnest(source_ids) as sid where sid <> all(${found}::uuid[])),
-         '{}'::uuid[]
-       )
-     where user_id = ${userId}::uuid and source_ids && ${found}::uuid[]
-  `)
-  await conn.execute(sql`
-    delete from stories
-     where user_id = ${userId}::uuid and status = 'open' and cardinality(source_ids) = 0
-  `)
-  await conn.delete(schema.sources).where(and(eq(schema.sources.userId, userId), inArray(schema.sources.id, found)))
+  // The story rewrite happens in TypeScript rather than in one clever
+  // statement: a uuid[] parameter inside drizzle's sql template does not
+  // survive the neon-http driver (it answered 500 until this was rewritten),
+  // and a user has a handful of stories, so reading them and writing back only
+  // the ones that actually changed costs less than the bug did.
+  const owning = await conn
+    .select({ id: stories.id, sourceIds: stories.sourceIds, status: stories.status })
+    .from(stories)
+    .where(eq(stories.userId, userId))
+  for (const story of owning) {
+    const kept = story.sourceIds.filter((sid) => !found.has(sid))
+    const where = and(eq(stories.userId, userId), eq(stories.id, story.id))
+    // An open story with nothing behind it is dead weight: it can never air and
+    // it counts for nothing. It goes whether this call emptied it or an earlier
+    // one did -- the emptied-but-not-removed case is real, a half-applied
+    // delete left exactly that row behind while this endpoint was being built.
+    if (kept.length === 0 && story.status === 'open') {
+      await conn.delete(stories).where(where)
+      continue
+    }
+    if (kept.length === story.sourceIds.length) continue
+    await conn.update(stories).set({ sourceIds: kept }).where(where)
+  }
 
-  return c.json({ deleted: found.length })
+  await conn.delete(sources).where(and(eq(sources.userId, userId), inArray(sources.id, [...found])))
+
+  return c.json({ deleted: found.size })
 })
 
 authed.get('/sources', async (c) => {
