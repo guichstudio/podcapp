@@ -360,7 +360,7 @@ async function runEpisode(
   }
 
   const recent = await db
-    .select({ title: episodes.title })
+    .select({ title: episodes.title, createdAt: episodes.createdAt })
     .from(episodes)
     .where(and(eq(episodes.userId, opts.userId), eq(episodes.status, 'ready')))
     .orderBy(desc(episodes.createdAt))
@@ -558,12 +558,9 @@ async function runEpisode(
   // And a failure the reader has set aside is out of the running like any other
   // set-aside source; naming it on air would break the invariant the Library
   // promises.
-  const [lastAired] = await db
-    .select({ at: episodes.createdAt })
-    .from(episodes)
-    .where(and(eq(episodes.userId, opts.userId), eq(episodes.status, 'ready')))
-    .orderBy(desc(episodes.createdAt))
-    .limit(1)
+  // `recent` is already the ready episodes newest first, so the window this
+  // briefing covers is the first of them; no second query for the same rows.
+  const lastAired = recent[0]?.createdAt
   const failed = await db
     .select({ title: sources.title, url: sources.url, status: sources.status })
     .from(sources)
@@ -572,7 +569,7 @@ async function runEpisode(
         eq(sources.userId, opts.userId),
         inArray(sources.status, ['extraction_failed', 'low_quality', 'unsupported']),
         isNull(sources.setAsideAt),
-        ...(lastAired ? [gt(sources.capturedAt, lastAired.at)] : []),
+        ...(lastAired ? [gt(sources.capturedAt, lastAired)] : []),
       ),
     )
 

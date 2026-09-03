@@ -4,7 +4,7 @@ import { drizzle } from 'drizzle-orm/neon-http'
 import { Hono, type Context } from 'hono'
 import { handle } from 'hono/vercel'
 import { z } from 'zod'
-import { ScriptSchema, type Script } from '../src/core/types.js'
+import { ScriptSchema, type Script, type StoredClaim } from '../src/core/types.js'
 import { CATEGORIES, MAX_TARGET_MINUTES, MIN_SOURCES_PER_EPISODE, VOICE_OPTIONS, voiceFor } from '../src/config.js'
 import { feedKey } from '../src/rss/feed.js'
 import { countAvailableSources, hasEnoughSources, shortageMessage } from '../src/jobs/material.js'
@@ -911,17 +911,58 @@ async function detachFromStories(conn: Conn, userId: string, ids: Set<string>): 
     // production for both a match and a miss before being used here.
     .where(and(eq(stories.userId, userId), arrayOverlaps(stories.sourceIds, [...ids])))
   // The evidence leaves with the source. A story merges several sources' claims
-  // into one array, and the writer is handed that array, not the id list -- so
+  // into one array and the writer is handed that array, not the id list, so
   // dropping the id alone would let a sentence air on a claim whose source the
-  // reader had just removed. Claims stamped by an older build carry no origin
-  // and cannot be attributed, so they stay: guessing which to delete would be
-  // worse than keeping evidence that is still, as far as anything knows, true.
+  // reader had just removed -- marked supported, cited to a list that no longer
+  // contains where it came from.
+  //
+  // Rebuilt from the surviving sources' own stored analyses rather than by
+  // filtering the merged array. Filtering needs each claim to carry an origin,
+  // which only claims written from now on do, and it gets a shared claim wrong:
+  // merging keeps the first contributor's copy, so a claim two sources both
+  // assert would leave with the first of them while the second still supports
+  // it. Re-merging asks the survivors what they actually claim, which is right
+  // for rows already in the database and right for shared evidence.
+  const keptIds = [...new Set(affected.flatMap((s) => s.sourceIds).filter((sid) => !ids.has(sid)))]
+  const analyses = keptIds.length
+    ? await conn
+        .select({ id: sources.id, analysis: sources.analysis })
+        .from(sources)
+        .where(and(eq(sources.userId, userId), inArray(sources.id, keptIds)))
+    : []
+  const claimsBySource = new Map(
+    analyses
+      .filter((row) => row.analysis !== null)
+      .map((row) => [row.id, ((row.analysis as { claims?: unknown[] }).claims ?? []) as StoredClaim[]]),
+  )
+
   await Promise.all(
     affected.map((story) => {
       const kept = story.sourceIds.filter((sid) => !ids.has(sid))
-      const claims = (story.claims as { source_id?: string }[]).filter(
-        (claim) => !claim.source_id || !ids.has(claim.source_id),
-      )
+      // Same order and same dedupe as processSource's own merge: first writer
+      // of a sentence keeps it, so the story reads as it did minus what left.
+      // A survivor whose analysis is missing would contribute nothing and the
+      // rebuild would quietly delete its evidence. No row is in that state
+      // today -- all 65 clustered sources carry one -- but the rebuild is the
+      // wrong tool when it cannot see what a survivor claims, so the story
+      // keeps what it has and only loses the id.
+      const blind = kept.some((sid) => !claimsBySource.has(sid))
+      if (blind) {
+        return conn
+          .update(stories)
+          .set({ sourceIds: kept })
+          .where(and(eq(stories.userId, userId), eq(stories.id, story.id)))
+      }
+      const seen = new Set<string>()
+      const claims: StoredClaim[] = []
+      for (const sid of kept) {
+        for (const claim of claimsBySource.get(sid) ?? []) {
+          const key = claim.text.toLowerCase()
+          if (seen.has(key)) continue
+          seen.add(key)
+          claims.push({ ...claim, source_id: sid })
+        }
+      }
       return conn
         .update(stories)
         .set({ sourceIds: kept, claims })
