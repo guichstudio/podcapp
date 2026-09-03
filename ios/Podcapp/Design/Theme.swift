@@ -161,10 +161,12 @@ enum Palette {
 
     // Tab bar (floating capsule, from v3.html's #dc-root markup)
     static let tabInactive = Color(hex: 0x8A87A0)
-    /// .55 in the prototype, over blur(30px) saturate(1.8). Same reasoning as
-    /// `panelFill`: with no material under it the bar needs the cards' wash to
-    /// read as the same glass rather than as a thin film.
-    static let tabBarFill = Color(hex: 0xFCFCFA, opacity: 0.62)
+    /// .55 in the prototype, over blur(30px) saturate(1.8). With no material
+    /// under it the bar needs more body than the prototype's number, and more
+    /// than the panels do: it is the one surface the content list scrolls
+    /// behind, and the blur that used to hide that traffic is gone. At .62 the
+    /// rows read through it; .82 stops them without going opaque.
+    static let tabBarFill = Color(hex: 0xFCFCFA, opacity: 0.82)
     static let tabBarBorder = Color.white.opacity(0.88)
     /// Same hue as every other ambient shadow; the tab bar just carries more
     /// opacity (0.2 vs a card's 0.13) to read as a floating pill, not a card.

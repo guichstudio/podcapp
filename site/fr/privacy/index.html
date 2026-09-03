@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Politique de confidentialité — Podcapp</title>
+<meta name="theme-color" content="#0d0d0f">
+<meta name="robots" content="noindex">
+<style>
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0 auto;padding:32px 20px 72px;background:#0d0d0f;color:#e9e9ec;max-width:44rem;
+font:16px/1.6 -apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;
+-webkit-text-size-adjust:100%}
+h1{font-size:1.5rem;letter-spacing:-.02em;margin:0}
+h2{font-size:1rem;letter-spacing:-.01em;margin:40px 0 12px;padding-top:20px;border-top:1px solid #23232a}
+p,li{color:#c9c9d1}
+.lede{color:#e9e9ec}
+.sub{color:#8a8a94;font-size:.85rem;margin-top:6px}
+a{color:#e9e9ec}
+ul{padding-left:1.1rem;margin:12px 0}
+li{margin:6px 0}
+li b{color:#e9e9ec;font-weight:600}
+.note{background:#141419;border:1px solid #23232a;border-radius:10px;padding:14px 16px;margin:16px 0}
+.note p{margin:0;color:#c9c9d1;font-size:.92rem}
+footer{margin-top:48px;color:#8a8a94;font-size:.85rem}
+</style>
+</head>
+<body>
+<h1>Politique de confidentialité</h1>
+<p class="sub">Podcapp · dernière mise à jour le 1er septembre 2026 · version bêta</p>
+
+<p class="lede">Podcapp conserve ce que vous lui envoyez — liens, textes, newsletters
+transférées — pour en faire votre briefing audio quotidien. Ce contenu est transmis à des
+prestataires d’IA qui l’extraient, l’analysent, le vérifient et le lisent à voix haute. Il
+n’est ni vendu, ni utilisé pour de la publicité, ni exploité pour vous profiler.</p>
+
+<h2>Qui est responsable</h2>
+<p>Louis Guichard, personne physique, France. Podcapp est un projet personnel diffusé en bêta
+fermée. Pour toute question ou demande : <a href="mailto:guich.studio@gmail.com">guich.studio@gmail.com</a>.</p>
+
+<h2>Ce que Podcapp conserve</h2>
+<ul>
+<li><b>Votre adresse email</b> — elle identifie votre compte, et c’est elle qui reconnaît les
+newsletters que vous transférez.</li>
+<li><b>Deux jetons</b> — un pour l’application, un pour votre flux RSS privé.</li>
+<li><b>Ce que vous capturez</b> — l’adresse de la page, le texte extrait, le titre, l’auteur,
+l’éditeur, la date de publication, ainsi que l’analyse et le vecteur qui en sont dérivés.</li>
+<li><b>Vos épisodes</b> — le plan, le script, le rapport de vérification phrase par phrase, le
+coût de fabrication et le fichier audio.</li>
+<li><b>Vos réglages</b> — langue, voix, durée cible.</li>
+<li><b>Un journal technique</b> — refus d’un email entrant, échecs d’extraction : de quoi
+comprendre pourquoi quelque chose n’a pas marché.</li>
+</ul>
+<p>L’application iOS n’embarque aucun outil de mesure d’audience, aucun traceur publicitaire et
+aucun kit tiers. Elle ne lit ni vos contacts, ni votre position, ni votre historique de
+navigation : elle ne voit que ce que vous lui partagez explicitement.</p>
+
+<h2>Ce qui sort, et vers qui</h2>
+<p>Fabriquer un épisode demande d’envoyer le contenu de vos sources à des prestataires
+spécialisés. Chacun ne reçoit que ce dont il a besoin :</p>
+<ul>
+<li><b>Jina AI</b> — reçoit l’adresse partagée et le texte de la page, pour extraire le contenu
+et calculer les vecteurs de similarité.</li>
+<li><b>DeepSeek</b> — reçoit le texte des sources, puis les phrases du script, pour l’analyse, le
+regroupement en sujets, le choix éditorial et la vérification.</li>
+<li><b>Anthropic</b> — reçoit les faits retenus et le brouillon, pour écrire et relire le script.</li>
+<li><b>ElevenLabs</b> — reçoit le script final, pour en faire une voix.</li>
+<li><b>Postmark</b> — reçoit les newsletters que vous transférez, et l’adresse d’où vous les
+transférez, pour la réception du courrier entrant.</li>
+</ul>
+<p>À l’exception de Postmark, dont c’est le métier, aucun de ces prestataires ne reçoit votre
+adresse email ni vos jetons : ils ne voient que le contenu à traiter.</p>
+<p>L’infrastructure elle-même repose sur Neon (base de données), Cloudflare R2 (audio, flux et
+artefacts de fabrication), Vercel (l’API) et Trigger.dev (les traitements longs). Ces sociétés
+sont pour l’essentiel établies aux États-Unis : vos données y sont donc transférées, sous leurs
+propres engagements contractuels.</p>
+
+<h2>Ce qui est public, et ce qui ne l’est pas</h2>
+<div class="note">
+<p>Votre flux RSS et vos fichiers audio sont déposés sur un espace de stockage public, parce
+qu’une application de podcast doit pouvoir les télécharger sans s’authentifier. Leur adresse
+contient un jeton imprévisible qui tient lieu de clé : <b>qui obtient cette adresse peut écouter
+vos épisodes</b>. Ne la partagez pas. Votre adresse email n’y figure pas.</p>
+</div>
+<p>Le reste — vos sources, leur texte, le rapport de vérification, vos réglages — vit dans la
+base de données, accessible uniquement avec votre jeton d’application.</p>
+
+<h2>Combien de temps</h2>
+<p>Tant que votre compte existe. Aucune purge automatique n’est en place à ce jour : la
+suppression se fait à la demande, manuellement, sous quelques jours.</p>
+
+<h2>Vos droits</h2>
+<p>Vous pouvez demander l’accès à vos données, leur rectification, leur effacement, leur
+portabilité, ou vous opposer à leur traitement, en écrivant à
+<a href="mailto:guich.studio@gmail.com">guich.studio@gmail.com</a>. La réponse arrive sous trente jours.
+Un effacement supprime le compte, les sources, les sujets, les épisodes, l’audio et le flux : il
+est définitif et rien n’en est conservé. Vous pouvez aussi saisir la CNIL.</p>
+
+<h2>Sécurité</h2>
+<p>Tout transite en HTTPS, et chaque compte a ses propres jetons. Une limite assumée de la bêta :
+le transfert de newsletters reconnaît un utilisateur à son adresse d’expéditeur, qui est
+falsifiable. Les messages dont l’authentification SPF échoue sont refusés, et tout refus est
+journalisé.</p>
+
+<h2>TestFlight</h2>
+<p>Pendant la bêta, l’application est distribuée par TestFlight. Apple collecte de son côté des
+informations d’installation et de plantage, selon sa propre politique de confidentialité, et
+peut nous transmettre des rapports de plantage si vous l’autorisez.</p>
+
+<h2>Enfants</h2>
+<p>Podcapp n’est pas destiné aux personnes de moins de seize ans.</p>
+
+<h2>Modifications</h2>
+<p>Toute évolution de ce texte sera publiée ici, avec sa date. Un changement qui toucherait la
+nature des données collectées vous sera annoncé par email.</p>
+
+<footer>Podcapp — <a href="mailto:guich.studio@gmail.com">guich.studio@gmail.com</a></footer>
+</body>
+</html>

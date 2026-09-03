@@ -655,8 +655,8 @@ struct SettingsView: View {
     private var accountLinks: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 16) {
-                legalLink(path: "/privacy", label: Text("Privacy policy"))
-                legalLink(path: "/terms", label: Text("Terms of Use"))
+                legalLink(slug: "privacy", label: Text("Privacy policy"))
+                legalLink(slug: "terms", label: Text("Terms of Use"))
             }
             replayLink
             signOutButton
@@ -666,14 +666,25 @@ struct SettingsView: View {
 
     // App Review 5.1.1 wants the privacy policy reachable from inside the app,
     // not only from the App Store listing, and an app that lets you create an
-    // account has to state its terms somewhere a user can find them. Both
-    // follow Config.baseURL, so a build pointed elsewhere reads that server's
-    // documents rather than hardcoded ones.
+    // account has to state its terms somewhere a user can find them.
+    //
+    // These point at the public site rather than at Config.baseURL. The
+    // documents belong to the product, not to whichever server instance a build
+    // happens to talk to, and the URL is read by people: one that says
+    // "vercel.app" reads as a hosting provider's page. The site serves the same
+    // two documents, generated from src/legal/ by `pnpm site:legal`, so there
+    // is still one source and no copy to drift.
+    //
+    // The site serves English at the root and French under /fr/, so the link
+    // follows the language the app resolved to: reading the terms you agreed
+    // to in a language you did not pick is the failure this avoids. Only "fr"
+    // is prefixed -- a third localisation added here before the site has its
+    // pages would otherwise link to a 404. Trailing slash because the site
+    // sets `trailingSlash: true`.
     @ViewBuilder
-    private func legalLink(path: String, label: Text) -> some View {
-        let base = Config.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        let origin = base.hasSuffix("/") ? String(base.dropLast()) : base
-        if let url = URL(string: origin + path), url.scheme?.hasPrefix("http") == true {
+    private func legalLink(slug: String, label: Text) -> some View {
+        let prefix = AppLocale.code == "fr" ? "/fr/" : "/"
+        if let url = URL(string: Config.siteURL + prefix + slug + "/") {
             // The underline goes on the Text, not on the Link: on the Link the
             // modifier compiles and does nothing, and a caption-coloured line of
             // text with no affordance does not read as tappable.

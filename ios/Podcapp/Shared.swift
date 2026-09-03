@@ -7,6 +7,14 @@ enum Config {
     static let appGroup = "group.com.louisguichard.podcapp"
     static let defaultBaseURL = "https://podcapp.vercel.app"
 
+    /// The public site, which serves the privacy policy and the terms under the
+    /// product's own domain. Fixed rather than derived from `baseURL`: those two
+    /// documents belong to the product, not to whichever server instance a build
+    /// talks to, and their URL is read by people and published on the App Store
+    /// listing. `pnpm site:legal` regenerates them from `src/legal/`, so the API
+    /// and the site cannot drift apart.
+    static let siteURL = "https://podcapp.fr"
+
     // The App Group container only exists when the build carries its
     // entitlement. `UserDefaults(suiteName:)` is the WRONG probe for that: it
     // returns a defaults object either way (nil only for the main bundle id)

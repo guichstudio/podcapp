@@ -22,7 +22,8 @@
     "storage:check": "tsx src/storage/check.ts",
     "feed:publish": "tsx src/rss/publish.ts",
     "console:publish": "tsx src/console/publish.ts",
-    "process:pending": "tsx src/jobs/processPending.ts"
+    "process:pending": "tsx src/jobs/processPending.ts",
+    "site:legal": "tsx site/make-legal.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.2.17",
