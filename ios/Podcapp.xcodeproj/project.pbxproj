@@ -476,6 +476,9 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Manual;
+				PROVISIONING_PROFILE_SPECIFIER = "Podcapp Share Dev";
 				PRODUCT_BUNDLE_IDENTIFIER = com.louisguichard.podcapp.share;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -496,6 +499,9 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Manual;
+				PROVISIONING_PROFILE_SPECIFIER = "Podcapp Dev";
 				PRODUCT_BUNDLE_IDENTIFIER = com.louisguichard.podcapp;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;

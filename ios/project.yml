@@ -75,6 +75,27 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Podcapp
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+    # Signature de developpement, cible par cible.
+    #
+    # Le portail Apple ne contenait AUCUN profil : la signature automatique
+    # fabriquait alors un profil `LocalProvision` de repli -- le mecanisme des
+    # equipes gratuites, valable 7 jours. L'app tournait avec, l'extension de
+    # partage se faisait refuser au lancement par iOS, sans rapport de plantage :
+    # la feuille s'ouvrait vide et se refermait, rien n'etait enregistre, depuis
+    # toutes les apps sources. Diagnostique le 2026-09-03 en constatant qu'un
+    # fichier ecrit des la premiere ligne de viewDidLoad n'existait jamais.
+    #
+    # Les profils « Podcapp Dev » et « Podcapp Share Dev » ont ete crees sur le
+    # portail (API App Store Connect) et sont valables jusqu'au 2027-09-03. La
+    # signature automatique les IGNORE et refabrique son profil local, d'ou le
+    # passage en manuel -- mais sur Debug uniquement : Release doit rester en
+    # automatique pour que `testflight.sh` archive avec les profils de
+    # distribution.
+      configs:
+        Debug:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: "Apple Development"
+          PROVISIONING_PROFILE_SPECIFIER: "Podcapp Dev"
     # XcodeGen writes this file itself (and points CODE_SIGN_ENTITLEMENTS at
     # it), so the App Group and Sign in with Apple capabilities live here, not
     # in a hand-edited plist that the next `generate` would overwrite anyway.
@@ -114,3 +135,8 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.louisguichard.podcapp.share
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_ENTITLEMENTS: ShareExtension/ShareExtension.entitlements
+      configs:
+        Debug:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: "Apple Development"
+          PROVISIONING_PROFILE_SPECIFIER: "Podcapp Share Dev"
