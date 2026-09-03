@@ -13,6 +13,7 @@
 "%lld new today" = "%lld nouveaux aujourd’hui";
 "%lld ready · ~%lld min" = "%lld prêtes · ~%lld min";
 "%lld saved in total: tap All to see them." = "%lld enregistrée(s) au total : touchez Tout pour les voir.";
+"%lld selected" = "%lld sélectionnées";
 "%lld sentences were checked" = "%lld phrases ont été confrontées";
 "%lld sources" = "%lld sources";
 "%lld were rewritten" = "%lld ont été réécrites";
@@ -85,11 +86,16 @@
 "Could not open this briefing." = "Impossible d’ouvrir ce briefing.";
 "DUPLICATE" = "DOUBLON";
 "Daily" = "Quotidienne";
+"Delete" = "Supprimer";
+"Delete %lld sources?" = "Supprimer %lld sources ?";
 "Delete everything" = "Tout supprimer";
 "Delete my account" = "Supprimer mon compte";
+"Delete this source?" = "Supprimer cette source ?";
 "Delete your account?" = "Supprimer votre compte ?";
 "Deleting…" = "Suppression…";
+"Deselect" = "Tout désélectionner";
 "Documentary voice" = "Voix documentaire";
+"Done" = "Terminé";
 "Duplicate" = "Doublon";
 "EARLIER" = "PRÉCÉDENTS";
 "EXTRACTING" = "EXTRACTION";
@@ -225,6 +231,8 @@
 "Science" = "Science";
 "Script not written yet." = "Script pas encore écrit.";
 "Scripts and narration" = "Scripts et narration";
+"Select" = "Sélectionner";
+"Select all" = "Tout sélectionner";
 "Selecting" = "Sélection";
 "Sending…" = "Envoi en cours…";
 "Server unreachable. %@" = "Serveur injoignable. %@";
@@ -277,6 +285,7 @@
 "The run stopped before publishing. Try again from Today." = "Le run s’est arrêté avant la publication. Relancez depuis Aujourd’hui.";
 "The script is still being written. Come back in a few minutes." = "Le script est en cours d’écriture. Revenez dans quelques minutes.";
 "These are shown, not set: they live on the machine that generates the episodes." = "Ces réglages s’affichent seulement, ils se changent sur l’ordinateur qui génère les épisodes.";
+"They leave your library for good. An episode that already cited one keeps the citation, flagged as no longer available." = "Elles quittent votre bibliothèque définitivement. Un épisode qui en citait une garde la citation, signalée comme indisponible.";
 "This briefing has no text yet." = "Ce briefing n’a pas encore de texte.";
 "This device" = "Cet appareil";
 "This episode has no chapters yet." = "Cet épisode n’a pas encore de chapitres.";

@@ -212,6 +212,16 @@ actor API {
         try await get("/sources", as: SourceBatch.self)
     }
 
+    /// Removes saved sources. One call for the whole selection rather than one
+    /// per row: a partial failure across twenty requests would leave the library
+    /// in a state neither side can describe. Returns how many the server
+    /// actually deleted, which is what the caller should trust -- an id that is
+    /// not the caller's simply does not match.
+    @discardableResult
+    func deleteSources(_ ids: [String]) async throws -> Int {
+        try await post("/sources/delete", body: DeleteSourcesBody(ids: ids), as: DeleteSourcesAck.self).deleted
+    }
+
     /// Asks the server to queue a briefing. Returns the id of the queued
     /// episode; a refusal (409 double generation, 503 cloud not wired) arrives
     /// as APIError.http carrying the server's French message.
@@ -322,6 +332,8 @@ actor API {
     }
 
     private struct EpisodeList: Decodable { let episodes: [EpisodeSummary] }
+    private struct DeleteSourcesBody: Encodable { let ids: [String] }
+    private struct DeleteSourcesAck: Decodable { let deleted: Int }
     private struct LanguageBody: Encodable { let language: String }
     private struct LanguageAck: Decodable { let language: String }
     struct SourceBatch: Decodable, Sendable {

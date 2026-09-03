@@ -28,6 +28,14 @@ struct LibraryView: View {
     @State private var expanded: String?
     @State private var draft = ""
     @State private var addState: AddState = .idle
+    // Selection mode. Kept out of `expanded`: a row is either being read or
+    // being picked, never both, which is also why entering selection closes
+    // whatever was open.
+    @State private var selecting = false
+    @State private var selection: Set<String> = []
+    @State private var confirmingDelete = false
+    @State private var deleting = false
+    @State private var deleteError: String?
 
     private enum Phase {
         case loading, loaded, failed(String)
@@ -43,18 +51,28 @@ struct LibraryView: View {
                 // The 20pt gutter is on each block rather than on the stack,
                 // because the category rail is the one thing that has to run
                 // past it and off both screen edges.
-                Text("Sources")
-                    .typo(Typo.screenTitle)
-                    .foregroundStyle(Palette.ink)
+                header
                     .padding(.top, 6)
                     .padding(.bottom, 14)
                     .padding(.horizontal, 20)
 
-                captureField.padding(.horizontal, 20)
-                ingestLine.padding(.horizontal, 20)
+                if selecting {
+                    selectionBar.padding(.horizontal, 20)
+                    if let deleteError {
+                        Text(deleteError)
+                            .typo(Typo.metaSmall)
+                            .foregroundStyle(Palette.danger)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 6)
+                    }
+                } else {
+                    captureField.padding(.horizontal, 20)
+                    ingestLine.padding(.horizontal, 20)
+                }
                 filterPills.padding(.horizontal, 20)
                 categoryPills
-                categoryGenerate.padding(.horizontal, 20)
+                if !selecting { categoryGenerate.padding(.horizontal, 20) }
                 content.padding(.horizontal, 20)
             }
             .padding(.top, 10)
@@ -67,6 +85,115 @@ struct LibraryView: View {
         .onChange(of: scenePhase) { _, new in
             if new == .active { Task { await load() } }
         }
+    }
+
+    // MARK: - Selection
+
+    /// The title line, with the way in and out of selection mode beside it.
+    /// The button is hidden while there is nothing to select, because an
+    /// affordance that does nothing is the App Review 2.1 defect we removed
+    /// elsewhere in this app.
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text("Sources")
+                .typo(Typo.screenTitle)
+                .foregroundStyle(Palette.ink)
+            Spacer(minLength: 12)
+            if !sources.isEmpty {
+                Button {
+                    Feedback.tap()
+                    withAnimation(.easeInOut(duration: 0.18)) {
+                        selecting.toggle()
+                        selection.removeAll()
+                        if selecting { expanded = nil }
+                    }
+                } label: {
+                    Text(selecting ? "Done" : "Select")
+                        .typo(Typo.navButton)
+                        .foregroundStyle(Palette.accentDeep)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var selectionBar: some View {
+        HStack(spacing: 12) {
+            Button {
+                Feedback.tap()
+                let visible = sections.flatMap(\.rows).map(\.id)
+                // Acts on what is on screen, not on the whole library: the
+                // filter and the shelf above are what the reader is looking at,
+                // and "select all" that reaches past them would delete rows
+                // nobody was shown.
+                if selection.count == visible.count { selection.removeAll() }
+                else { selection = Set(visible) }
+            } label: {
+                Text(selection.isEmpty ? "Select all" : "Deselect")
+                    .typo(Typo.metaSmall)
+                    .foregroundStyle(Palette.accentDeep)
+            }
+            .buttonStyle(.plain)
+
+            Spacer(minLength: 8)
+
+            Text("\(selection.count) selected")
+                .typo(Typo.metaSmall)
+                .foregroundStyle(Palette.muted2)
+
+            Button {
+                Feedback.tap()
+                confirmingDelete = true
+            } label: {
+                Group {
+                    if deleting {
+                        ProgressView().tint(Palette.onDark)
+                    } else {
+                        Text("Delete").typo(Typo.navButton)
+                    }
+                }
+                .foregroundStyle(Palette.onDark)
+                .frame(height: 34)
+                .padding(.horizontal, 16)
+                .background(selection.isEmpty ? Palette.muted2 : Palette.danger, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .disabled(selection.isEmpty || deleting)
+        }
+        .padding(.vertical, 4)
+        .confirmationDialog(
+            selection.count == 1 ? Text("Delete this source?") : Text("Delete \(selection.count) sources?"),
+            isPresented: $confirmingDelete,
+            titleVisibility: .visible
+        ) {
+            Button(role: .destructive) { Task { await deleteSelected() } } label: { Text("Delete") }
+            Button(role: .cancel) {} label: { Text("Cancel") }
+        } message: {
+            Text("They leave your library for good. An episode that already cited one keeps the citation, flagged as no longer available.")
+        }
+    }
+
+    @MainActor
+    private func deleteSelected() async {
+        let ids = Array(selection)
+        guard !ids.isEmpty else { return }
+        deleting = true
+        deleteError = nil
+        do {
+            let removed = try await API.shared.deleteSources(ids)
+            // Drops the rows the server says it removed, so the list never shows
+            // something that is gone -- and never hides something that is not.
+            let gone = Set(ids)
+            if removed > 0 { sources.removeAll { gone.contains($0.id) } }
+            selection.removeAll()
+            selecting = false
+            Feedback.saved()
+            await load()
+        } catch {
+            deleteError = error.localizedDescription
+            Feedback.refused()
+        }
+        deleting = false
     }
 
     // MARK: - Shelves
@@ -400,10 +527,19 @@ struct LibraryView: View {
 
     private func row(_ source: SavedSource) -> some View {
         let state = LibraryStatus.of(source)
-        let isOpen = expanded == source.id
+        // A row is either being read or being picked, never both.
+        let isOpen = !selecting && expanded == source.id
+        let isPicked = selection.contains(source.id)
 
         return VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top, spacing: 12) {
+                if selecting {
+                    Image(systemName: isPicked ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 21))
+                        .foregroundStyle(isPicked ? Palette.accentDeep : Palette.muted2)
+                        .frame(height: 36)
+                        .transition(.opacity)
+                }
                 Text(state.icon)
                     .font(Typo.font(size: 13, weight: .regular))
                     .foregroundStyle(Palette.body)
@@ -442,12 +578,17 @@ struct LibraryView: View {
             }
             .contentShape(Rectangle())
             .onTapGesture {
-                withAnimation(.easeInOut(duration: 0.18)) {
-                    expanded = isOpen ? nil : source.id
+                if selecting {
+                    Feedback.select()
+                    if isPicked { selection.remove(source.id) } else { selection.insert(source.id) }
+                } else {
+                    withAnimation(.easeInOut(duration: 0.18)) {
+                        expanded = isOpen ? nil : source.id
+                    }
                 }
             }
             .accessibilityElement(children: .combine)
-            .accessibilityAddTraits(.isButton)
+            .accessibilityAddTraits(selecting && isPicked ? [.isButton, .isSelected] : .isButton)
 
             if isOpen {
                 VStack(alignment: .leading, spacing: 10) {

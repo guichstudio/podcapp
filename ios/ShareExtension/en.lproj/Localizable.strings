@@ -13,6 +13,7 @@
 "%lld new today" = "%lld new today";
 "%lld ready · ~%lld min" = "%lld ready · ~%lld min";
 "%lld saved in total: tap All to see them." = "%lld saved in total: tap All to see them.";
+"%lld selected" = "%lld selected";
 "%lld sentences were checked" = "%lld sentences were checked";
 "%lld sources" = "%lld sources";
 "%lld were rewritten" = "%lld were rewritten";
@@ -85,11 +86,16 @@
 "Could not open this briefing." = "Could not open this briefing.";
 "DUPLICATE" = "DUPLICATE";
 "Daily" = "Daily";
+"Delete" = "Delete";
+"Delete %lld sources?" = "Delete %lld sources?";
 "Delete everything" = "Delete everything";
 "Delete my account" = "Delete my account";
+"Delete this source?" = "Delete this source?";
 "Delete your account?" = "Delete your account?";
 "Deleting…" = "Deleting…";
+"Deselect" = "Deselect";
 "Documentary voice" = "Documentary voice";
+"Done" = "Done";
 "Duplicate" = "Duplicate";
 "EARLIER" = "EARLIER";
 "EXTRACTING" = "EXTRACTING";
@@ -225,6 +231,8 @@
 "Science" = "Science";
 "Script not written yet." = "Script not written yet.";
 "Scripts and narration" = "Scripts and narration";
+"Select" = "Select";
+"Select all" = "Select all";
 "Selecting" = "Selecting";
 "Sending…" = "Sending…";
 "Server unreachable. %@" = "Server unreachable. %@";
@@ -277,6 +285,7 @@
 "The run stopped before publishing. Try again from Today." = "The run stopped before publishing. Try again from Today.";
 "The script is still being written. Come back in a few minutes." = "The script is still being written. Come back in a few minutes.";
 "These are shown, not set: they live on the machine that generates the episodes." = "These are shown, not set: they live on the machine that generates the episodes.";
+"They leave your library for good. An episode that already cited one keeps the citation, flagged as no longer available." = "They leave your library for good. An episode that already cited one keeps the citation, flagged as no longer available.";
 "This briefing has no text yet." = "This briefing has no text yet.";
 "This device" = "This device";
 "This episode has no chapters yet." = "This episode has no chapters yet.";

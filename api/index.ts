@@ -851,6 +851,55 @@ authed.get('/episodes/:id', async (c) => {
   })
 })
 
+// Deleting sources from the library. Bulk rather than one call per row: the
+// app deletes a selection, and a partial failure across twenty edge invocations
+// would leave the library in a state neither side can describe.
+//
+// What it does NOT do is rewrite history. A source cited by an episode that has
+// already aired stays cited: the episode detail already reports "no longer in
+// your library" for a missing source rather than reconstructing it, which is
+// the honest answer and the reason the field exists. So stories lose the
+// deleted ids, and a story left with nothing is removed only when it is still
+// open -- an aired story is the record of what was broadcast, not a working
+// set.
+const DeleteSourcesSchema = z.object({ ids: z.array(z.string().uuid()).min(1).max(100) })
+
+authed.post('/sources/delete', async (c) => {
+  const parsed = DeleteSourcesSchema.safeParse(await c.req.json().catch(() => null))
+  if (!parsed.success) return c.json({ error: 'expected { ids: [uuid] }' }, 400)
+  const conn = c.get('conn')
+  const userId = c.get('userId')
+  const { ids } = parsed.data
+
+  // Scoped to the caller in the same statement that selects them: an id that
+  // belongs to somebody else simply does not match, and the count below is what
+  // the app is told was deleted.
+  const owned = await conn
+    .select({ id: schema.sources.id })
+    .from(schema.sources)
+    .where(and(eq(schema.sources.userId, userId), inArray(schema.sources.id, ids)))
+  if (owned.length === 0) return c.json({ deleted: 0 })
+  const found = owned.map((row) => row.id)
+
+  // array_remove only takes one element, so the whole array is rebuilt without
+  // the deleted ids in a single pass.
+  await conn.execute(sql`
+    update stories
+       set source_ids = coalesce(
+         (select array_agg(sid) from unnest(source_ids) as sid where sid <> all(${found}::uuid[])),
+         '{}'::uuid[]
+       )
+     where user_id = ${userId}::uuid and source_ids && ${found}::uuid[]
+  `)
+  await conn.execute(sql`
+    delete from stories
+     where user_id = ${userId}::uuid and status = 'open' and cardinality(source_ids) = 0
+  `)
+  await conn.delete(schema.sources).where(and(eq(schema.sources.userId, userId), inArray(schema.sources.id, found)))
+
+  return c.json({ deleted: found.length })
+})
+
 authed.get('/sources', async (c) => {
   const conn = c.get('conn')
   const userId = c.get('userId')
