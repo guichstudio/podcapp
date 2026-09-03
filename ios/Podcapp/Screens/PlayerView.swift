@@ -1359,16 +1359,22 @@ private enum PlayerFormat {
 
     private static let dayFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "fr_FR")
+        // The language the app resolved to, not the region and not a pin: a
+        // phone in English showed "3 septembre" in the player header, with the
+        // month and the field order both taken from fr_FR by
+        // setLocalizedDateFormatFromTemplate. Every other formatter in the app
+        // already reads AppLocale; this was the last one left behind.
+        formatter.locale = AppLocale.current
         formatter.setLocalizedDateFormatFromTemplate("d MMMM")
         return formatter
     }()
 
     static func day(_ date: Date) -> String { dayFormatter.string(from: date) }
 
-    /// French writes 0,92 and the extraction quality is read as a score.
+    /// French writes 0,92 and English 0.92; the locale decides, not a
+    /// substitution. Today's library already formats the same field this way.
     static func quality(_ value: Double) -> String {
-        String(format: "%.2f", value).replacingOccurrences(of: ".", with: ",")
+        String(format: "%.2f", locale: AppLocale.current, value)
     }
 }
 

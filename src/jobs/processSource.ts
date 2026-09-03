@@ -1,7 +1,7 @@
 import { and, eq, inArray, ne, sql } from 'drizzle-orm'
 import { MODELS, PROMPT_VERSIONS, SIMILARITY_MERGE, SIMILARITY_REVIEW } from '../config.js'
 import { cacheKey, type StageCache } from '../core/cache.js'
-import { AdjudicationSchema, SourceAnalysisSchema, type Claim, type ExtractResult, type SourceAnalysis } from '../core/types.js'
+import { AdjudicationSchema, SourceAnalysisSchema, type Claim, type ExtractResult, type SourceAnalysis, type StoredClaim } from '../core/types.js'
 import type { Db } from '../db/client.js'
 import { sources, stories } from '../db/schema.js'
 import { canonicalizeUrl, sourceHash } from '../extract/canonical.js'
@@ -37,9 +37,15 @@ async function runExtract(row: SourceRow): Promise<ExtractResult> {
   return extractText(raw.text ?? '')
 }
 
-function mergeClaims(existing: Claim[], incoming: Claim[]): Claim[] {
+/// Merges a source's claims into a story's, stamping where each one came from.
+/// Without that stamp, detaching a source could not take its evidence with it,
+/// and a sentence could air on a claim whose source the reader had removed.
+function mergeClaims(existing: StoredClaim[], incoming: Claim[], sourceId: string): StoredClaim[] {
   const seen = new Set(existing.map((c) => c.text.toLowerCase()))
-  return [...existing, ...incoming.filter((c) => !seen.has(c.text.toLowerCase()))]
+  const fresh = incoming
+    .filter((c) => !seen.has(c.text.toLowerCase()))
+    .map((c) => ({ ...c, source_id: sourceId }))
+  return [...existing, ...fresh]
 }
 
 function centroid(vectors: number[][]): number[] {
@@ -76,7 +82,7 @@ async function attachToStory(db: Db, storyId: string, row: SourceRow, analysis: 
     .update(stories)
     .set({
       sourceIds: memberIds,
-      claims: mergeClaims(story.claims as Claim[], analysis.claims),
+      claims: mergeClaims(story.claims as StoredClaim[], analysis.claims, row.id),
       embedding: centroid(vectors),
       lastSeenAt: new Date(),
     })
@@ -93,7 +99,7 @@ async function createStory(db: Db, row: SourceRow, analysis: SourceAnalysis, emb
       topic: analysis.topics[0] ?? null,
       category: analysis.category,
       sourceIds: [row.id],
-      claims: analysis.claims,
+      claims: analysis.claims.map((c) => ({ ...c, source_id: row.id })),
       embedding,
       firstSeenAt: row.capturedAt,
       lastSeenAt: row.capturedAt,

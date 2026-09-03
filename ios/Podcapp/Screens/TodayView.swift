@@ -526,13 +526,29 @@ private struct TodayHeroCard: View {
     // The API exposes no per-chapter timing (only the episode's actualSec), so
     // the column the design fills with a duration carries the cited source count
     // rather than a number nobody measured.
+    /// The stories only, numbered as the rest of the app numbers them.
+    ///
+    /// generateEpisode writes an Intro at index 0 and an Outro last, and the
+    /// player and the Read tab both treat chapter 00 as the Intro. This menu
+    /// counted from 1 over every chapter, so the same story was 02 here and 01
+    /// under the player, and the outro appeared in a list of stories. The
+    /// artboard takes the middle slice for exactly this reason
+    /// (ios/design/v3-layout.html, `C.slice(1,5)`).
+    private var storyChapters: [(offset: Int, element: EpisodeChapter)] {
+        let all = Array(detail.chapters.enumerated())
+        // Only when the episode has the shape the pipeline produces: anything
+        // shorter is shown whole rather than sliced down to nothing.
+        guard all.count > 2 else { return all.map { (offset: $0.offset, element: $0.element) } }
+        return all.dropFirst().dropLast().map { (offset: $0.offset, element: $0.element) }
+    }
+
     @ViewBuilder
     private var chapterMenu: some View {
-        if !detail.chapters.isEmpty {
+        if !storyChapters.isEmpty {
             VStack(alignment: .leading, spacing: 7) {
-                ForEach(Array(detail.chapters.enumerated()), id: \.offset) { index, chapter in
+                ForEach(storyChapters, id: \.offset) { index, chapter in
                     HStack(alignment: .firstTextBaseline, spacing: 10) {
-                        Text(String(format: "%02d", index + 1))
+                        Text(String(format: "%02d", index))
                             .typo(Typo.navButton)
                             .foregroundStyle(Palette.accentMid)
                             .tabularNumerals()
@@ -604,7 +620,7 @@ private struct TodayHeroCard: View {
         var line = TodayText.plural(detail.chapters.count, String(localized: "chapter"), String(localized: "chapters"))
             + " · " + TodayText.plural(cited.count, String(localized: "source cited"), String(localized: "sources cited"))
         if missing > 0 {
-            line += " · " + TodayText.plural(missing, "source introuvable", "sources introuvables")
+            line += " · " + TodayText.plural(missing, String(localized: "source missing"), String(localized: "sources missing"))
         }
         return line
     }

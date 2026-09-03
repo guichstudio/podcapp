@@ -11,6 +11,17 @@ export const ClaimSchema = z.object({
 })
 export type Claim = z.infer<typeof ClaimSchema>
 
+/// A claim as a STORY holds it, which is not quite what the analyser returns:
+/// the story stamps which source it came from.
+///
+/// The analyser never sees an id, so this cannot be part of ClaimSchema. It
+/// exists because a story merges the claims of several sources into one array
+/// and, without an origin, removing a source could not remove its evidence --
+/// a sentence could air citing a source the reader had deleted. Optional
+/// because rows written before this existed carry no origin and never will.
+export const StoredClaimSchema = ClaimSchema.extend({ source_id: z.string().uuid().optional() })
+export type StoredClaim = z.infer<typeof StoredClaimSchema>
+
 export const SourceAnalysisSchema = z.object({
   summary: z.string().min(1),
   topics: z.array(z.string()),

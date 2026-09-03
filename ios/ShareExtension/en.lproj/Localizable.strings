@@ -112,6 +112,7 @@
 "Extraction failed, with no detail from the server." = "Extraction failed, with no detail from the server.";
 "Extraction quality " = "Extraction quality ";
 "FAILED" = "FAILED";
+"FAKE" = "FAKE";
 "Failed" = "Failed";
 "Finance" = "Finance";
 "Forward newsletters here" = "Forward newsletters here";
@@ -258,6 +259,7 @@
 "Status: %@. The audio appears here once assembly is done." = "Status: %@. The audio appears here once assembly is done.";
 "THE ECHO · “You loved subprime…”" = "THE ECHO · “You loved subprime…”";
 "TODAY" = "TODAY";
+"TRUE" = "TRUE";
 "Tap Share" = "Tap Share";
 "Target length" = "Target length";
 "Target set before writing" = "Target set before writing";
@@ -333,7 +335,9 @@
 "rewritten to match the evidence" = "rewritten to match the evidence";
 "sentences checked" = "sentences checked";
 "source cited" = "source cited";
+"source missing" = "source missing";
 "sources cited" = "sources cited";
+"sources missing" = "sources missing";
 "unsourced" = "unsourced";
 "video" = "video";
 "video · article" = "video · article";

@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from 'drizzle-orm'
+import { and, desc, eq, gt, inArray, isNull } from 'drizzle-orm'
 import { z } from 'zod'
 import { INTRO_OUTRO_SEC, MIN_SOURCES_PER_EPISODE, PROMPT_VERSIONS, wordsPerMinute, writerWordsPerMinute } from '../config.js'
 import { countWords, entityTokens, isCheckable, splitSentences } from '../core/sentences.js'
@@ -546,10 +546,35 @@ async function runEpisode(
     .select({ title: sources.title, url: sources.url, publisher: sources.publisher })
     .from(sources)
     .where(inArray(sources.id, groundedDrafts.flatMap((d) => byId.get(d.storyId)?.sourceIds ?? [])))
+  // The outro names the links this briefing could not read. Two bounds, both of
+  // them the difference between an honest sentence and a lie that grows:
+  //
+  // Nothing ever clears a failure status, so unbounded this named the first
+  // failures ever recorded in EVERY episode from then on -- the same ones, since
+  // there is no ordering -- long after the reader had forgotten them. Scoped to
+  // what was captured since the last briefing aired, which is the window this
+  // one is about.
+  //
+  // And a failure the reader has set aside is out of the running like any other
+  // set-aside source; naming it on air would break the invariant the Library
+  // promises.
+  const [lastAired] = await db
+    .select({ at: episodes.createdAt })
+    .from(episodes)
+    .where(and(eq(episodes.userId, opts.userId), eq(episodes.status, 'ready')))
+    .orderBy(desc(episodes.createdAt))
+    .limit(1)
   const failed = await db
     .select({ title: sources.title, url: sources.url, status: sources.status })
     .from(sources)
-    .where(and(eq(sources.userId, opts.userId), inArray(sources.status, ['extraction_failed', 'low_quality', 'unsupported'])))
+    .where(
+      and(
+        eq(sources.userId, opts.userId),
+        inArray(sources.status, ['extraction_failed', 'low_quality', 'unsupported']),
+        isNull(sources.setAsideAt),
+        ...(lastAired ? [gt(sources.capturedAt, lastAired.at)] : []),
+      ),
+    )
 
   // The outro names publications, not article headlines: prefer an explicit
   // publisher, else the domain, which is what a listener recognizes.

@@ -349,5 +349,9 @@
   "Put back": "Remettre en jeu",
   "SET ASIDE": "DE CÔTÉ",
   "It leaves your library for good. An episode that already cited it keeps the citation, flagged as no longer available.": "Elle quitte votre bibliothèque définitivement. Un épisode qui la citait garde la citation, signalée comme indisponible.",
-  "Aside": "De côté"
+  "Aside": "De côté",
+  "source missing": "source introuvable",
+  "sources missing": "sources introuvables",
+  "TRUE": "VRAI",
+  "FAKE": "FAKE"
 }

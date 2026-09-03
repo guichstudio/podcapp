@@ -112,6 +112,7 @@
 "Extraction failed, with no detail from the server." = "Extraction échouée, sans détail renvoyé par le serveur.";
 "Extraction quality " = "Qualité d’extraction ";
 "FAILED" = "ÉCHEC";
+"FAKE" = "FAKE";
 "Failed" = "Échec";
 "Finance" = "Finance";
 "Forward newsletters here" = "Transférez vos newsletters ici";
@@ -258,6 +259,7 @@
 "Status: %@. The audio appears here once assembly is done." = "Statut : %@. L’audio apparaîtra ici une fois l’assemblage terminé.";
 "THE ECHO · “You loved subprime…”" = "L’ECHO · «Vous avez aimé les subprimes…»";
 "TODAY" = "AUJOURD’HUI";
+"TRUE" = "VRAI";
 "Tap Share" = "Touchez Partager";
 "Target length" = "Durée cible";
 "Target set before writing" = "Cible fixée avant l’écriture";
@@ -333,7 +335,9 @@
 "rewritten to match the evidence" = "réécrites selon les preuves";
 "sentences checked" = "phrases vérifiées";
 "source cited" = "source citée";
+"source missing" = "source introuvable";
 "sources cited" = "sources citées";
+"sources missing" = "sources introuvables";
 "unsourced" = "non sourcée";
 "video" = "vidéo";
 "video · article" = "vidéo · article";

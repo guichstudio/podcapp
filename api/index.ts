@@ -902,7 +902,7 @@ authed.get('/episodes/:id', async (c) => {
 /// An aired story is never touched: it is the record of what was broadcast.
 async function detachFromStories(conn: Conn, userId: string, ids: Set<string>): Promise<void> {
   const affected = await conn
-    .select({ id: stories.id, sourceIds: stories.sourceIds })
+    .select({ id: stories.id, sourceIds: stories.sourceIds, claims: stories.claims })
     .from(stories)
     // Only the stories that actually hold one of these ids. Reading all of them
     // was one round trip that grew with the library; `&&` is answered by the
@@ -910,13 +910,24 @@ async function detachFromStories(conn: Conn, userId: string, ids: Set<string>): 
     // the first version of this endpoint, and arrayOverlaps was checked against
     // production for both a match and a miss before being used here.
     .where(and(eq(stories.userId, userId), arrayOverlaps(stories.sourceIds, [...ids])))
-  for (const story of affected) {
-    const kept = story.sourceIds.filter((sid) => !ids.has(sid))
-    await conn
-      .update(stories)
-      .set({ sourceIds: kept })
-      .where(and(eq(stories.userId, userId), eq(stories.id, story.id)))
-  }
+  // The evidence leaves with the source. A story merges several sources' claims
+  // into one array, and the writer is handed that array, not the id list -- so
+  // dropping the id alone would let a sentence air on a claim whose source the
+  // reader had just removed. Claims stamped by an older build carry no origin
+  // and cannot be attributed, so they stay: guessing which to delete would be
+  // worse than keeping evidence that is still, as far as anything knows, true.
+  await Promise.all(
+    affected.map((story) => {
+      const kept = story.sourceIds.filter((sid) => !ids.has(sid))
+      const claims = (story.claims as { source_id?: string }[]).filter(
+        (claim) => !claim.source_id || !ids.has(claim.source_id),
+      )
+      return conn
+        .update(stories)
+        .set({ sourceIds: kept, claims })
+        .where(and(eq(stories.userId, userId), eq(stories.id, story.id)))
+    }),
+  )
   // One statement for every open story left with nothing behind it -- the ones
   // this call just emptied and any an earlier one did. Such a story can never
   // air and counts for nothing, and a half-applied delete once left exactly

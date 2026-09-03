@@ -3,8 +3,9 @@ import SwiftUI
 // The Sources tab: everything captured, what the pipeline made of it, and the
 // reason when it went wrong. Layout, spacing and colour come from the v3
 // prototype (ios/design/v3-layout.html, the `tabLibrary` branch); the states
-// and the counts come from the API, which is why the prototype's AIRED shelf
-// and its per-row actions are absent — see the notes on LibraryStatus.
+// and the counts come from the API, which is why the prototype's AIRED shelf is
+// absent — see the notes on LibraryStatus. Its per-row actions exist now: a
+// left swipe and a long press both offer Set aside and Delete.
 
 struct LibraryView: View {
     // Same reason as TodayView: the tab stays alive behind .opacity(0), so
@@ -32,6 +33,7 @@ struct LibraryView: View {
     // The address newsletters are forwarded to. Only the server knows it, and
     // only some deployments have one, so the line appears when it exists.
     @State private var ingestAddress: String?
+    @State private var askedForIngestAddress = false
     @State private var phase: Phase = .loading
     @State private var filter: LibraryFilter = .all
     @State private var expanded: String?
@@ -774,11 +776,17 @@ struct LibraryView: View {
             phase = .failed(error.localizedDescription)
         }
         // Secondary, and never fatal: without it the screen simply loses one
-        // line of copy, so it must not turn a loaded list into an error. Asked
-        // once -- the address does not change, and load() also runs after every
-        // capture and every pull to refresh.
-        if ingestAddress == nil, let me = try? await API.shared.me() {
-            ingestAddress = me.ingestAddress
+        // line of copy, so it must not turn a loaded list into an error.
+        //
+        // Asked once per launch, and that has to be tracked separately from the
+        // answer. Latching on `ingestAddress == nil` looked like "asked once"
+        // and was not: the server answers null until an inbound address exists,
+        // so the nil never went away and every load -- every pull to refresh,
+        // every capture, every delete, every swipe -- paid for another
+        // authenticated request whose result was already known.
+        if !askedForIngestAddress {
+            askedForIngestAddress = true
+            if let me = try? await API.shared.me() { ingestAddress = me.ingestAddress }
         }
     }
 
@@ -877,10 +885,13 @@ private struct LibrarySection: Identifiable {
 }
 
 /// One row's status, translated from `sources.status` in src/db/schema.ts.
-/// The design's per-row actions (exclude, retry, delete) have no endpoint and
-/// are not drawn: App Review 2.1 does not allow a button that only says it does
-/// nothing. Its AIRED shelf is absent for the same reason — `aired` is a story
-/// status on the server, never a source one, so no row can carry it.
+///
+/// Delete and Set aside are drawn — POST /sources/delete and /sources/aside
+/// back them — but the design's third action, retry, still is not: nothing on
+/// the server re-runs a failed extraction, and App Review 2.1 does not allow a
+/// button that only says it does nothing. The AIRED shelf is absent for a
+/// different reason: `aired` is a story status on the server, never a source
+/// one, so no row can carry it.
 private struct LibraryStatus {
     let chip: String
     let kind: StatusChip.Kind

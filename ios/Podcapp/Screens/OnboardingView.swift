@@ -894,14 +894,14 @@ private struct BuiltPage: View {
                 }
                 .artboardCentered(y: Onbo.phoneTop)
                 claimFloat(
-                    chip: "VRAI", color: Palette.success, fill: Palette.successBg,
+                    chip: String(localized: "TRUE"), color: Palette.success, fill: Palette.successBg,
                     text: String(localized: "Blue Owl −40% · market ≈ $1.8tn · First Brands default"),
                     width: 196
                 )
                 .rotationEffect(.degrees(-6))
                 .artboard(x: 11, y: 582)
                 claimFloat(
-                    chip: "FAKE", color: Palette.warning, fill: Palette.warningBg,
+                    chip: String(localized: "FAKE"), color: Palette.warning, fill: Palette.warningBg,
                     text: String(localized: "“over the week” → “in one week” date not established"),
                     width: 190
                 )

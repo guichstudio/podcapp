@@ -15,8 +15,17 @@ import { buildFeed, COVER_KEYS, feedKey, type FeedEpisode } from './feed.js'
 // (src/rss/publish.ts, src/console/publish.ts) are thin wrappers around these.
 
 const FEED_TITLE = 'Podcapp'
-const FEED_DESCRIPTION =
-  'Votre briefing audio personnel, construit à partir des articles et newsletters que vous avez sauvegardés.'
+
+// The channel carries a <language> taken from the user's own setting a few
+// lines down, so the sentence beside it cannot be French for everybody: an
+// English subscriber saw a French show description in their podcast app. Two
+// strings, chosen by the same value, rather than a translation layer for one
+// sentence.
+const FEED_DESCRIPTIONS: Record<string, string> = {
+  fr: 'Votre briefing audio personnel, construit à partir des articles et newsletters que vous avez sauvegardés.',
+  en: 'Your own audio briefing, built from the articles and newsletters you saved.',
+}
+const feedDescription = (language: string): string => FEED_DESCRIPTIONS[language] ?? FEED_DESCRIPTIONS.en!
 
 // Writes the feed as a static object next to the audio it points at. The API
 // serves the same feed from the database, but this needs no server at all: with
@@ -75,7 +84,7 @@ export async function publishFeed(
   const selfUrl = storage.publicUrl(feedKey(user.rssToken))
   const xml = buildFeed({
     title: FEED_TITLE,
-    description: FEED_DESCRIPTION,
+    description: feedDescription(user.outputLanguage.trim().toLowerCase().slice(0, 2)),
     // Not the email local part: the bucket is public and the feed must not
     // identify the account.
     author: FEED_TITLE,
