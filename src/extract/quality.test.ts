@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { MIN_EXTRACTION_QUALITY } from '../config.js'
+import { MIN_EXTRACTION_CHARS, MIN_EXTRACTION_QUALITY } from '../config.js'
 import { scoreExtraction } from './quality.js'
 
 const SENTENCE = 'la banque centrale a maintenu son taux directeur inchange lors de sa reunion de mars.'
@@ -89,4 +89,24 @@ test('a real article of continuous paragraphs stays well above the threshold', (
     "Le marché du crédit privé pèse plus de mille huit cents milliards de dollars, et les premières fissures apparaissent chez les gérants américains. Blue Owl a perdu plus de quarante pour cent depuis janvier, après avoir vendu des actifs à perte et limité les retraits de ses clients."
   const article = Array.from({ length: 12 }, (_, i) => `${paragraph} Variante ${i}.`).join('\n\n')
   assert.ok(scoreExtraction(article) > 0.7, `article scored ${scoreExtraction(article)}`)
+})
+
+// The case the score cannot catch, kept here with the real text so the boundary
+// is documented by data rather than by an assertion about a number.
+test('an anti-bot interstitial is well-formed prose the score lets through', () => {
+  const interstitial = `**About this page**
+
+Our systems have detected unusual traffic from your computer network. This page checks to see if it's really you sending the requests, and not a robot. [Why did this happen?](https://support.google.com/websearch/answer/86640)
+
+This page appears when Google automatically detects requests coming from your computer network which appear to be in violation of the Terms of Service.`
+
+  // It scores ABOVE the quality threshold -- that is the whole problem.
+  assert.ok(
+    scoreExtraction(interstitial) >= MIN_EXTRACTION_QUALITY,
+    `interstitial scored ${scoreExtraction(interstitial)}, expected the score to be fooled by it`,
+  )
+  // Length is the signal that catches it. Measured against the corpus: the
+  // shortest real article in the database is 2,371 characters.
+  assert.ok(interstitial.length < MIN_EXTRACTION_CHARS, `interstitial is ${interstitial.length} characters`)
+  assert.ok(MIN_EXTRACTION_CHARS < 2371, 'the gate must stay well under the shortest real article seen')
 })

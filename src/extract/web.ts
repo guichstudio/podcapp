@@ -1,4 +1,4 @@
-import { JINA_READER_BASE, MIN_EXTRACTION_QUALITY } from '../config.js'
+import { JINA_READER_BASE, MIN_EXTRACTION_CHARS, MIN_EXTRACTION_QUALITY } from '../config.js'
 import type { ExtractResult } from '../core/types.js'
 import { scoreExtraction } from './quality.js'
 
@@ -30,6 +30,18 @@ export async function extractWeb(url: string): Promise<ExtractResult> {
   const data = payload.data ?? {}
   const content = (data.content ?? '').trim()
   if (!content) return { ok: false, status: 'extraction_failed', error: 'jina returned empty content', raw: payload }
+
+  // Length before quality: an interstitial is short AND well written, so the
+  // score cannot catch it and the reason the reader sees should say what
+  // actually happened.
+  if (content.length < MIN_EXTRACTION_CHARS) {
+    return {
+      ok: false,
+      status: 'low_quality',
+      error: `only ${content.length} characters extracted, under ${MIN_EXTRACTION_CHARS} (blocked page, consent wall or a stub)`,
+      raw: payload,
+    }
+  }
 
   const quality = scoreExtraction(content)
   if (quality < MIN_EXTRACTION_QUALITY) {

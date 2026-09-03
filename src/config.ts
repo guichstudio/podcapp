@@ -19,6 +19,23 @@ export type Stage = keyof typeof MODELS
 export const EMBEDDING_DIMS = 1024
 
 export const MIN_EXTRACTION_QUALITY = 0.35
+
+// A page has to be long enough to BE an article, whatever it scores.
+//
+// The quality heuristic answers "is this a piece of writing"; it cannot answer
+// "is this the piece of writing I asked for". YouTube's anti-bot interstitial
+// -- "Our systems have detected unusual traffic from your computer network" --
+// is 378 characters of perfectly well-formed prose and scored 0.58, sailed past
+// the threshold, and sat in an open story as material for a briefing. Consent
+// walls and "page unavailable" notices have the same shape.
+//
+// Measured on the 66 extracted sources in the database rather than picked: the
+// shortest real article is 2,371 characters (a Belgian daily's piece), the
+// median is 24,687, and exactly one source falls under 1,200 -- the interstitial.
+// So this sits at a sixth of the shortest thing it must keep, which is a gap,
+// not a tuning. It is deliberately NOT a change to the quality score, so the
+// scores of the cached eval corpus are untouched.
+export const MIN_EXTRACTION_CHARS = 1200
 // Tuned on eval/dataset with jina-embeddings-v5-text-small (2026-08-29): true
 // duplicates land at 0.90-0.97 but a meta-source wrongly absorbed stories at
 // 0.909; blind merge only above 0.93, the 0.70-0.93 band goes to the adjudicator.
