@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-// The Settings tab of the v3 prototype (/tmp/podcapp-shots/v3.html): a stack of
+// The Settings tab of the v3 prototype (ios/design/v3-layout.html): a stack of
 // blurred glass groups 12pt apart -- a language card, the voice picker, the
 // read-only rows, the how-to-share row -- with footnotes and underlined links
 // between them.

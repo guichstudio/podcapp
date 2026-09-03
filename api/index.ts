@@ -1,5 +1,5 @@
 import { neon } from '@neondatabase/serverless'
-import { and, desc, eq, inArray, sql } from 'drizzle-orm'
+import { and, arrayOverlaps, desc, eq, inArray, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { Hono, type Context } from 'hono'
 import { handle } from 'hono/vercel'
@@ -890,20 +890,32 @@ authed.get('/episodes/:id', async (c) => {
 /// one did, because a half-applied delete once left exactly that row behind.
 /// An aired story is never touched: it is the record of what was broadcast.
 async function detachFromStories(conn: Conn, userId: string, ids: Set<string>): Promise<void> {
-  const owning = await conn
-    .select({ id: stories.id, sourceIds: stories.sourceIds, status: stories.status })
+  const affected = await conn
+    .select({ id: stories.id, sourceIds: stories.sourceIds })
     .from(stories)
-    .where(eq(stories.userId, userId))
-  for (const story of owning) {
+    // Only the stories that actually hold one of these ids. Reading all of them
+    // was one round trip that grew with the library; `&&` is answered by the
+    // database. Verified on the real driver -- a uuid[] parameter is what broke
+    // the first version of this endpoint, and arrayOverlaps was checked against
+    // production for both a match and a miss before being used here.
+    .where(and(eq(stories.userId, userId), arrayOverlaps(stories.sourceIds, [...ids])))
+  for (const story of affected) {
     const kept = story.sourceIds.filter((sid) => !ids.has(sid))
-    const where = and(eq(stories.userId, userId), eq(stories.id, story.id))
-    if (kept.length === 0 && story.status === 'open') {
-      await conn.delete(stories).where(where)
-      continue
-    }
-    if (kept.length === story.sourceIds.length) continue
-    await conn.update(stories).set({ sourceIds: kept }).where(where)
+    await conn
+      .update(stories)
+      .set({ sourceIds: kept })
+      .where(and(eq(stories.userId, userId), eq(stories.id, story.id)))
   }
+  // One statement for every open story left with nothing behind it -- the ones
+  // this call just emptied and any an earlier one did. Such a story can never
+  // air and counts for nothing, and a half-applied delete once left exactly
+  // that row behind. An aired story is never touched: it is the record of what
+  // was broadcast.
+  await conn
+    .delete(stories)
+    .where(
+      and(eq(stories.userId, userId), eq(stories.status, 'open'), sql`cardinality(${stories.sourceIds}) = 0`),
+    )
 }
 
 const DeleteSourcesSchema = z.object({ ids: z.array(z.string().uuid()).min(1).max(100) })

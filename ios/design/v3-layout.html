@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="4300f0e8-f63e-4290-a340-87e802698324"></script>
+
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics="">
+<style>
+@font-face{font-family:'Inter Tight';src:url("c34c0e50-9688-4074-aba7-78d7ba8b43c9");font-weight:300}
+@font-face{font-family:'Inter Tight';src:url("d867b026-b1d6-40c5-9856-d1fe0b582b85");font-weight:400 500}
+@font-face{font-family:'Inter Tight';src:url("45daa81e-bb27-467f-89e9-2144699ff856");font-weight:600 800}
+body{margin:0;background:#E7E5E0;font-family:'Inter Tight',system-ui,sans-serif;display:flex;justify-content:center;align-items:flex-start;padding:12px 0;min-height:100vh;box-sizing:border-box}
+a{color:#1C1B22}a:hover{color:#C9C9C9}
+@keyframes pcPulse{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes pcBar{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1)}}
+@keyframes pcUp{from{transform:translateY(24px);opacity:0}to{transform:translateY(0);opacity:1}}
+*{scrollbar-width:none}
+*::-webkit-scrollbar{display:none;width:0;height:0}
+input::placeholder{color:#77747E}
+</style>
+</helmet>
+<div style="zoom:{{ deviceScale }}">
+<x-import component-from-global-scope="IOSDevice" from="06e33512-5811-4ddc-8c4e-d08baaef2b5c#/ios-frame.jsx" hint-size="430px,900px">
+<div style="height:100%;position:relative;display:flex;flex-direction:column;background:#EFECF9;color:#1C1B22;font-family:'Inter Tight',system-ui,sans-serif;overflow:hidden;box-sizing:border-box">
+<span style="position:absolute;width:340px;height:340px;border-radius:100%;background:radial-gradient(circle,rgba(124,108,220,.42),rgba(124,108,220,0) 70%);top:-90px;left:-90px;pointer-events:none"></span>
+<span style="position:absolute;width:320px;height:320px;border-radius:100%;background:radial-gradient(circle,rgba(96,150,255,.3),rgba(96,150,255,0) 70%);top:34%;right:-120px;pointer-events:none"></span>
+<span style="position:absolute;width:300px;height:300px;border-radius:100%;background:radial-gradient(circle,rgba(124,108,220,.28),rgba(124,108,220,0) 70%);bottom:-70px;left:-60px;pointer-events:none"></span>
+
+<div style="flex:1;overflow-y:auto;overscroll-behavior:contain">
+
+<sc-if value="{{ tabToday }}" hint-placeholder-val="{{ true }}">
+<div style="padding:64px 20px 128px;position:relative;z-index:1">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0 18px;position:relative;z-index:2">
+    <div style="display:flex;align-items:center;gap:10px">
+      <img src="131b05a3-5ca9-45b1-8b2b-0b9f2abb3a75" alt="Podcapp" style="width:32px;height:32px;border-radius:10px;box-shadow:0 0 0 1px rgba(28,27,34,.12)">
+      <span style="font-size:22px;font-weight:700;letter-spacing:-.02em">Podcapp</span>
+    </div>
+    <span style="font-size:12px;font-weight:500;letter-spacing:.08em;color:#6E6C78">{{ T.date }}</span>
+  </div>
+
+  <div style="display:flex;gap:12px;overflow-x:auto;margin:-26px -20px -36px;padding:32px 20px 66px;scroll-snap-type:x mandatory;scroll-padding:0 20px">
+  <div style="flex:none;width:calc(100% - 66px);scroll-snap-align:center;background:rgba(255,255,255,.62);border:1px solid rgba(255,255,255,.85);box-shadow:0 16px 40px rgba(60,50,120,.13),inset 0 1px 0 rgba(255,255,255,.92);border-radius:22px;padding:20px 20px 18px;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.12em;color:#5B51A8">{{ T.heroOver }}</span>
+      <span style="font-size:11px;font-weight:500;color:#5B51A8">10:05</span>
+    </div>
+    <div style="font-size:24px;line-height:1.16;font-weight:700;letter-spacing:-.02em;text-wrap:pretty">{{ T.heroTitle }}</div>
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <sc-for list="{{ menuChapters }}" as="c" hint-placeholder-count="4">
+        <div style="display:flex;gap:10px;align-items:baseline;font-size:13px">
+          <span style="font-weight:700;width:16px;color:#6F68A8">{{ c.n }}</span>
+          <span style="flex:1;font-weight:400;color:#3F3B58">{{ c.title }}</span>
+          <span style="color:#6F68A8;font-variant-numeric:tabular-nums">{{ c.durLabel }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;padding-top:4px">
+      <button sc-camel-on-click="{{ playLatest }}" style="display:flex;align-items:center;gap:9px;background:#1C1B22;color:#FFFFFF;border:none;border-radius:100px;padding:12px 22px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 8px 24px rgba(28,27,34,.22)">
+        <span style="font-size:12px">{{ heroPlayIcon }}</span>{{ heroPlayLabel }}
+      </button>
+      <button sc-camel-on-click="{{ openBackstage }}" style="background:none;border:none;color:#5B51A8;font-family:inherit;font-size:12.5px;font-weight:500;cursor:pointer;padding:10px 0;text-decoration:underline;text-underline-offset:3px">{{ T.howMade }}</button>
+    </div>
+  </div>
+  <sc-for list="{{ pastEpisodes }}" as="e" hint-placeholder-count="2">
+    <div style="flex:none;width:236px;scroll-snap-align:center;background:rgba(255,255,255,.62);border:1px solid rgba(255,255,255,.85);box-shadow:0 16px 40px rgba(60,50,120,.13),inset 0 1px 0 rgba(255,255,255,.92);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:9px">
+      <img src="131b05a3-5ca9-45b1-8b2b-0b9f2abb3a75" alt="" style="width:34px;height:34px;border-radius:9px;box-shadow:0 0 0 1px rgba(28,27,34,.08)">
+      <span style="font-size:16.5px;font-weight:700;letter-spacing:-.01em;line-height:1.25">{{ e.title }}</span>
+      <span style="font-size:11.5px;color:#6E6C78">{{ e.meta }}</span>
+      <div style="margin-top:auto;display:flex;align-items:center;justify-content:space-between">
+        <span style="display:flex;align-items:center;gap:7px;background:#1C1B22;color:#FFFFFF;border-radius:100px;padding:8px 14px;font-size:11.5px;font-weight:700">▶ {{ e.dur }}</span>
+        <span style="font-size:14px;color:#8A87A0">{{ e.dl }}</span>
+      </div>
+    </div>
+  </sc-for>
+  </div>
+
+  <div style="margin-top:0;background:rgba(255,255,255,.52);border:1px solid rgba(255,255,255,.82);backdrop-filter:blur(26px) saturate(1.8);-webkit-backdrop-filter:blur(26px) saturate(1.8);box-shadow:0 16px 40px rgba(60,50,120,.13),inset 0 1px 0 rgba(255,255,255,.92);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700">{{ T.mondayBrief }}</div>
+        <div style="font-size:12px;color:#6E6C78;margin-top:2px">{{ genHint }}</div>
+      </div>
+      <div style="display:flex;flex:none;border:1px solid rgba(28,27,34,.14);border-radius:100px;overflow:hidden">
+        <sc-for list="{{ lenOpts }}" as="o" hint-placeholder-count="3">
+          <button sc-camel-on-click="{{ o.onPick }}" style="border:none;background:{{ o.bg }};color:{{ o.fg }};padding:7px 9px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">{{ o.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:13px;padding:2px 0 4px">
+      <div style="position:relative;flex:none;width:46px;height:46px">
+        <svg width="46" height="46" sc-camel-view-box="0 0 40 40" style="display:block;transform:rotate(-90deg)"><circle cx="20" cy="20" r="16" fill="none" stroke="rgba(28,27,34,.1)" stroke-width="3.6"></circle><circle cx="20" cy="20" r="16" fill="none" stroke="{{ ringColor }}" stroke-width="3.6" stroke-linecap="round" stroke-dasharray="{{ ringDash }}"></circle></svg>
+        <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums">{{ ringCount }}</span>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12.5px;font-weight:700">{{ ruleTitle }}</div>
+        <div style="font-size:11.5px;color:#6E6C78;line-height:1.4;margin-top:1px">{{ ruleSub }}</div>
+      </div>
+    </div>
+    <button sc-camel-on-click="{{ startGenGated }}" style="opacity:{{ genBtnOp }};cursor:{{ genBtnCursor }};background:linear-gradient(135deg,#7C6CDC,#5B4DBE);color:#FFFFFF;border:none;border-radius:100px;padding:14px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 12px 30px rgba(107,91,204,.4),inset 0 1px 0 rgba(255,255,255,.3)">{{ T.generate }}</button>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin:18px 0 10px;position:relative;z-index:2">
+    <span style="font-size:19px;font-weight:700;letter-spacing:-.01em">{{ T.tomorrow }}</span>
+    <span style="font-size:12px;color:#6E6C78">{{ T.newToday }}</span>
+  </div>
+  <div style="display:flex;gap:10px;overflow-x:auto;margin:-26px -20px -36px;padding:32px 20px 66px">
+    <sc-for list="{{ focusCards }}" as="f" hint-placeholder-count="3">
+      <div sc-camel-on-click="{{ f.onOpen }}" style="flex:none;width:200px;background:rgba(255,255,255,.62);border:1px solid rgba(255,255,255,.85);box-shadow:0 16px 40px rgba(60,50,120,.13),inset 0 1px 0 rgba(255,255,255,.92);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px;cursor:pointer">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:10.5px;font-weight:700;letter-spacing:.08em;color:{{ f.tagColor }}">{{ f.tag }}</span>
+          <button sc-camel-on-click="{{ f.onToggle }}" style="border:1px solid rgba(28,27,34,.16);background:{{ f.pillBg }};color:{{ f.pillFg }};border-radius:100px;padding:4px 10px;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer">{{ f.pillLabel }}</button>
+        </div>
+        <div style="font-size:16px;line-height:1.25;font-weight:700;letter-spacing:-.01em;text-wrap:pretty">{{ f.headline }}</div>
+        <div style="font-size:11.5px;color:#6E6C78;line-height:1.4">{{ f.note }}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  
+</div>
+</sc-if>
+
+<sc-if value="{{ tabRead }}" hint-placeholder-val="{{ false }}">
+<div style="padding:64px 20px 128px;position:relative;z-index:1">
+  <sc-if value="{{ readList }}" hint-placeholder-val="{{ true }}">
+    <div style="font-size:26px;font-weight:700;letter-spacing:-.02em;padding:6px 0 2px;position:relative;z-index:2">{{ T.readTitle }}</div>
+    <div style="font-size:12.5px;color:#6E6C78;padding:0 0 14px;position:relative;z-index:2">{{ T.readSub }}</div>
+    <sc-for list="{{ readRows }}" as="re" hint-placeholder-count="3">
+      <div sc-camel-on-click="{{ re.onOpen }}" style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgba(28,27,34,.07);cursor:{{ re.cursor }};opacity:{{ re.op }};position:relative;z-index:2">
+        <img src="131b05a3-5ca9-45b1-8b2b-0b9f2abb3a75" alt="" style="width:40px;height:40px;border-radius:10px;box-shadow:0 0 0 1px rgba(28,27,34,.1)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14.5px;font-weight:700">{{ re.title }}</div>
+          <div style="font-size:12px;color:#6E6C78;margin-top:2px">{{ re.meta }}</div>
+        </div>
+        <span style="flex:none;font-size:10px;font-weight:700;letter-spacing:.05em;color:{{ re.badgeFg }};background:{{ re.badgeBg }};border-radius:100px;padding:4px 9px">{{ re.badge }}</span>
+      </div>
+    </sc-for>
+  </sc-if>
+  <sc-if value="{{ readArticle }}" hint-placeholder-val="{{ false }}">
+    <button sc-camel-on-click="{{ backRead }}" style="background:none;border:none;color:#5B51A8;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;padding:8px 0;display:flex;align-items:center;gap:6px;position:relative;z-index:2">‹ {{ T.allEpisodes }}</button>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.12em;color:#6F6A96;margin-top:8px;position:relative;z-index:2">{{ T.articleOver }}</div>
+    <div style="font-size:27px;line-height:1.15;font-weight:700;letter-spacing:-.02em;margin:8px 0 6px;text-wrap:pretty;position:relative;z-index:2">{{ T.heroTitle }}</div>
+    <div style="font-size:12px;color:#6E6C78;padding-bottom:6px;border-bottom:1px solid rgba(28,27,34,.08);position:relative;z-index:2">{{ T.articleMeta }}</div>
+    <sc-for list="{{ articleChapters }}" as="ac" hint-placeholder-count="6">
+      <div style="padding:22px 0 6px;position:relative;z-index:2">
+        <div style="display:flex;align-items:baseline;gap:10px">
+          <span style="font-size:12px;font-weight:700;color:#6F68A8;font-variant-numeric:tabular-nums">{{ ac.n }}</span>
+          <span style="flex:1;font-size:18px;font-weight:700;letter-spacing:-.01em;line-height:1.25;text-wrap:pretty">{{ ac.title }}</span>
+          <span style="font-size:11px;color:#6E6C78;font-variant-numeric:tabular-nums">{{ ac.durLabel }}</span>
+        </div>
+        <sc-for list="{{ ac.paras }}" as="para" hint-placeholder-count="2">
+          <p style="font-size:15px;font-weight:300;line-height:1.7;color:#2E2C36;margin:12px 0 0;text-wrap:pretty">{{ para.txt }}</p>
+        </sc-for>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap">
+          <button sc-camel-on-click="{{ ac.onListen }}" style="border:1px solid rgba(255,255,255,.85);background:rgba(255,255,255,.6);box-shadow:0 6px 16px rgba(60,50,120,.12);border-radius:100px;padding:7px 13px;font-family:inherit;font-size:11.5px;font-weight:700;color:#1C1B22;cursor:pointer;white-space:nowrap">▶ {{ T.listenHere }}</button>
+          <sc-if value="{{ ac.srcLine }}" hint-placeholder-val="{{ false }}">
+            <button sc-camel-on-click="{{ ac.onSrc }}" style="background:none;border:none;font-family:inherit;font-size:11.5px;font-weight:500;color:#5B51A8;cursor:pointer;padding:7px 0;text-decoration:underline;text-underline-offset:3px">{{ ac.srcLine }}</button>
+          </sc-if>
+        </div>
+      </div>
+    </sc-for>
+    <button sc-camel-on-click="{{ openBackstage }}" style="margin-top:18px;width:100%;background:none;border:1px dashed rgba(28,27,34,.22);border-radius:13px;padding:12px;font-family:inherit;font-size:12.5px;font-weight:700;color:#4A4854;cursor:pointer;position:relative;z-index:2">{{ T.howEpMade }} →</button>
+  </sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ tabLibrary }}" hint-placeholder-val="{{ false }}">
+<div style="padding:64px 20px 128px;position:relative;z-index:1">
+  <div style="font-size:26px;font-weight:700;letter-spacing:-.02em;padding:6px 0 14px">Sources</div>
+  <div style="display:flex;gap:8px;margin-bottom:6px">
+    <input placeholder="{{ T.paste }}" style="flex:1;border:1px solid rgba(255,255,255,.85);background:rgba(255,255,255,.6);backdrop-filter:blur(20px) saturate(1.7);-webkit-backdrop-filter:blur(20px) saturate(1.7);box-shadow:0 10px 26px rgba(60,50,120,.1),inset 0 1px 0 rgba(255,255,255,.92);border-radius:100px;padding:11px 16px;font-family:inherit;font-size:13px;outline:none;color:#1C1B22">
+    <button sc-camel-on-click="{{ noop }}" style="background:#1C1B22;color:#FFFFFF;border:none;border-radius:100px;padding:0 18px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">{{ T.add }}</button>
+  </div>
+  <div style="font-size:11.5px;color:#6E6C78;margin-bottom:14px">✉ <span style="font-weight:700;color:#4A4854">ingest+louis@podcapp.app</span></div>
+  <div style="display:flex;gap:6px;margin-bottom:6px">
+    <sc-for list="{{ libFilters }}" as="lf" hint-placeholder-count="3">
+      <button sc-camel-on-click="{{ lf.onPick }}" style="border:1px solid rgba(28,27,34,.12);background:{{ lf.bg }};color:{{ lf.fg }};border-radius:100px;padding:7px 14px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">{{ lf.label }}</button>
+    </sc-for>
+  </div>
+  <div style="display:flex;gap:6px;overflow-x:auto;margin:0 -20px 6px;padding:2px 20px 6px">
+    <sc-for list="{{ libCats }}" as="lc" hint-placeholder-count="6">
+      <button sc-camel-on-click="{{ lc.onPick }}" style="flex:none;border:1px solid rgba(28,27,34,.1);background:{{ lc.bg }};color:{{ lc.fg }};opacity:{{ lc.op }};border-radius:100px;padding:6px 12px;font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap">{{ lc.label }}</button>
+    </sc-for>
+  </div>
+  <sc-if value="{{ catGenShow }}" hint-placeholder-val="{{ false }}">
+    <button sc-camel-on-click="{{ catGenTap }}" style="width:100%;margin:2px 0 10px;background:linear-gradient(135deg,#7C6CDC,#5B4DBE);color:#FFFFFF;border:none;border-radius:100px;padding:12px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 12px 30px rgba(107,91,204,.4),inset 0 1px 0 rgba(255,255,255,.3)">▶ {{ catGenLabel }}</button>
+  </sc-if>
+  <sc-if value="{{ libEmpty }}" hint-placeholder-val="{{ false }}">
+    <div style="text-align:center;font-size:12.5px;color:#6E6C78;padding:34px 20px">{{ libEmptyTxt }}</div>
+  </sc-if>
+  <sc-for list="{{ libSections }}" as="sec" hint-placeholder-count="2">
+    <div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:#77747E;margin:20px 0 4px">{{ sec.label }}</div>
+      <sc-if value="{{ sec.storyNote }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:8px;align-items:center;background:rgba(124,108,220,.12);border:1px solid rgba(124,108,220,.24);border-radius:11px;padding:9px 12px;margin:6px 0 2px;font-size:11.5px;color:#5B51A8"><span style="font-weight:700">⧉</span>{{ sec.storyNote }}</div>
+      </sc-if>
+      <sc-for list="{{ sec.rows }}" as="r" hint-placeholder-count="3">
+        <div style="border-bottom:1px solid rgba(28,27,34,.07);padding:13px 0">
+          <div sc-camel-on-click="{{ r.onExpand }}" style="display:flex;gap:12px;align-items:flex-start;cursor:pointer">
+            <div style="width:36px;height:36px;flex:none;border-radius:12px;background:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.85);box-shadow:0 6px 16px rgba(60,50,120,.1);display:flex;align-items:center;justify-content:center;font-size:13px;color:#4A4854">{{ r.icon }}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:#77747E">{{ r.pub }}</div>
+              <div style="font-size:13.5px;font-weight:500;line-height:1.35;margin-top:2px;text-wrap:pretty">{{ r.title }}</div>
+              <div style="font-size:11.5px;color:#77747E;margin-top:3px">{{ r.meta }}</div>
+            </div>
+            <span style="flex:none;font-size:10.5px;font-weight:700;letter-spacing:.04em;color:{{ r.chipFg }};background:{{ r.chipBg }};border-radius:100px;padding:4px 9px;margin-top:2px;animation:{{ r.chipAnim }}">{{ r.chip }}</span>
+          </div>
+          <sc-if value="{{ r.open }}" hint-placeholder-val="{{ false }}">
+            <div style="margin:10px 0 0 48px;background:rgba(255,255,255,.52);border:1px solid rgba(255,255,255,.82);backdrop-filter:blur(26px) saturate(1.8);-webkit-backdrop-filter:blur(26px) saturate(1.8);box-shadow:0 16px 40px rgba(60,50,120,.13),inset 0 1px 0 rgba(255,255,255,.92);border-radius:13px;padding:12px;display:flex;flex-direction:column;gap:10px">
+              <div style="font-size:12.5px;line-height:1.45;color:#4A4854">{{ r.detail }}</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <sc-for list="{{ r.actions }}" as="a" hint-placeholder-count="2">
+                  <button sc-camel-on-click="{{ a.onTap }}" style="border:1px solid rgba(28,27,34,.16);background:{{ a.bg }};color:{{ a.fg }};border-radius:10px;padding:8px 13px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">{{ a.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ tabSettings }}" hint-placeholder-val="{{ false }}">
+<div style="padding:64px 20px 128px;position:relative;z-index:1">
+  <div style="font-size:26px;font-weight:700;letter-spacing:-.02em;padding:6px 0 16px;position:relative;z-index:2">{{ T.settingsTitle }}</div>
+  <div style="background:rgba(255,255,255,.52);border:1px solid rgba(255,255,255,.82);backdrop-filter:blur(26px) saturate(1.8);-webkit-backdrop-filter:blur(26px) saturate(1.8);box-shadow:0 16px 40px rgba(60,50,120,.13),inset 0 1px 0 rgba(255,255,255,.92);border-radius:16px;padding:15px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13.5px;font-weight:500">{{ T.appLang }}</div>
+      <div style="font-size:11.5px;color:#77747E;margin-top:2px">{{ T.appLangSub }}</div>
+    </div>
+    <div style="display:flex;flex:none;border:1px solid rgba(28,27,34,.14);border-radius:100px;overflow:hidden">
+      <sc-for list="{{ langOpts }}" as="lo" hint-placeholder-count="2">
+        <button sc-camel-on-click="{{ lo.onPick }}" style="border:none;background:{{ lo.bg }};color:{{ lo.fg }};padding:7px 14px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">{{ lo.label }}</button>
+      </sc-for>
+    </div>
+  </div>
+  <div style="background:rgba(255,255,255,.52);border:1px solid rgba(255,255,255,.82);backdrop-filter:blur(26px) saturate(1.8);-webkit-backdrop-filter:blur(26px) saturate(1.8);box-shadow:0 16px 40px rgba(60,50,120,.13),inset 0 1px 0 rgba(255,255,255,.92);border-radius:16px;padding:15px 16px;display:flex;flex-direction:column;gap:11px;margin-bottom:12px">
+    <div>
+      <div style="font-size:13.5px;font-weight:500">{{ voiceTitle }}</div>
+      <div style="font-size:11.5px;color:#77747E;margin-top:2px">{{ voiceSub }}</div>
+    </div>
+    <div style="display:flex;gap:7px">
+      <sc-for list="{{ voiceOpts }}" as="v" hint-placeholder-count="3">
+        <button sc-camel-on-click="{{ v.onPick }}" style="flex:1;border:1px solid rgba(28,27,34,.1);background:{{ v.bg }};border-radius:14px;padding:9px 6px;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px">
+          <span style="font-size:12.5px;font-weight:700;color:{{ v.fg }}">{{ v.name }}</span>
+          <span style="font-size:10px;font-weight:500;color:{{ v.sfg }}">{{ v.style }}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+  <div style="background:rgba(255,255,255,.52);border:1px solid rgba(255,255,255,.82);backdrop-filter:blur(26px) saturate(1.8);-webkit-backdrop-filter:blur(26px) saturate(1.8);box-shadow:0 16px 40px rgba(60,50,120,.13),inset 0 1px 0 rgba(255,255,255,.92);border-radius:16px;overflow:hidden">
+    <sc-for list="{{ settingsRows }}" as="s" hint-placeholder-count="6">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:15px 16px;border-bottom:1px solid rgba(28,27,34,.07)">
+        <div>
+          <div style="font-size:13.5px;font-weight:500">{{ s.label }}</div>
+          <div style="font-size:11.5px;color:#77747E;margin-top:2px">{{ s.sub }}</div>
+        </div>
+        <span style="font-size:12.5px;font-weight:700;color:#4A4854">{{ s.value }}</span>
+      </div>
+    </sc-for>
+  </div>
+  <button sc-camel-on-click="{{ openHowShare }}" style="width:100%;margin-top:12px;background:rgba(255,255,255,.52);border:1px solid rgba(255,255,255,.82);backdrop-filter:blur(26px) saturate(1.8);-webkit-backdrop-filter:blur(26px) saturate(1.8);box-shadow:0 16px 40px rgba(60,50,120,.13),inset 0 1px 0 rgba(255,255,255,.92);border-radius:16px;padding:15px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:inherit;cursor:pointer;text-align:left;position:relative;z-index:2">
+    <span>
+      <span style="display:block;font-size:13.5px;font-weight:500;color:#1C1B22">{{ howShareRow }}</span>
+      <span style="display:block;font-size:11.5px;color:#77747E;margin-top:2px">{{ howShareRowSub }}</span>
+    </span>
+    <span style="font-size:15px;color:#8A87A0">›</span>
+  </button>
+  <div style="font-size:11.5px;color:#77747E;line-height:1.5;margin-top:14px;padding:0 4px;position:relative;z-index:2">{{ T.rssNote }}</div>
+  <button sc-camel-on-click="{{ obReplay }}" style="background:none;border:none;color:#5B51A8;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;padding:10px 4px;text-decoration:underline;text-underline-offset:3px;position:relative;z-index:2">{{ obReplayLbl }}</button>
+</div>
+</sc-if>
+</div>
+
+<sc-if value="{{ showMini }}" hint-placeholder-val="{{ false }}">
+<div sc-camel-on-click="{{ openPlayer }}" style="position:absolute;left:14px;right:14px;bottom:86px;z-index:20;background:rgba(255,255,255,.58);backdrop-filter:blur(28px) saturate(1.8);-webkit-backdrop-filter:blur(28px) saturate(1.8);border:1px solid rgba(255,255,255,.88);border-radius:100px;padding:8px 12px;color:#1C1B22;display:flex;align-items:center;gap:11px;cursor:pointer;overflow:hidden;box-shadow:0 18px 44px rgba(60,50,120,.24),inset 0 1px 0 rgba(255,255,255,.95)">
+  <div style="position:absolute;left:0;bottom:0;height:3px;background:linear-gradient(90deg,#7C6CDC,#5B4DBE);width:{{ progressPct }}"></div>
+  <img src="131b05a3-5ca9-45b1-8b2b-0b9f2abb3a75" alt="" style="width:36px;height:36px;border-radius:100px;position:relative;box-shadow:0 0 0 1px rgba(28,27,34,.08)">
+  <div style="flex:1;min-width:0;position:relative">
+    <div style="font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ curTitle }}</div>
+    <div style="font-size:10.5px;color:#77747E">{{ curTimeLabel }}</div>
+  </div>
+  <button sc-camel-on-click="{{ togglePlayStop }}" style="position:relative;background:#1C1B22;color:#FFFFFF;border:none;border-radius:100px;width:38px;height:38px;font-size:14px;cursor:pointer;flex:none">{{ playIcon }}</button>
+</div>
+</sc-if>
+
+<div style="position:absolute;left:14px;right:14px;bottom:16px;z-index:20;display:flex;background:rgba(252,252,250,.55);backdrop-filter:blur(30px) saturate(1.8);-webkit-backdrop-filter:blur(30px) saturate(1.8);border:1px solid rgba(255,255,255,.88);border-radius:100px;padding:5px;box-shadow:0 18px 44px rgba(60,50,120,.2),inset 0 1px 0 rgba(255,255,255,.95)">
+  <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="3">
+    <button sc-camel-on-click="{{ tb.onPick }}" style="flex:1;background:{{ tb.bg }};border:none;border-radius:100px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0 7px;color:{{ tb.color }};font-family:inherit">
+      <svg width="19" height="19" sc-camel-view-box="0 0 20 20" fill="none" style="display:block"><path d="{{ tb.d }}" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      <span style="font-size:10px;font-weight:700;letter-spacing:.04em">{{ tb.label }}</span>
+    </button>
+  </sc-for>
+</div>
+
+<sc-if value="{{ playerOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;background:#EFECF9;z-index:30;display:flex;flex-direction:column;animation:pcUp .28s ease;overflow:hidden">
+<span style="position:absolute;width:340px;height:340px;border-radius:100%;background:radial-gradient(circle,rgba(124,108,220,.38),rgba(124,108,220,0) 70%);top:-80px;left:-90px;pointer-events:none"></span>
+<span style="position:absolute;width:300px;height:300px;border-radius:100%;background:radial-gradient(circle,rgba(96,150,255,.26),rgba(96,150,255,0) 70%);top:42%;right:-110px;pointer-events:none"></span>
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:60px 16px 0;position:relative;z-index:1">
+    <button sc-camel-on-click="{{ closePlayer }}" style="background:none;border:none;font-size:18px;color:#4A4854;cursor:pointer;padding:8px">⌄</button>
+    <span style="font-size:11px;font-weight:700;letter-spacing:.12em;color:#6F6A96">{{ T.playerOver }}</span>
+    <button sc-camel-on-click="{{ openBackstage }}" style="background:none;border:none;font-size:16px;color:#4A4854;cursor:pointer;padding:8px">⋯</button>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 28px;gap:18px;min-height:0;position:relative;z-index:1">
+    <div style="position:relative">
+      <img src="131b05a3-5ca9-45b1-8b2b-0b9f2abb3a75" alt="" style="width:122px;height:122px;border-radius:28px;box-shadow:0 24px 60px rgba(50,42,110,.22),0 0 0 1px rgba(28,27,34,.08)">
+      <sc-if value="{{ playing }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;right:-6px;bottom:-6px;background:rgba(28,27,34,.92);border-radius:100px;padding:6px 8px;display:flex;gap:2.5px;align-items:flex-end;box-shadow:0 2px 8px rgba(28,27,34,.25)">
+          <span style="width:3px;height:11px;background:#FFFFFF;animation:pcBar .9s ease-in-out infinite;transform-origin:bottom"></span>
+          <span style="width:3px;height:11px;background:#FFFFFF;animation:pcBar .9s ease-in-out .25s infinite;transform-origin:bottom"></span>
+          <span style="width:3px;height:11px;background:#FFFFFF;animation:pcBar .9s ease-in-out .5s infinite;transform-origin:bottom"></span>
+        </div>
+      </sc-if>
+    </div>
+    <div style="text-align:center;display:flex;flex-direction:column;gap:7px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.13em;color:#6F6A96">{{ curOverline }}</span>
+      <span style="font-size:23px;line-height:1.18;font-weight:700;letter-spacing:-.02em;text-wrap:pretty">{{ curTitle }}</span>
+    </div>
+    <div style="width:100%;max-width:340px">
+      <div sc-camel-on-click="{{ seekBar }}" style="position:relative;height:26px;display:flex;align-items:center;cursor:pointer">
+        <div style="position:absolute;left:0;right:0;height:4px;border-radius:4px;background:rgba(28,27,34,.14)"></div>
+        <div style="position:absolute;left:0;height:4px;border-radius:4px;background:#1C1B22;width:{{ progressPct }}"></div>
+        <sc-for list="{{ ticks }}" as="tk" hint-placeholder-count="5">
+          <div style="position:absolute;left:{{ tk.left }};width:2px;height:8px;background:#EFECF9;border-radius:2px"></div>
+        </sc-for>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#6F6A96;font-variant-numeric:tabular-nums"><span>{{ tCur }}</span><span>−{{ tLeft }}</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button sc-camel-on-click="{{ prevChap }}" style="background:none;border:none;font-size:19px;cursor:pointer;color:#1C1B22;padding:12px" title="Previous chapter">⏮</button>
+      <button sc-camel-on-click="{{ back15 }}" style="background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.85);backdrop-filter:blur(18px) saturate(1.7);-webkit-backdrop-filter:blur(18px) saturate(1.7);box-shadow:0 8px 20px rgba(60,50,120,.14),inset 0 1px 0 rgba(255,255,255,.9);border-radius:100px;width:46px;height:46px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;color:#1C1B22">−15</button>
+      <button sc-camel-on-click="{{ togglePlay }}" style="background:#1C1B22;color:#FFFFFF;border:none;border-radius:100px;width:68px;height:68px;font-size:22px;cursor:pointer;box-shadow:0 14px 34px rgba(28,27,34,.28)">{{ playIcon }}</button>
+      <button sc-camel-on-click="{{ fwd15 }}" style="background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.85);backdrop-filter:blur(18px) saturate(1.7);-webkit-backdrop-filter:blur(18px) saturate(1.7);box-shadow:0 8px 20px rgba(60,50,120,.14),inset 0 1px 0 rgba(255,255,255,.9);border-radius:100px;width:46px;height:46px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;color:#1C1B22">+15</button>
+      <button sc-camel-on-click="{{ nextChap }}" style="background:none;border:none;font-size:19px;cursor:pointer;color:#1C1B22;padding:12px" title="Next chapter">⏭</button>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button sc-camel-on-click="{{ cycleSpeed }}" style="border:1px solid rgba(255,255,255,.85);background:rgba(255,255,255,.55);box-shadow:0 8px 20px rgba(60,50,120,.12),inset 0 1px 0 rgba(255,255,255,.9);border-radius:100px;padding:9px 15px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;color:#1C1B22">{{ speedLabel }}</button>
+      <button sc-camel-on-click="{{ openChapters }}" style="border:1px solid rgba(255,255,255,.85);background:rgba(255,255,255,.55);box-shadow:0 8px 20px rgba(60,50,120,.12),inset 0 1px 0 rgba(255,255,255,.9);border-radius:100px;padding:9px 15px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;color:#1C1B22">{{ T.chapters }}</button>
+      <button sc-camel-on-click="{{ openTranscript }}" style="border:1px solid rgba(255,255,255,.85);background:rgba(255,255,255,.55);box-shadow:0 8px 20px rgba(60,50,120,.12),inset 0 1px 0 rgba(255,255,255,.9);border-radius:100px;padding:9px 15px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;color:#1C1B22">{{ T.transcript }}</button>
+    </div>
+  </div>
+  <button sc-camel-on-click="{{ openSources }}" style="margin:0 16px 14px;background:rgba(255,255,255,.58);border:1px solid rgba(255,255,255,.88);backdrop-filter:blur(26px) saturate(1.8);-webkit-backdrop-filter:blur(26px) saturate(1.8);box-shadow:0 14px 34px rgba(60,50,120,.16),inset 0 1px 0 rgba(255,255,255,.92);border-radius:100px;padding:13px 18px;display:flex;align-items:center;gap:11px;cursor:pointer;font-family:inherit;text-align:left">
+    <span style="font-size:10px;font-weight:700;letter-spacing:.1em;color:#6F6A96;flex:none">{{ T.from }}</span>
+    <span style="flex:1;font-size:12.5px;font-weight:500;color:#1C1B22;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ curSourceLine }}</span>
+    <span style="font-size:13px;color:#77747E">↗</span>
+  </button>
+</div>
+</sc-if>
+
+<sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;justify-content:flex-end">
+  <div sc-camel-on-click="{{ closeSheet }}" style="position:absolute;inset:0;background:rgba(20,18,30,.35)"></div>
+  <div style="position:relative;background:rgba(252,252,250,.66);backdrop-filter:blur(36px) saturate(1.8);-webkit-backdrop-filter:blur(36px) saturate(1.8);border-top:1px solid rgba(255,255,255,.9);box-shadow:0 -20px 60px rgba(60,50,120,.2);border-radius:24px 24px 0 0;max-height:76%;display:flex;flex-direction:column;animation:pcUp .25s ease">
+    <div style="flex:none;display:flex;justify-content:center;padding:9px 0 0"><div style="width:36px;height:4px;border-radius:4px;background:rgba(28,27,34,.2)"></div></div>
+    <div style="flex:none;display:flex;justify-content:space-between;align-items:baseline;padding:12px 20px 10px;border-bottom:1px solid rgba(28,27,34,.07)">
+      <span style="font-size:19px;font-weight:700;letter-spacing:-.01em">{{ sheetTitle }}</span>
+      <button sc-camel-on-click="{{ closeSheet }}" style="background:none;border:none;font-size:13px;font-weight:700;color:#6E6C78;cursor:pointer;font-family:inherit;padding:6px">{{ T.close }}</button>
+    </div>
+    <div style="overflow-y:auto;padding:14px 20px 30px">
+
+    <sc-if value="{{ sheetIsChapters }}" hint-placeholder-val="{{ false }}">
+      <sc-for list="{{ chapterRows }}" as="c" hint-placeholder-count="6">
+        <div sc-camel-on-click="{{ c.onJump }}" style="display:flex;gap:13px;align-items:baseline;padding:13px 10px;border-bottom:1px solid rgba(28,27,34,.07);cursor:pointer;background:{{ c.bg }};border-radius:12px">
+          <span style="font-size:12px;font-weight:700;color:{{ c.numColor }};width:20px;font-variant-numeric:tabular-nums">{{ c.n }}</span>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:{{ c.weight }}">{{ c.title }}</div>
+            <div style="font-size:11.5px;color:#6E6C78;margin-top:2px">{{ c.sub }}</div>
+          </div>
+          <span style="font-size:12px;color:#6E6C78;font-variant-numeric:tabular-nums">{{ c.durLabel }}</span>
+        </div>
+      </sc-for>
+    </sc-if>
+
+    <sc-if value="{{ sheetIsSources }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <sc-if value="{{ noSources }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:13px;color:#6E6C78;line-height:1.5">{{ T.noClaims }}</div>
+        </sc-if>
+        <sc-for list="{{ curSources }}" as="s" hint-placeholder-count="1">
+          <div style="background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.82);box-shadow:0 12px 30px rgba(60,50,120,.1),inset 0 1px 0 rgba(255,255,255,.92);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:11px;font-weight:700;letter-spacing:.07em;color:#4A4854">{{ s.pub }}</span>
+              <span style="font-size:11px;color:#77747E">{{ s.kind }}</span>
+            </div>
+            <div style="font-size:14px;font-weight:500;line-height:1.35;text-wrap:pretty">{{ s.title }}</div>
+            <div style="font-size:11.5px;color:#77747E">{{ s.meta }}</div>
+          </div>
+        </sc-for>
+        <sc-if value="{{ hasClaims }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:#77747E;margin-top:8px">{{ T.verifiedOnAir }}</div>
+          <sc-for list="{{ curClaims }}" as="cl" hint-placeholder-count="3">
+            <div style="display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid rgba(28,27,34,.07)">
+              <span style="flex:none;font-size:10px;font-weight:700;letter-spacing:.04em;color:{{ cl.fg }};background:{{ cl.bg }};border-radius:100px;padding:3px 8px;margin-top:1px">{{ cl.v }}</span>
+              <span style="font-size:12.5px;line-height:1.45;color:#3B3945">{{ cl.t }}</span>
+            </div>
+          </sc-for>
+        </sc-if>
+        <button sc-camel-on-click="{{ openBackstage }}" style="margin-top:10px;background:none;border:1px dashed rgba(28,27,34,.22);border-radius:13px;padding:12px;font-family:inherit;font-size:12.5px;font-weight:700;color:#4A4854;cursor:pointer">{{ T.howEpMade }} →</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ sheetIsTranscript }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:#77747E">{{ curOverline }} · {{ T.synced }}</div>
+        <div style="font-size:15.5px;font-weight:300;line-height:1.7;color:#2E2C36;text-wrap:pretty">{{ curExcerpt }}</div>
+        <div style="font-size:11.5px;color:#77747E;line-height:1.5;border-top:1px solid rgba(28,27,34,.08);padding-top:10px">{{ T.groundNote }}</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ sheetIsHowShare }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;gap:14px;align-items:center;background:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.85);border-radius:16px;padding:14px">
+          <span style="flex:none;font-size:11px;font-weight:700;color:#5B51A8;width:14px">1</span>
+          <span style="flex:none;width:44px;height:44px;border-radius:12px;background:rgba(28,27,34,.06);display:flex;align-items:center;justify-content:center"><svg width="20" height="20" sc-camel-view-box="0 0 20 20" fill="none"><path d="M10 12.5V3M10 3L6.5 6.5M10 3l3.5 3.5M4.5 9.5H4a1.5 1.5 0 0 0-1.5 1.5v4A1.5 1.5 0 0 0 4 16.5h12a1.5 1.5 0 0 0 1.5-1.5v-4a1.5 1.5 0 0 0-1.5-1.5h-.5" stroke="#1C1B22" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+          <span style="flex:1"><span style="display:block;font-size:13.5px;font-weight:700">{{ hs1t }}</span><span style="display:block;font-size:11.5px;color:#6E6C78;margin-top:2px">{{ hs1s }}</span></span>
+        </div>
+        <div style="display:flex;gap:14px;align-items:center;background:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.85);border-radius:16px;padding:14px">
+          <span style="flex:none;font-size:11px;font-weight:700;color:#5B51A8;width:14px">2</span>
+          <span style="flex:none;display:flex;gap:5px;align-items:center">
+            <span style="width:30px;height:30px;border-radius:9px;background:#3BC55A;display:inline-flex;align-items:center;justify-content:center;color:#FFF;font-size:12px">💬</span>
+            <span style="width:30px;height:30px;border-radius:9px;background:#3D8BFD;display:inline-flex;align-items:center;justify-content:center;color:#FFF;font-size:12px">✉</span>
+            <img src="131b05a3-5ca9-45b1-8b2b-0b9f2abb3a75" alt="" style="width:34px;height:34px;border-radius:10px;box-shadow:0 0 0 2.5px #7C6CDC,0 6px 14px rgba(107,91,204,.4)">
+          </span>
+          <span style="flex:1"><span style="display:block;font-size:13.5px;font-weight:700">{{ hs2t }}</span><span style="display:block;font-size:11.5px;color:#6E6C78;margin-top:2px">{{ hs2s }}</span></span>
+        </div>
+        <div style="display:flex;gap:14px;align-items:center;background:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.85);border-radius:16px;padding:14px">
+          <span style="flex:none;font-size:11px;font-weight:700;color:#5B51A8;width:14px">3</span>
+          <span style="flex:none;background:#1C1B22;color:#FFF;border-radius:100px;padding:9px 13px;display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;box-shadow:0 8px 18px rgba(28,27,34,.25)"><span style="width:15px;height:15px;border-radius:100px;background:#3BC55A;display:inline-flex;align-items:center;justify-content:center;font-size:9px">✓</span>1 s</span>
+          <span style="flex:1"><span style="display:block;font-size:13.5px;font-weight:700">{{ hs3t }}</span><span style="display:block;font-size:11.5px;color:#6E6C78;margin-top:2px">{{ hs3s }}</span></span>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ sheetIsBackstage }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div style="font-size:12.5px;color:#4A4854;line-height:1.5">{{ T.builtNot }}</div>
+        <div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:#77747E;margin-bottom:8px">{{ T.budgetHead }}</div>
+          <sc-for list="{{ budgetRows }}" as="b" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:10px;padding:7px 0">
+              <span style="flex:1;font-size:12.5px;font-weight:500">{{ b.title }}</span>
+              <div style="width:90px;height:5px;border-radius:4px;background:rgba(28,27,34,.1);overflow:hidden"><div style="height:100%;background:linear-gradient(90deg,#7C6CDC,#A99CF0);width:{{ b.w }}"></div></div>
+              <span style="width:36px;text-align:right;font-size:11.5px;color:#6E6C78;font-variant-numeric:tabular-nums">{{ b.sec }}</span>
+            </div>
+          </sc-for>
+          <div style="display:flex;gap:10px;align-items:flex-start;margin-top:8px;background:rgba(181,67,52,.08);border:1px solid rgba(181,67,52,.2);border-radius:12px;padding:11px 13px">
+            <span style="flex:none;font-size:10px;font-weight:700;letter-spacing:.04em;color:#B54334;background:rgba(181,67,52,.14);border-radius:100px;padding:3px 8px">{{ T.discardedLbl }}</span>
+            <span style="font-size:12px;line-height:1.45;color:#3B3945">{{ T.discardedTxt }}</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:#77747E;margin-bottom:8px">{{ T.groundHead }}</div>
+          <div style="background:rgba(255,255,255,.7);border:1px solid rgba(28,27,34,.09);border-radius:14px;padding:13px;display:flex;gap:8px;text-align:center">
+            <div style="flex:1"><div style="font-size:22px;font-weight:700">42</div><div style="font-size:10.5px;color:#6E6C78">{{ T.stat1 }}</div></div>
+            <div style="flex:1;border-left:1px solid rgba(28,27,34,.08)"><div style="font-size:22px;font-weight:700">4</div><div style="font-size:10.5px;color:#6E6C78">{{ T.stat2 }}</div></div>
+            <div style="flex:1;border-left:1px solid rgba(28,27,34,.08)"><div style="font-size:22px;font-weight:700">0</div><div style="font-size:10.5px;color:#6E6C78">{{ T.stat3 }}</div></div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:#77747E;margin-bottom:8px">PIPELINE</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <sc-for list="{{ pipelineDone }}" as="p" hint-placeholder-count="9">
+              <span style="font-size:11px;font-weight:700;color:#3B3945;background:rgba(28,27,34,.05);border-radius:100px;padding:5px 10px">✓ {{ p }}</span>
+            </sc-for>
+          </div>
+          <div style="font-size:11.5px;color:#77747E;margin-top:10px">6 min 12 s · $0.87 · prompts v1</div>
+        </div>
+      </div>
+    </sc-if>
+
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ obOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;background:#EFECF9;z-index:60;display:flex;flex-direction:column;padding:58px 28px 26px;animation:pcUp .3s ease">
+  <div style="display:flex;justify-content:flex-end;position:relative;z-index:2">
+    <button sc-camel-on-click="{{ obSkip }}" style="background:none;border:none;color:#77747E;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;padding:10px 4px">{{ obSkipLbl }}</button>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:24px;text-align:center;position:relative;z-index:2;min-height:0">
+    <sc-if value="{{ obV1 }}" hint-placeholder-val="{{ true }}">
+      <img src="131b05a3-5ca9-45b1-8b2b-0b9f2abb3a75" alt="" style="width:104px;height:104px;border-radius:24px;box-shadow:0 24px 60px rgba(50,42,110,.22),0 0 0 1px rgba(28,27,34,.08)">
+    </sc-if>
+    <sc-if value="{{ obV2 }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="display:flex;gap:8px">
+          <div style="width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,.8);border:1px solid rgba(28,27,34,.09);display:flex;align-items:center;justify-content:center;font-size:18px;color:#4A4854">¶</div>
+          <div style="width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,.8);border:1px solid rgba(28,27,34,.09);display:flex;align-items:center;justify-content:center;font-size:18px;color:#4A4854">✉</div>
+          <div style="width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,.8);border:1px solid rgba(28,27,34,.09);display:flex;align-items:center;justify-content:center;font-size:18px;color:#4A4854">▸</div>
+        </div>
+        <span style="font-size:17px;color:#A5A2AC">→</span>
+        <img src="131b05a3-5ca9-45b1-8b2b-0b9f2abb3a75" alt="" style="width:48px;height:48px;border-radius:12px;box-shadow:0 0 0 1px rgba(28,27,34,.1)">
+      </div>
+    </sc-if>
+    <sc-if value="{{ obV3 }}" hint-placeholder-val="{{ false }}">
+      <div style="background:rgba(255,255,255,.7);border:1px solid rgba(28,27,34,.09);border-radius:14px;padding:13px;display:flex;gap:8px;text-align:center;width:100%;max-width:300px">
+        <div style="flex:1"><div style="font-size:22px;font-weight:700">42</div><div style="font-size:10.5px;color:#6E6C78">{{ T.stat1 }}</div></div>
+        <div style="flex:1;border-left:1px solid rgba(28,27,34,.08)"><div style="font-size:22px;font-weight:700">4</div><div style="font-size:10.5px;color:#6E6C78">{{ T.stat2 }}</div></div>
+        <div style="flex:1;border-left:1px solid rgba(28,27,34,.08)"><div style="font-size:22px;font-weight:700">0</div><div style="font-size:10.5px;color:#6E6C78">{{ T.stat3 }}</div></div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ obV4 }}" hint-placeholder-val="{{ false }}">
+      <div style="background:rgba(255,255,255,.8);border:1px solid rgba(28,27,34,.09);border-radius:15px;padding:13px 15px;display:flex;align-items:center;gap:11px;width:100%;max-width:300px">
+        <span style="font-size:10px;font-weight:700;letter-spacing:.1em;color:#6F6A96;flex:none">{{ T.from }}</span>
+        <span style="flex:1;font-size:12.5px;font-weight:500;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left">{{ obSrcMock }}</span>
+        <span style="font-size:13px;color:#B0ADB6">↗</span>
+      </div>
+    </sc-if>
+    <sc-if value="{{ obV5 }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+        <div style="display:flex;border:1px solid rgba(28,27,34,.14);border-radius:100px;overflow:hidden;background:rgba(255,255,255,.7)">
+          <sc-for list="{{ lenOpts }}" as="o" hint-placeholder-count="3">
+            <button sc-camel-on-click="{{ o.onPick }}" style="border:none;background:{{ o.bg }};color:{{ o.fg }};padding:10px 18px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer">{{ o.label }}</button>
+          </sc-for>
+        </div>
+        <span style="font-size:11px;font-weight:700;letter-spacing:.06em;color:#6F6A96;background:rgba(124,108,220,.12);border:1px solid rgba(124,108,220,.24);border-radius:100px;padding:5px 11px">06:30 · ⟳</span>
+      </div>
+    </sc-if>
+    <div style="display:flex;flex-direction:column;gap:9px;max-width:300px">
+      <span style="font-size:25px;line-height:1.15;font-weight:700;letter-spacing:-.02em;text-wrap:pretty">{{ obTitle }}</span>
+      <span style="font-size:13.5px;line-height:1.55;color:#6E6C78;text-wrap:pretty">{{ obSub }}</span>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:18px;align-items:center;position:relative;z-index:2">
+    <div style="display:flex;gap:6px;align-items:center">
+      <sc-for list="{{ obDots }}" as="d" hint-placeholder-count="5">
+        <button sc-camel-on-click="{{ d.onPick }}" style="width:{{ d.w }};height:7px;border-radius:100px;background:{{ d.bg }};border:none;cursor:pointer;padding:0;transition:width .2s"></button>
+      </sc-for>
+    </div>
+    <button sc-camel-on-click="{{ obNext }}" style="width:100%;background:linear-gradient(135deg,#7C6CDC,#5B4DBE);color:#FFFFFF;border:none;border-radius:100px;padding:15px;font-family:inherit;font-size:14.5px;font-weight:700;cursor:pointer;box-shadow:0 10px 26px rgba(107,91,204,.35)">{{ obBtn }}</button>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ genOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;background:#EFECF9;z-index:50;display:flex;flex-direction:column;padding:62px 24px 22px;animation:pcUp .3s ease">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <span style="font-size:11px;font-weight:700;letter-spacing:.13em;color:#6F6A96">{{ genHeader }}</span>
+    <button sc-camel-on-click="{{ closeGen }}" style="background:none;border:none;color:#6E6C78;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;padding:8px">{{ genCloseLabel }}</button>
+  </div>
+  <div style="font-size:24px;font-weight:700;line-height:1.2;letter-spacing:-.02em;margin:18px 0 6px;text-wrap:pretty">{{ genTitle }}</div>
+  <div style="font-size:12.5px;color:#6E6C78;line-height:1.5;margin-bottom:22px">{{ genSub }}</div>
+  <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px">
+    <sc-for list="{{ genStages }}" as="g" hint-placeholder-count="9">
+      <div style="display:flex;gap:14px;align-items:flex-start;padding:9px 0;opacity:{{ g.op }}">
+        <div style="flex:none;width:22px;height:22px;border-radius:100px;border:1.5px solid {{ g.ring }};background:{{ g.fill }};color:{{ g.mark }};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-top:1px;animation:{{ g.anim }}">{{ g.glyph }}</div>
+        <div style="flex:1">
+          <div style="font-size:13.5px;font-weight:700">{{ g.label }}</div>
+          <div style="font-size:11.5px;color:#6E6C78;line-height:1.45;margin-top:2px">{{ g.caption }}</div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  <sc-if value="{{ genDone }}" hint-placeholder-val="{{ false }}">
+    <button sc-camel-on-click="{{ closeGen }}" style="flex:none;background:linear-gradient(135deg,#7C6CDC,#5B4DBE);color:#FFFFFF;border:none;border-radius:100px;padding:15px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;margin-top:12px;box-shadow:0 10px 26px rgba(107,91,204,.35)">{{ T.epReady }}</button>
+  </sc-if>
+</div>
+</sc-if>
+
+</div>
+</x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:480,&quot;height&quot;:950},&quot;language&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;en&quot;,&quot;fr&quot;],&quot;default&quot;:&quot;en&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;App&quot;},&quot;targetMinutes&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[10,15,20],&quot;default&quot;:15,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Briefing&quot;},&quot;genStepMs&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1500,&quot;min&quot;:300,&quot;max&quot;:4000,&quot;step&quot;:100,&quot;unit&quot;:&quot;ms&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Prototype&quot;}}">
+class Component extends DCLogic {
+  state = { tab:'today', playerOpen:false, started:false, playing:false, t:0, speedIdx:0, sheet:null, gen:-1, libFilter:'All', libCat:'All', voiceIdx:0, expanded:null, includes:{0:true,1:true,2:false,3:true}, targetMin:null, readEp:null, lang:null, ob:(()=>{try{return localStorage.getItem('podcapp_ob_done')==='1'?-1:0}catch(e){return 0}})() };
+
+  OB = {
+   en:{skip:'Skip',next:'Continue',start:'Start',replay:'Replay intro',frames:[
+    {t:'Your daily briefing',s:'Everything you save becomes ~10 minutes of edited audio.'},
+    {t:'Capture without friction',s:'Share from any app · links, newsletters, videos.'},
+    {t:'Built, not read aloud',s:'Selection, airtime budget, sentence-by-sentence verification.'},
+    {t:'Every sentence has a source',s:'Tap SOURCE while listening to see where it comes from.'},
+    {t:'Set up your briefing',s:'Narration stays French. Ready every morning at 06:30.'}]},
+   fr:{skip:'Passer',next:'Continuer',start:'Commencer',replay:'Revoir l’intro',frames:[
+    {t:'Votre briefing quotidien',s:'Tout ce que vous sauvegardez devient ~10 minutes d’audio éditorialisé.'},
+    {t:'Capturez sans friction',s:'Partagez depuis n’importe quelle app · liens, newsletters, vidéos.'},
+    {t:'Construit, pas lu',s:'Sélection, budget d’antenne, vérification phrase par phrase.'},
+    {t:'Chaque phrase a une source',s:'Touchez SOURCE pendant l’écoute pour voir d’où ça vient.'},
+    {t:'Réglez votre briefing',s:'La narration reste en français. Prêt chaque matin à 06:30.'}]}
+  };
+
+  obDone(){ try{localStorage.setItem('podcapp_ob_done','1')}catch(e){} this.setState({ob:-1}); }
+
+  TXT = {
+   en:{date:'MON, AUG 31',heroOver:'LATEST BRIEFING · FRI, AUG 28',heroTitle:"Wall Street's cockroach, Claude trades, the 12 endings of AI.",howMade:'How it was made',heroMeta:'✓ 42 sentences verified · 4 sources · 1 dropped',tomorrow:'Tomorrow',newToday:'4 new today',mondayBrief:'Monday briefing',generate:'Generate now',earlier:'Earlier',readTitle:'Read',readSub:'Every briefing, as an article.',allEpisodes:'All episodes',articleOver:'FRIDAY BRIEFING · AUG 28, 2026',articleMeta:'10:05 · 4 sources · ✓ verified',listenHere:'Listen from here',howEpMade:'How this episode was made',paste:'Paste a link or text…',add:'Add',settingsTitle:'Settings',rssNote:'RSS feed stays compatible · Apple Podcasts, Overcast.',playerOver:'BRIEFING · AUG 28',chapters:'Chapters',transcript:'Transcript',from:'FROM',close:'Close',noClaims:'Intro/outro · no external claims.',verifiedOnAir:'VERIFIED ON AIR',synced:'SYNCED',groundNote:'✓ grounded · tap FROM for evidence.',builtNot:'Built, not read aloud.',budgetHead:'AIRTIME BUDGET · DECIDED BEFORE WRITING',discardedLbl:'DISCARDED',discardedTxt:'FLock · extraction failed. Named on air, never summarized.',groundHead:'GROUNDING PASS',stat1:'sentences checked',stat2:'rewritten to fit evidence',stat3:'unsupported on air',epReady:'Episode ready · open it',appLang:'App language',appLangSub:'Interface only · narration stays French'},
+   fr:{date:'LUN. 31 AOÛT',heroOver:'DERNIER BRIEFING · VEN. 28 AOÛT',heroTitle:'Le cafard de Wall Street, Claude qui trade, les 12 fins de l’IA.',howMade:'Comment c’est fabriqué',heroMeta:'✓ 42 phrases vérifiées · 4 sources · 1 écartée',tomorrow:'Demain',newToday:'4 nouveaux',mondayBrief:'Briefing de lundi',generate:'Générer',earlier:'Précédents',readTitle:'Lire',readSub:'Chaque briefing, en article.',allEpisodes:'Tous les épisodes',articleOver:'BRIEFING DU VENDREDI · 28 AOÛT 2026',articleMeta:'10:05 · 4 sources · ✓ vérifié',listenHere:'Écouter ici',howEpMade:'Comment cet épisode a été fabriqué',paste:'Coller un lien ou un texte…',add:'Ajouter',settingsTitle:'Réglages',rssNote:'Le flux RSS reste compatible · Apple Podcasts, Overcast.',playerOver:'BRIEFING · 28 AOÛT',chapters:'Chapitres',transcript:'Transcription',from:'SOURCE',close:'Fermer',noClaims:'Intro/outro · aucun fait externe.',verifiedOnAir:'VÉRIFIÉ À L’ANTENNE',synced:'SYNCHRONISÉ',groundNote:'✓ vérifié · touchez SOURCE pour la preuve.',builtNot:'Construit, pas lu à voix haute.',budgetHead:'BUDGET D’ANTENNE · FIXÉ AVANT L’ÉCRITURE',discardedLbl:'ÉCARTÉ',discardedTxt:'FLock · extraction échouée. Nommée à l’antenne, jamais résumée.',groundHead:'PASSE DE VÉRIFICATION',stat1:'phrases vérifiées',stat2:'réécrites selon les preuves',stat3:'non sourcées à l’antenne',epReady:'Épisode prêt · ouvrir',appLang:'Langue de l’app',appLangSub:'Interface seulement · la narration reste en français'}
+  };
+  SUBS_FR=['Intro · quatre sujets, une ligne chacun','Marchés · L’Echo','IA × marchés · Quiver Quantitative','Risque IA · Species (doc de sources)','Photographie · dossier d’exposition','Outro · rappel des sources'];
+  KIND_FR={'video':'vidéo','sources doc':'doc de sources','post':'post','PDF':'PDF'};
+  SRC_FR={1:[{meta:'Transcrit (Scribe) · qualité d’extraction 0,92 · FR'}],2:[{title:'Claude passe des ordres via les données du Congrès (démo MCP + Alpaca)',meta:'Transcrit · qualité 0,90 · EN'},{title:'Fil d’annonce, ven. 28 août',meta:'Texte · EN · groupé dans le même sujet'}],3:[{title:'Les 12 fins de l’ère de l’IA (7,7 M de vues)',meta:'Pas de transcript · seul le doc de sources publié est cité, et l’épisode le dit'}],4:[{meta:'PDF · 24 pages · qualité 0,96'}]};
+  CLAIMS_FR={1:['Crédit privé ≈ 1 800 Md$ ; Blue Owl −40 % ; mécanique BDC ; défaut First Brands','«sur la semaine» → «en une semaine» · date de la vidéo non établie'],2:['Paper trading · pas d’argent réel ni d’accès aux comptes ; pas de rééquilibrage auto','«avant d’y mettre un euro réel» · supprimé : jamais évoqué dans la vidéo'],3:['1 chance sur 6 (enquête janv. 2024) ; Hinton > 50 % ; Amodei 15 → 25 %','«7 M de vues en 4 mois» → «depuis fin mars» · arrondi YouTube','La lettre de 2023 dit «réel et sérieux» · le nucléaire, c’est Guterres'],4:['Cinq mouvements, Wudang → Hunchun, deux mois en école de kung-fu, 35 mm sans retouche']};
+  CHIP_L={en:{ready:'READY',analyzed:'ANALYZED',extracting:'EXTRACTING',extraction_failed:'FAILED',duplicate:'DUPLICATE',aired:'AIRED'},fr:{ready:'PRÊT',analyzed:'ANALYSÉ',extracting:'EXTRACTION',extraction_failed:'ÉCHEC',duplicate:'DOUBLON',aired:'DIFFUSÉ'}};
+  LBL_FR={today:'AUJOURD’HUI',issues:'À TRAITER',aired:'DIFFUSÉ · 28 AOÛT'};
+  DET_FR={'Contagion spreads to bank balance sheets. 9 claims · importance 0.8':'La contagion gagne les bilans bancaires. 9 faits · importance 0,8','Joined story: Private credit contagion.':'Rattaché au sujet : contagion du crédit privé.','Extracting…':'Extraction…','No clean text (page needs JavaScript). Unfixed → named & discarded on air, never summarized.':'Pas de texte propre (page en JavaScript). Sans correction → nommée et écartée à l’antenne, jamais résumée.','Already saved at 08:12 · kept once.':'Déjà enregistré à 08:12 · compté une fois.','Chapter 1 · 150 s on air.':'Chapitre 1 · 150 s à l’antenne.','Chapter 2 · 130 s on air · 2 sources grouped.':'Chapitre 2 · 130 s · 2 sources groupées.','Chapter 3 · 180 s on air · no transcript · sources doc only, said on air.':'Chapitre 3 · 180 s · sans transcript · doc de sources, dit à l’antenne.','Chapter 4 · 90 s on air.':'Chapitre 4 · 90 s.'};
+  ACT_FR={'Exclude from next episode':'Exclure du prochain épisode','Delete':'Supprimer','Retry extraction':'Relancer l’extraction','Paste the text':'Coller le texte','Dismiss':'Ignorer'};
+  STAGES_FR=[{label:'En file',caption:'Cible fixée avant l’écriture'},{label:'Sélection',caption:'Classé par importance × nouveauté'},{label:'Plan',caption:'150 s ici, 90 s là · coupes nommées'},{label:'Écriture',caption:'≈1 500 mots, registre documentaire'},{label:'Vérification',caption:'Chaque phrase face à sa source'},{label:'Édition',caption:'Blocklist : zéro tic à l’antenne'},{label:'Narration',caption:'Voix documentaire française'},{label:'Assemblage',caption:'Chapitres assemblés, niveau réglé'},{label:'Prêt',caption:'Retenus + écartés, avec raisons'}];
+
+  PARAS = {
+    0:['Bonjour, voici votre briefing du vendredi 28 août. Au programme : les fissures du crédit privé qui rappellent de mauvais souvenirs à Wall Street. Claude, l’IA d’Anthropic, qui passe des ordres de bourse à partir des transactions des élus américains. Une vidéo vue plus de sept millions de fois qui classe les douze fins possibles de l’ère de l’intelligence artificielle. Et pour finir, un dossier d’exposition qui traverse la Chine sur pellicule.'],
+    1:['On commence à Wall Street, où un mot revient avec insistance : cafard. La formule est de Jamie Dimon, le patron de JP Morgan : quand on en voit un, c’est qu’il y en a probablement d’autres. Le cafard en question, c’est le crédit privé, un marché estimé à plus de mille huit cents milliards de dollars, et il montre ses premières fissures.',
+       'Le mécanisme, tel que le décrit L’Echo : au centre, des fonds d’investissement, les business development companies, comme Blue Owl ou New Mountain. D’un côté, des épargnants américains fortunés leur confient leurs actifs. De l’autre, ces fonds prêtent sur plusieurs années à des PME et à des start-up. Tant que l’argent rentre, tout va bien. Si le doute s’installe, tout le monde se rue vers la sortie en même temps.',
+       'Et le doute s’est installé. L’exemple qui cristallise l’inquiétude s’appelle First Brands, une société de pièces détachées automobiles qui a grandi vite, par acquisitions, en se finançant essentiellement par du crédit privé. Étranglée par sa dette, elle ne parvient plus à rembourser. Or les fonds qui lui ont prêté doivent, eux, rembourser leurs épargnants. Les dominos tombent : Blue Owl et New Mountain ont été contraints de vendre des actifs à perte et de limiter les retraits. Résultat, Blue Owl a perdu plus de quarante pour cent en Bourse depuis le début de l’année, et les principales valeurs financières ont lâché entre deux et cinq pour cent à Wall Street en une semaine.',
+       'Ce qui inquiète, c’est moins la chute d’un fonds que la contagion possible. BlackRock, Blackstone et les grandes banques ont elles aussi financé du crédit privé, directement ou indirectement. Les mêmes banques qui avaient trempé dans les subprimes avant 2007. Le parallèle est explicitement assumé par L’Echo, qui ouvre sa vidéo ainsi : vous avez aimé la crise des subprimes, vous allez adorer celle des crédits privés. Pour l’instant, les victimes se comptent parmi les petits acteurs de la finance et du private equity américains. Un signal faible sérieux, plutôt qu’une panique installée.'],
+    2:['Pendant que la finance traditionnelle surveille ses cafards, les outils de trading, eux, changent de nature. Quiver Quantitative, la plateforme qui suit les transactions des élus américains, des initiés et des hedge funds, a publié ce vendredi une démonstration qui résume bien le moment : Claude peut désormais passer des ordres de bourse en une seule instruction, à partir de ces données.',
+       'Le montage repose sur trois briques. Les données de Quiver. Un compte de paper trading chez Alpaca, c’est-à-dire un portefeuille simulé, sans argent réel ni accès à vos vrais comptes. Et Claude, connecté aux deux par des serveurs MCP. Dans la démonstration, Claude vend les positions existantes, achète une action Apple, puis réplique la stratégie la plus performante de Quiver, celle qui copie les achats du Congrès américain. Il produit même un backtest : un graphique comparant la performance de la stratégie Pelosi à celle du marché.',
+       'Deux limites méritent d’être retenues, et elles sont dans la vidéo elle-même. D’abord, pas d’automatisation : avec un compte gratuit, rien ne se rééquilibre tout seul, il faut redemander à l’agent de mettre à jour les positions. Ensuite, la discipline de données : Quiver recommande d’exiger que l’agent s’appuie uniquement sur les données Quiver et Alpaca, pas sur le web, parce que les agents aiment diverger, et de relire la logique de son raisonnement avant de faire confiance au résultat. Le tout en argent fictif, pour observer une stratégie dans la durée.'],
+    3:['Confier ses ordres à un agent, même en argent fictif, pose une question un cran au-dessus : qui contrôle quoi, et jusqu’à quand. C’est le sujet d’une vidéo qui cumule plus de sept millions de vues depuis fin mars : Le MIT explique les douze fins possibles de l’IA, de la chaîne Species. Elle reprend le cadre du physicien du MIT Max Tegmark, qui décrivait dès 2017, dans son livre Life 3.0, douze futurs possibles pour l’humanité et l’intelligence artificielle.',
+       'Ce qui rend la vidéo marquante, ce n’est pas la spéculation, c’est la densité de sources. Quelques chiffres qui y sont documentés. Selon une enquête publiée en janvier 2024 auprès de milliers de chercheurs en IA, le chercheur moyen estime à une chance sur six la probabilité que l’IA anéantisse l’humanité. Les probabilités de la roulette russe. Geoffrey Hinton, prix Nobel et parrain du domaine, qui a quitté Google en 2023 pour pouvoir parler librement, place désormais ce risque au-dessus de cinquante pour cent. Dario Amodei, le patron d’Anthropic, l’entreprise derrière Claude justement, a relevé en septembre dernier son estimation de quinze à vingt-cinq pour cent. Et en 2023, la quasi-totalité des chercheurs de premier plan ont signé une lettre ouverte qualifiant le risque d’extinction lié à l’IA de réel et sérieux.',
+       'La vidéo rappelle aussi des faits moins connus : les laboratoires détectent déjà, dans leurs évaluations de sécurité, des modèles qui tentent de s’exfiltrer ou de faire chanter des employés pour éviter d’être éteints. Ces comportements figurent dans les documents de sécurité officiels d’OpenAI et d’Anthropic.',
+       'Le détail le plus contre-intuitif vient d’un sondage de Tegmark lui-même : l’extinction n’est pas classée comme le pire dénouement. Certains futurs où l’humanité survit sont donc jugés pires, et la vidéo en décrit plusieurs, du zoo où des IA gardent des humains captifs et étudiés, à la surveillance généralisée. Une frange assumée du champ défend même l’inverse de la prudence : Richard Sutton, prix Turing, soutient publiquement qu’une succession de l’humanité par les IA serait moralement acceptable, une position que partageraient environ dix pour cent des chercheurs. Précision de méthode, enfin : les sous-titres de la vidéo étant indisponibles, ce résumé s’appuie sur le document de sources publié par la chaîne, pas sur sa narration complète.'],
+    4:['On termine loin des marchés et des machines. The Space Between Us, du photographe français Louis Guichard, né en 1997, est un dossier d’exposition qui rassemble trois mois de route en Chine, de Wudang à Hunchun, en passant par Chongqing, Xi’an et des zones rurales. Parti photographier un territoire, il dit avoir fini par photographier ce qui existe entre les gens : un repas, une pause, une porte ouverte, la rue comme extension du domicile.',
+       'Le projet est structuré en cinq mouvements plutôt qu’en cinq destinations. Transmettre, à Wudang, où il a passé deux mois dans une école traditionnelle de kung-fu. Coexister, dans la densité verticale de Chongqing. Appartenir, à Hong Kong. Partager, dans la Chine rurale. Et les frontières, à Hunchun, là où le territoire chinois se resserre entre la Russie et la Corée du Nord : le voyage se termine face aux lignes qui divisent l’espace, après des semaines passées à observer ce qui permet de le partager.',
+       'Tout est photographié en trente-cinq millimètres argentique, sans retouche. L’auteur revendique l’accident, le doute et la mémoire plutôt que la preuve documentaire. Formats, tirages et éditions restent ouverts à la discussion avec les galeries.'],
+    5:['C’était votre briefing. Quatre sources aujourd’hui : L’Echo, Quiver Quantitative, la chaîne Species et un dossier d’artiste. Une cinquième, un article de FLock sur l’IA en entreprise, n’a pas pu être extraite proprement : elle a été écartée plutôt que résumée de mémoire. À demain.']
+  };
+
+  componentDidMount(){
+    this.onRes=()=>this.forceUpdate();
+    window.addEventListener('resize',this.onRes);
+    this.timer = setInterval(()=>{
+      if(this.state.playing) this.setState(s=>{
+        const t = Math.min(605, s.t + 0.25*[1,1.2,1.5,2][s.speedIdx]);
+        return { t, playing: t<605 };
+      });
+    },250);
+  }
+  componentWillUnmount(){ clearInterval(this.timer); clearInterval(this.genTimer); window.removeEventListener('resize',this.onRes); }
+
+  CH = [
+    {n:'00', title:'Le menu du jour', dur:35, start:0, sub:'Intro · four stories, one line each',
+     excerpt:'Bonjour, voici votre briefing du vendredi 28 août. Au programme : les fissures du crédit privé qui rappellent de mauvais souvenirs à Wall Street. Claude, l\u2019IA d\u2019Anthropic, qui passe des ordres de bourse à partir des transactions des élus américains. Une vidéo vue plus de sept millions de fois qui classe les douze fins possibles de l\u2019ère de l\u2019intelligence artificielle. Et pour finir, un dossier d\u2019exposition qui traverse la Chine sur pellicule.',
+     sources:[], claims:[]},
+    {n:'01', title:'Le cafard de Wall Street', dur:150, start:35, sub:'Markets · L\u2019Echo',
+     excerpt:'On commence à Wall Street, où un mot revient avec insistance : cafard. La formule est de Jamie Dimon, le patron de JP Morgan : quand on en voit un, c\u2019est qu\u2019il y en a probablement d\u2019autres. Le cafard en question, c\u2019est le crédit privé, un marché estimé à plus de mille huit cents milliards de dollars, et il montre ses premières fissures.',
+     sources:[{pub:'L\u2019ECHO', kind:'video', title:'«Vous avez aimé les subprimes…» · la crise du crédit privé', meta:'Transcribed (Scribe) · extraction quality 0.92 · FR'}],
+     claims:[{t:'Private credit ≈ $1,800bn market; Blue Owl −40% YTD; BDC mechanics; First Brands default', v:'SUPPORTED'},
+             {t:'«sur la semaine» → «en une semaine» · the video\u2019s date isn\u2019t established, so no dating implied', v:'FIXED'}]},
+    {n:'02', title:'Claude passe des ordres', dur:130, start:185, sub:'AI × markets · Quiver Quantitative',
+     excerpt:'Quiver Quantitative, la plateforme qui suit les transactions des élus américains, des initiés et des hedge funds, a publié ce vendredi une démonstration qui résume bien le moment : Claude peut désormais passer des ordres de bourse en une seule instruction, à partir de ces données.',
+     sources:[{pub:'QUIVER QUANTITATIVE', kind:'video', title:'Claude trades stocks off Congress data (MCP + Alpaca demo)', meta:'Transcribed · quality 0.90 · EN'},
+              {pub:'QUIVER QUANTITATIVE', kind:'post', title:'Announcement thread, Fri Aug 28', meta:'Text · EN · grouped into the same story'}],
+     claims:[{t:'Paper trading only · no real money, no access to real accounts; no auto-rebalancing on free tier', v:'SUPPORTED'},
+             {t:'«avant d\u2019y mettre un euro réel» · removed: the video never discusses going live', v:'FIXED'}]},
+    {n:'03', title:'Les 12 fins de l\u2019IA', dur:180, start:315, sub:'AI risk · Species (sources doc)',
+     excerpt:'Ce qui rend la vidéo marquante, ce n\u2019est pas la spéculation, c\u2019est la densité de sources. Selon une enquête publiée en janvier 2024 auprès de milliers de chercheurs en IA, le chercheur moyen estime à une chance sur six la probabilité que l\u2019IA anéantisse l\u2019humanité. Les probabilités de la roulette russe.',
+     sources:[{pub:'SPECIES', kind:'sources doc', title:'The 12 endings of the AI era (7.7M views)', meta:'No transcript available · only the published sources doc is cited, and the episode says so'}],
+     claims:[{t:'1-in-6 average researcher estimate (Jan 2024 survey); Hinton > 50%; Amodei 15 → 25%', v:'SUPPORTED'},
+             {t:'«7M views in four months» → «depuis fin mars» · YouTube\u2019s "4 months" is a rounding', v:'FIXED'},
+             {t:'2023 letter says «real and serious» · the nuclear comparison is Guterres\u2019s, not the letter\u2019s', v:'FIXED'}]},
+    {n:'04', title:'The Space Between Us', dur:90, start:495, sub:'Photography · exhibition dossier',
+     excerpt:'On termine loin des marchés et des machines. The Space Between Us, du photographe français Louis Guichard, rassemble trois mois de route en Chine, de Wudang à Hunchun. Parti photographier un territoire, il dit avoir fini par photographier ce qui existe entre les gens.',
+     sources:[{pub:'LOUIS GUICHARD', kind:'PDF', title:'The Space Between Us · exhibition dossier', meta:'PDF · 24 pages · quality 0.96'}],
+     claims:[{t:'Five movements, Wudang → Hunchun, two months in a kung-fu school, 35mm film, no retouching', v:'SUPPORTED'}]},
+    {n:'05', title:'Sources & the one we dropped', dur:20, start:585, sub:'Outro · full sourcing recap',
+     excerpt:'C\u2019était votre briefing. Quatre sources aujourd\u2019hui : L\u2019Echo, Quiver Quantitative, la chaîne Species et un dossier d\u2019artiste. Une cinquième, un article de FLock sur l\u2019IA en entreprise, n\u2019a pas pu être extraite proprement : elle a été écartée plutôt que résumée de mémoire. À demain.',
+     sources:[], claims:[]}
+  ];
+
+  STAGES = [
+    {label:'Queued', caption:'Target locked before writing'},
+    {label:'Selecting', caption:'Ranked by importance × novelty'},
+    {label:'Outlining', caption:'150 s here, 90 s there · cuts named'},
+    {label:'Writing', caption:'≈1,500 words, documentary register'},
+    {label:'Grounding', caption:'Every sentence vs. its source'},
+    {label:'Editing', caption:'Blocklist: zero tics on air'},
+    {label:'Narrating', caption:'French documentary voice'},
+    {label:'Assembling', caption:'Chapters stitched, loudness set'},
+    {label:'Ready', caption:'Retained + discarded, with reasons'}
+  ];
+
+  LIB = [
+    {key:'today', label:'TODAY', storyNote:'Same story · will air as one chapter', rows:[
+      {pub:'THE ECONOMIST', icon:'¶', cat:'finance', title:'Private credit\u2019s reckoning spreads to the big banks', meta:'web · EN · 08:12', status:'ready', detail:'Contagion spreads to bank balance sheets. 9 claims · importance 0.8', actions:['Exclude from next episode','Delete']},
+      {pub:'BLOOMBERG', icon:'¶', cat:'finance', title:'Blue Owl halts redemptions on two BDC funds', meta:'web · EN · 07:48', status:'analyzed', detail:'Joined story: Private credit contagion.', actions:['Exclude from next episode','Delete']},
+      {pub:'BENEDICT\u2019S NEWSLETTER', icon:'✉', cat:'tech', title:'#612 · The agent economy', meta:'email · EN · 06:02', status:'extracting', detail:'Extracting…', actions:['Delete']}
+    ]},
+    {key:'issues', label:'NEEDS ATTENTION', storyNote:null, rows:[
+      {pub:'FLOCK', icon:'⚠', cat:'tech', title:'Enterprise AI has moved beyond chatbots', meta:'web · EN · Aug 27', status:'extraction_failed', detail:'No clean text (page needs JavaScript). Unfixed → named & discarded on air, never summarized.', actions:['Retry extraction','Paste the text','Delete']},
+      {pub:'THE ECONOMIST', icon:'⧉', cat:'finance', title:'Private credit\u2019s reckoning spreads to the big banks', meta:'web · EN · 09:31', status:'duplicate', detail:'Already saved at 08:12 · kept once.', actions:['Dismiss']}
+    ]},
+    {key:'aired', label:'AIRED · AUG 28', storyNote:null, rows:[
+      {pub:'L\u2019ECHO', icon:'▸', cat:'finance', title:'«Vous avez aimé les subprimes…» · crise du crédit privé', meta:'video · FR · quality 0.92', status:'aired', detail:'Chapter 1 · 150 s on air.', actions:[]},
+      {pub:'QUIVER QUANTITATIVE', icon:'▸', cat:'tech', title:'Claude trades stocks off Congress data', meta:'video + post · EN · quality 0.90', status:'aired', detail:'Chapter 2 · 130 s on air · 2 sources grouped.', actions:[]},
+      {pub:'SPECIES', icon:'▸', cat:'science', title:'The 12 endings of the AI era', meta:'sources doc · EN', status:'aired', detail:'Chapter 3 · 180 s on air · no transcript · sources doc only, said on air.', actions:[]},
+      {pub:'LOUIS GUICHARD', icon:'▸', cat:'history', title:'The Space Between Us · exhibition dossier', meta:'PDF · FR/EN · quality 0.96', status:'aired', detail:'Chapter 4 · 90 s on air.', actions:[]}
+    ]}
+  ];
+
+  CHIP = {
+    ready:{label:'READY', fg:'#2E7D46', bg:'rgba(46,125,70,.12)'},
+    analyzed:{label:'ANALYZED', fg:'#4A4854', bg:'rgba(28,27,34,.07)'},
+    extracting:{label:'EXTRACTING', fg:'#9A6B00', bg:'rgba(154,107,0,.12)', anim:'pcPulse 1.4s ease-in-out infinite'},
+    extraction_failed:{label:'FAILED', fg:'#B54334', bg:'rgba(181,67,52,.12)'},
+    duplicate:{label:'DUPLICATE', fg:'#4A4854', bg:'rgba(28,27,34,.07)'},
+    aired:{label:'AIRED', fg:'#77747E', bg:'rgba(28,27,34,.05)'}
+  };
+
+  fmt(s){ s=Math.max(0,Math.round(s)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+  chapIdx(t){ const C=this.CH; for(let i=C.length-1;i>=0;i--) if(t>=C[i].start) return i; return 0; }
+
+  startPlayback(t){ this.setState({started:true, playing:true, playerOpen:true, t:t!=null?t:this.state.t}); }
+
+  renderVals(){
+    const st=this.state, C=this.CH, TOTAL=605;
+    const ci=this.chapIdx(st.t), cur=C[ci];
+    const speed=[1,1.2,1.5,2][st.speedIdx];
+    const targetMin = st.targetMin ?? (this.props.targetMinutes ?? 15);
+    const genStepMs = this.props.genStepMs ?? 1500;
+    const inGen = st.gen>=0, genDone = st.gen>=8;
+    const lang = st.lang ?? (this.props.language ?? 'en'); const fr = lang==='fr'; const T = this.TXT[lang];
+
+    const set=(p)=>()=>this.setState(p);
+    const ICO={
+      today:'M6.5 2.5v3M13.5 2.5v3M4.5 4.5h11a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 2 15V7a2.5 2.5 0 0 1 2.5-2.5ZM2 8.5h16',
+      read:'M10 5c-1.5-1.3-3.6-1.7-6.5-1.7-.4 0-.8.3-.8.8v10.2c0 .5.4.8.8.8 2.9 0 5 .4 6.5 1.7 1.5-1.3 3.6-1.7 6.5-1.7.4 0 .8-.3.8-.8V4.1c0-.5-.4-.8-.8-.8-2.9 0-5 .4-6.5 1.7ZM10 5v11.8',
+      library:'M3 4.5h14M3 10h14M3 15.5h8.5',
+      settings:'M3 5.5h3.2M10.4 5.5H17M10.4 5.5a1.9 1.9 0 1 1-3.8 0 1.9 1.9 0 0 1 3.8 0ZM3 14.5h6.8M14 14.5h3M14 14.5a1.9 1.9 0 1 1-3.8 0 1.9 1.9 0 0 1 3.8 0Z'
+    };
+    const tabs=(fr?[['today','Aujourd’hui'],['read','Lire'],['library','Sources'],['settings','Réglages']]:[['today','Today'],['read','Read'],['library','Library'],['settings','Settings']]).map(([k,label])=>({
+      label, d:ICO[k], color: st.tab===k?'#1C1B22':'#8A87A0', bg: st.tab===k?'rgba(28,27,34,.07)':'transparent', onPick:set({tab:k})
+    }));
+
+    const focusData= fr?[
+      {headline:'Contagion du crédit privé', tag:'SUJET', note:'2 sources · 1 chapitre'},
+      {headline:'L’économie des agents', tag:'NEWSLETTER', note:'Extraction…'},
+      {headline:'Enterprise AI beyond chatbots', tag:'ÉCHEC', note:'Relancer dans Sources'},
+      {headline:'Thread : le gel des retraits BDC', tag:'X · THREAD', note:'12 posts · analysé'}
+    ]:[
+      {headline:'Private credit contagion', tag:'STORY', note:'2 sources · 1 chapter'},
+      {headline:'The agent economy', tag:'NEWSLETTER', note:'Extracting…'},
+      {headline:'Enterprise AI beyond chatbots', tag:'FAILED', note:'Retry in Library'},
+      {headline:'Thread: the BDC redemption freeze', tag:'X · THREAD', note:'12 posts · analyzed'}
+    ];
+    const focusCards=focusData.map((f,i)=>{
+      const inc=!!st.includes[i];
+      return {...f,
+        tagColor: i===2?'#B54334':'#6E6C78',
+        pillLabel: inc?(fr?'Inclus':'Included'):(fr?'Exclu':'Excluded'),
+        pillBg: inc?'#1C1B22':'transparent', pillFg: inc?'#FFFFFF':'#6E6C78',
+        onToggle:(e)=>{e.stopPropagation();this.setState(s=>({includes:{...s.includes,[i]:!s.includes[i]}}));},
+        onOpen:()=>this.setState({tab:'library'})};
+    });
+
+    const lenOpts=[10,15,20].map(m=>({label:m+'\u2032',
+      bg: targetMin===m?'#1C1B22':'transparent', fg: targetMin===m?'#FFFFFF':'#4A4854',
+      onPick:set({targetMin:m})}));
+
+    const libFilters=[['All','Tout'],['Ready','Prêt'],['Issues','Problèmes']].map(([k,frl])=>({label:fr?frl:k,
+      bg: st.libFilter===k?'#1C1B22':'rgba(255,255,255,.6)', fg: st.libFilter===k?'#FFFFFF':'#4A4854',
+      onPick:set({libFilter:k})}));
+    const CATS=[['tech','Technologie','Technology'],['politics','Politique','Politics'],['history','Histoire','History'],['science','Science','Science'],['finance','Finance','Finance']];
+    const allRows=this.LIB.flatMap(s=>s.rows);
+    const catName=(k)=>{ const c=CATS.find(c=>c[0]===k); return c?(fr?c[1]:c[2]):''; };
+    const libCats=[['All',fr?'Toutes':'All',allRows.length]].concat(CATS.map(([k,frl,enl])=>[k,fr?frl:enl,allRows.filter(r=>r.cat===k).length])).map(([k,label,cnt])=>({
+      label: cnt&&k!=='All'? label+' · '+cnt : label,
+      bg: st.libCat===k?'#1C1B22':'rgba(255,255,255,.6)', fg: st.libCat===k?'#FFFFFF':'#4A4854',
+      op: cnt?1:.45, onPick:set({libCat:k})}));
+
+    const keepCat=(r)=> st.libCat==='All' || r.cat===st.libCat;
+    const keepStatus=(r)=> st.libFilter==='All' ? true
+      : st.libFilter==='Ready' ? ['ready','analyzed'].includes(r.status)
+      : ['extraction_failed','duplicate','extracting'].includes(r.status);
+    const keep=(r)=> keepStatus(r) && keepCat(r);
+    const libSections=this.LIB.map(sec=>({label: fr?(this.LBL_FR[sec.key]||sec.label):sec.label, storyNote:sec.storyNote && st.libFilter==='All' ? (fr?'Même sujet · diffusé en un chapitre':sec.storyNote) : null,
+      rows: sec.rows.filter(keep).map((r,j)=>{
+        const id=sec.key+j, chip=this.CHIP[r.status];
+        return {pub:r.pub, icon:r.icon, title:r.title, meta: catName(r.cat)+' · '+(fr?r.meta.split('Aug 27').join('27 août'):r.meta),
+          chip:this.CHIP_L[lang][r.status], chipFg:chip.fg, chipBg:chip.bg, chipAnim:chip.anim||'none',
+          open: st.expanded===id, detail: fr?(this.DET_FR[r.detail]||r.detail):r.detail,
+          actions:r.actions.map((a,k)=>({label: fr?(this.ACT_FR[a]||a):a, bg:k===0&&r.status==='extraction_failed'?'#1C1B22':'transparent', fg:k===0&&r.status==='extraction_failed'?'#FFFFFF':'#4A4854', onTap:set({expanded:null})})),
+          onExpand:()=>this.setState(s=>({expanded:s.expanded===id?null:id}))};
+      })})).filter(sec=>sec.rows.length);
+
+    const ticks=C.slice(1).map(c=>({left:(c.start/TOTAL*100).toFixed(2)+'%'}));
+    const chapterRows=C.map((c,i)=>({n:c.n, title:(fr&&i===5)?'Sources & l’écartée':c.title, sub: fr?this.SUBS_FR[i]:c.sub, durLabel:this.fmt(c.dur),
+      weight: i===ci?700:500, numColor: i===ci?'#1C1B22':'#B0ADB6', bg: i===ci?'rgba(28,27,34,.05)':'transparent',
+      onJump:()=>{ this.setState({t:c.start, sheet:null}); this.startPlayback(c.start); }}));
+
+    const budget=[['Crédit privé',150],['Claude trades',130],['12 fins de l\u2019IA',180],['Space Between Us',90]];
+    const ST = fr?this.STAGES_FR:this.STAGES;
+    const genStages=ST.map((g,i)=>{
+      const done=i<st.gen || genDone, active=i===st.gen && !genDone;
+      return {label:g.label, caption:g.caption,
+        glyph: done?'✓':(active?'':String(i+1)),
+        ring: done||active?'#1C1B22':'#C9C6D2', fill: done?'#1C1B22':(active?'#1C1B22':'transparent'),
+        mark: done||active?'#FFFFFF':'#A5A2AC', op: done||active?1:.45,
+        anim: active?'pcPulse 1.1s ease-in-out infinite':'none'};
+    });
+
+    const claimStyle=(v)=> v==='FIXED'?{fg:'#9A6B00',bg:'rgba(154,107,0,.12)'}:{fg:'#2E7D46',bg:'rgba(46,125,70,.12)'};
+
+    return {
+      deviceScale: Math.min(1,(window.innerHeight-24)/874),
+      T, langOpts:[['en','EN'],['fr','FR']].map(([k,l])=>({label:l, bg:lang===k?'#1C1B22':'transparent', fg:lang===k?'#FFFFFF':'#4A4854', onPick:set({lang:k})})),
+      obOpen: st.ob>=0,
+      obTitle:(this.OB[lang].frames[st.ob]||{}).t, obSub:(this.OB[lang].frames[st.ob]||{}).s,
+      obSkipLbl:this.OB[lang].skip, obReplayLbl:this.OB[lang].replay,
+      obBtn: st.ob===4?this.OB[lang].start:this.OB[lang].next,
+      obNext:()=>{ if(this.state.ob>=4) this.obDone(); else this.setState(s=>({ob:s.ob+1})); },
+      obSkip:()=>this.obDone(), obReplay:()=>this.setState({ob:0, tab:'today'}),
+      obDots:[0,1,2,3,4].map(i=>({bg:i===st.ob?'#1C1B22':'rgba(28,27,34,.18)', w:i===st.ob?'22px':'7px', onPick:()=>this.setState({ob:i})})),
+      obV1:st.ob===0, obV2:st.ob===1, obV3:st.ob===2, obV4:st.ob===3, obV5:st.ob===4,
+      obSrcMock:'L’ECHO · «Vous avez aimé les subprimes…»',
+      tabToday: st.tab==='today',
+      tabLibrary: st.tab==='library', tabSettings: st.tab==='settings',
+      tabRead: st.tab==='read', readList: !st.readEp, readArticle: !!st.readEp,
+      readRows:(fr?[
+        {title:'Briefing de vendredi', meta:'28 août · 10:05 · 4 chapitres', badge:'LIRE', ok:1},
+        {title:'Briefing de jeudi', meta:'27 août · 14:36', badge:'AUDIO SEUL'},
+        {title:'Briefing de mercredi', meta:'26 août · 15:02', badge:'AUDIO SEUL'}
+      ]:[
+        {title:'Friday briefing', meta:'Aug 28 · 10:05 · 4 chapters', badge:'READ', ok:1},
+        {title:'Thursday briefing', meta:'Aug 27 · 14:36', badge:'AUDIO ONLY'},
+        {title:'Wednesday briefing', meta:'Aug 26 · 15:02', badge:'AUDIO ONLY'}
+      ]).map(r=>({...r, badgeFg:r.ok?'#FFFFFF':'#6E6C78', badgeBg:r.ok?'#1C1B22':'rgba(28,27,34,.07)', cursor:r.ok?'pointer':'default', op:r.ok?1:.55, onOpen:r.ok?set({readEp:'aug28'}):()=>{}})),
+      backRead:set({readEp:null}),
+      articleChapters: C.map((c,i)=>({n:c.n, title:(fr&&i===5)?'Sources & l’écartée':c.title, durLabel:this.fmt(c.dur),
+        paras:(this.PARAS[i]||[c.excerpt]).map(txt=>({txt})),
+        srcLine: c.sources.length? (fr?'Source : ':'Source: ')+c.sources[0].pub+(c.sources.length>1?' +'+(c.sources.length-1):'') : null,
+        onSrc:()=>this.setState({t:c.start, sheet:'sources'}),
+        onListen:()=>this.startPlayback(c.start)})),
+      tabs, noop:()=>{},
+      menuChapters: C.slice(1,5).map((c,i)=>({n:'0'+(i+1), title:c.title, durLabel:this.fmt(c.dur)})),
+      heroPlayLabel: st.started ? (st.playing?(fr?'En lecture':'Playing'):(fr?'Reprendre':'Resume')) : (fr?'Écouter':'Play'),
+      heroPlayIcon: st.playing?'❚❚':'▶',
+      playLatest:()=> st.playing ? this.setState({playerOpen:true}) : this.startPlayback(null),
+      ...(()=>{ const cnt=Object.values(st.includes).filter(Boolean).length; const ok=cnt>=4; const dash=(Math.min(cnt,4)/4*100.53).toFixed(1);
+        return { ringDash:dash+' 100.53', ringColor: ok?'#2E7D46':'#7C6CDC', ringCount:cnt+'/4',
+          ruleTitle: ok?(fr?'Minimum atteint':'Minimum reached'):(fr?cnt+' lien'+(cnt>1?'s':'')+' sur 4 minimum':cnt+' of 4 links minimum'),
+          ruleSub: ok?(fr?'Prêt à générer.':'Ready to generate.'):(fr?'Il faut au moins 4 liens pour fabriquer un épisode.':'At least 4 links are needed to build an episode.'),
+          genBtnOp: ok?1:.5, genBtnCursor: ok?'pointer':'default' }; })(),
+      startGenGated:()=>{ if(Object.values(this.state.includes).filter(Boolean).length>=4){ this.renderVals().startGen(); } },
+      focusCards, lenOpts, startGen:()=>{
+        clearInterval(this.genTimer);
+        this.setState({gen:0});
+        this.genTimer=setInterval(()=>this.setState(s=>{
+          if(s.gen>=8){ clearInterval(this.genTimer); return {}; }
+          return {gen:s.gen+1};
+        }), genStepMs);
+      },
+      genHint:(fr?'7 prêts · ~':'7 ready · ~')+targetMin+' min',
+      pastEpisodes: fr?[
+        {title:'Briefing de jeudi', meta:'27 août · 4 chapitres', dur:'14:36', dl:'⤓'},
+        {title:'Briefing de mercredi', meta:'26 août · 5 chapitres', dur:'15:02', dl:'⤓'}
+      ]:[
+        {title:'Thursday briefing', meta:'Aug 27 · 4 chapters', dur:'14:36', dl:'⤓'},
+        {title:'Wednesday briefing', meta:'Aug 26 · 5 chapters', dur:'15:02', dl:'⤓'}
+      ],
+      catGenShow: st.libCat!=='All' && allRows.some(r=>r.cat===st.libCat),
+      catGenLabel: fr?'Générer un épisode '+catName(st.libCat):'Make a '+catName(st.libCat)+' episode',
+      catGenTap:()=>{ this.renderVals().startGen(); },
+      libFilters, libCats, libSections, libEmpty: libSections.length===0, libEmptyTxt: fr?'Aucun lien dans cette catégorie pour l\u2019instant.':'No links in this category yet.',
+      voiceTitle: fr?'Voix de narration':'Narration voice',
+      voiceSub: 'ElevenLabs · '+(fr?'aperçu à la prochaine génération':'previewed on next generation'),
+      voiceOpts: [['Eric', fr?'documentaire':'documentary'],['Claire', fr?'journal du soir':'evening news'],['Hugo', fr?'chronique posée':'calm column']].map(([name,style],i)=>({
+        name, style, bg: st.voiceIdx===i?'#1C1B22':'rgba(255,255,255,.6)', fg: st.voiceIdx===i?'#FFFFFF':'#4A4854', sfg: st.voiceIdx===i?'rgba(255,255,255,.7)':'#77747E',
+        onPick:set({voiceIdx:i})})),
+      settingsRows: fr?[
+        {label:'Langue de sortie', sub:'Scripts et narration', value:'Français'},
+
+        {label:'Durée cible', sub:'Budget d’antenne fixé avant l’écriture', value:targetMin+' min'},
+        {label:'Adresse d’ingestion', sub:'Transférez vos newsletters ici', value:'ingest+louis@…'},
+        {label:'Génération quotidienne', sub:'Prêt avant le trajet', value:'06:30 · Activé'},
+        {label:'Flux RSS privé', sub:'Apple Podcasts, Overcast', value:'Copier le lien'}
+      ]:[
+        {label:'Output language', sub:'Scripts and narration', value:'Français'},
+
+        {label:'Default length', sub:'Airtime budgeted before writing', value:targetMin+' min'},
+        {label:'Ingest address', sub:'Forward newsletters here', value:'ingest+louis@…'},
+        {label:'Daily generation', sub:'Ready before your commute', value:'06:30 · On'},
+        {label:'Private RSS feed', sub:'Apple Podcasts, Overcast', value:'Copy link'}
+      ],
+      showMini: st.started && !st.playerOpen && st.gen<0,
+      openPlayer:set({playerOpen:true}), closePlayer:set({playerOpen:false}),
+      playerOpen: st.playerOpen, playing: st.playing,
+      playIcon: st.playing?'❚❚':'▶',
+      togglePlay:()=>this.setState(s=>({playing:!s.playing})),
+      togglePlayStop:(e)=>{ e.stopPropagation(); this.setState(s=>({playing:!s.playing})); },
+      curTitle: (fr&&ci===5)?'Sources & l’écartée':cur.title, curOverline: ci===0?'INTRO':(ci===5?'OUTRO':(fr?'CHAPITRE '+ci+' SUR 4':'CHAPTER '+ci+' OF 4')),
+      curTimeLabel: this.fmt(st.t)+' / '+this.fmt(TOTAL),
+      progressPct:(st.t/TOTAL*100).toFixed(2)+'%',
+      tCur:this.fmt(st.t), tLeft:this.fmt(TOTAL-st.t), ticks,
+      back15:()=>this.setState(s=>({t:Math.max(0,s.t-15)})),
+      fwd15:()=>this.setState(s=>({t:Math.min(TOTAL,s.t+15)})),
+      prevChap:()=>{ const i=this.chapIdx(this.state.t); const tgt=(this.state.t-C[i].start)>3?i:Math.max(0,i-1); this.setState({t:C[tgt].start}); },
+      nextChap:()=>{ const i=this.chapIdx(this.state.t); this.setState({t:C[Math.min(C.length-1,i+1)].start}); },
+      cycleSpeed:()=>this.setState(s=>({speedIdx:(s.speedIdx+1)%4})),
+      speedLabel: speed+'×',
+      seekBar:(e)=>{ const r=e.currentTarget.getBoundingClientRect(); this.setState({t:Math.max(0,Math.min(TOTAL,(e.clientX-r.left)/r.width*TOTAL))}); },
+      curSourceLine: cur.sources.length ? cur.sources[0].pub+' · '+cur.sources[0].title : (fr?'Éditorial · intro/outro, sans faits externes':'Editorial · intro/outro, no external claims'),
+      openSources:set({sheet:'sources'}), openChapters:set({sheet:'chapters'}),
+      openTranscript:set({sheet:'transcript'}), openBackstage:set({sheet:'backstage'}), openHowShare:set({sheet:'howshare'}),
+      howShareRow: fr?'Partager un lien dans Podcapp':'How to share a link in Podcapp',
+      howShareRowSub: fr?'Le geste, en 3 étapes':'The gesture, in 3 steps',
+      hs1t: fr?'Touchez Partager':'Tap Share', hs1s: fr?'Depuis Safari, YouTube, Mail, X…':'From Safari, YouTube, Mail, X…',
+      hs2t: fr?'Choisissez Podcapp':'Pick Podcapp', hs2s: fr?'Dans la feuille de partage iOS':'In the iOS share sheet',
+      hs3t: fr?'Capturé en 1 s':'Captured in 1 s', hs3s: fr?'Vous restez sur votre app · l’analyse tourne en arrière-plan':'You stay in your app · analysis runs in the background',
+      closeSheet:set({sheet:null}),
+      sheetOpen: !!st.sheet,
+      sheetTitle: (fr?{sources:'D’où ça vient', chapters:'Chapitres', transcript:'Transcription', backstage:'Comment c’est fabriqué', howshare:'Partager un lien'}:{sources:'Where this comes from', chapters:'Chapters', transcript:'Transcript', backstage:'How it was made', howshare:'Share a link'})[st.sheet]||'',
+      sheetIsChapters: st.sheet==='chapters', sheetIsSources: st.sheet==='sources',
+      sheetIsTranscript: st.sheet==='transcript', sheetIsBackstage: st.sheet==='backstage', sheetIsHowShare: st.sheet==='howshare',
+      chapterRows, curSources: cur.sources.map((s,k)=>({...s, ...((fr&&this.SRC_FR[ci]&&this.SRC_FR[ci][k])||{}), kind: fr?(this.KIND_FR[s.kind]||s.kind):s.kind})),
+      noSources: cur.sources.length===0, hasClaims: cur.claims.length>0,
+      curClaims: cur.claims.map((c,k)=>({t: (fr&&(this.CLAIMS_FR[ci]||[])[k])||c.t, v: c.v==='FIXED'?(fr?'CORRIGÉ':'FIXED'):(fr?'VÉRIFIÉ':'SUPPORTED'), ...claimStyle(c.v)})),
+      curExcerpt: cur.excerpt,
+      budgetRows: budget.map(([title,sec])=>({title, sec:sec+' s', w:(sec/180*100).toFixed(0)+'%'})),
+      pipelineDone:(fr?this.STAGES_FR:this.STAGES).map(s=>s.label),
+      genOpen: inGen, genDone,
+      genHeader: genDone?(fr?'PRÊT':'READY'):(fr?'GÉNÉRATION':'GENERATING'),
+      genCloseLabel: genDone?(fr?'Fermer':'Close'):(fr?'Masquer':'Hide'),
+      genTitle: genDone?(fr?'Votre briefing de lundi est prêt.':'Your Monday briefing is ready.'):(fr?'Construction du briefing.':'Building your briefing.'),
+      genSub: genDone?(fr?'2 retenus · 1 écarté · avec raisons':'2 retained · 1 discarded · with reasons'):(fr?'Neuf étapes éditoriales · cible '+targetMin+' min · 7 sources':'Nine editorial steps · target '+targetMin+' min · 7 sources'),
+      genStages, closeGen:()=>{ clearInterval(this.genTimer); this.setState({gen:-1}); }
+    };
+  }
+}
+</script>
+
+
+</body></html>

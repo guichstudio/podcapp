@@ -2,7 +2,7 @@ import SwiftUI
 
 // The Sources tab: everything captured, what the pipeline made of it, and the
 // reason when it went wrong. Layout, spacing and colour come from the v3
-// prototype (/tmp/podcapp-shots/v3.html, the `tabLibrary` branch); the states
+// prototype (ios/design/v3-layout.html, the `tabLibrary` branch); the states
 // and the counts come from the API, which is why the prototype's AIRED shelf
 // and its per-row actions are absent — see the notes on LibraryStatus.
 
@@ -10,7 +10,16 @@ struct LibraryView: View {
     // Same reason as TodayView: the tab stays alive behind .opacity(0), so
     // `.task` runs once. A link shared from another app has to be here when
     // you come back, or the share looks like it was swallowed.
+    /// True only for the tab on screen. RootView keeps every opened tab alive
+    /// behind .opacity(0), so without this both this screen and its neighbour
+    /// answered every return to the foreground with a request nobody was
+    /// looking at.
+    let isActive: Bool
+
     @Environment(\.scenePhase) private var scenePhase
+    /// When the rows on screen were last read, so a tab you come back to after
+    /// a while refreshes and one you flick through does not.
+    @State private var loadedAt: Date?
     @State private var sources: [SavedSource] = []
     // The shelves the server files sources under, and the one being looked at.
     // "all" is not a shelf; it is the absence of a filter.
@@ -100,7 +109,13 @@ struct LibraryView: View {
         .refreshable { await load() }
         .task { await load() }
         .onChange(of: scenePhase) { _, new in
-            if new == .active { Task { await load() } }
+            if new == .active, isActive { Task { await refresh() } }
+        }
+        // Coming back to a tab that has been hidden a while: the foreground
+        // refresh above skipped it, so it catches up here instead of showing
+        // whatever it read when it was last looked at.
+        .onChange(of: isActive) { _, now in
+            if now { Task { await refresh() } }
         }
     }
 
@@ -702,6 +717,16 @@ struct LibraryView: View {
         }
     }
 
+    /// Re-reads only if what is on screen has had time to go stale. Thirty
+    /// seconds is well under the time it takes the pipeline to turn a shared
+    /// link into anything visible, and it stops a flick through the tabs from
+    /// costing four requests.
+    @MainActor
+    private func refresh() async {
+        if let loadedAt, Date().timeIntervalSince(loadedAt) < 30 { return }
+        await load()
+    }
+
     // MARK: - Data
 
     /// The rows on the shelf being looked at; every row when none is.
@@ -736,6 +761,9 @@ struct LibraryView: View {
     }
 
     private func load() async {
+        // Stamped before the call, not after: a slow request must not make the
+        // screen look stale enough to fire a second one behind it.
+        loadedAt = Date()
         do {
             let batch = try await API.shared.sources()
             sources = batch.sources

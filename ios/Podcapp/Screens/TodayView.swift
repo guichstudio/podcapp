@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-// The Today tab of the v3 prototype (/tmp/podcapp-shots/v3.html): the latest
+// The Today tab of the v3 prototype (ios/design/v3-layout.html): the latest
 // briefing, what is queued for the next one, and the episodes before it.
 //
 // One write: Generate posts to /episodes, which queues the generation in the
@@ -15,7 +15,16 @@ struct TodayView: View {
     // left the counter below reading whatever it read at launch, and the save
     // looked like it had not happened. Coming back to the app is exactly when
     // the count should be re-read.
+    /// True only for the tab on screen. RootView keeps every opened tab alive
+    /// behind .opacity(0), so without this both this screen and its neighbour
+    /// answered every return to the foreground with a request nobody was
+    /// looking at.
+    let isActive: Bool
+
     @Environment(\.scenePhase) private var scenePhase
+    /// When the rows on screen were last read, so a tab you come back to after
+    /// a while refreshes and one you flick through does not.
+    @State private var loadedAt: Date?
     @State private var phase: Phase = .loading
     @State private var backstage: EpisodeDetail?
     @State private var targetMinutes = 5
@@ -49,7 +58,13 @@ struct TodayView: View {
         // reset: false keeps the rows on screen while the reload runs, so
         // returning to the app never flashes back to the loading state.
         .onChange(of: scenePhase) { _, new in
-            if new == .active { Task { await load(reset: false) } }
+            if new == .active, isActive { Task { await refresh() } }
+        }
+        // Coming back to a tab that has been hidden a while: the foreground
+        // refresh above skipped it, so it catches up here instead of showing
+        // whatever it read when it was last looked at.
+        .onChange(of: isActive) { _, now in
+            if now { Task { await refresh() } }
         }
         .sheet(item: $backstage) { TodayBackstageSheet(detail: $0) }
     }
@@ -248,9 +263,23 @@ struct TodayView: View {
 
     // MARK: - Loading
 
+    /// Re-reads only if what is on screen has had time to go stale. Thirty
+    /// seconds is well under the time the pipeline takes to turn a shared link
+    /// into anything visible here, and it stops a flick through the tabs from
+    /// costing four requests.
+    @MainActor
+    private func refresh() async {
+        if let loadedAt, Date().timeIntervalSince(loadedAt) < 30 { return }
+        await load(reset: false)
+    }
+
+
     @MainActor
     private func load(reset: Bool = true) async {
         if reset { phase = .loading }
+        // Stamped before the calls, not after: a slow request must not make the
+        // screen look stale enough to fire a second one behind it.
+        loadedAt = Date()
         do {
             async let sourcesCall = API.shared.sources()
             let episodes = try await API.shared.episodes()
@@ -1046,5 +1075,5 @@ private enum TodayText {
 // MARK: - Previews
 
 #Preview("Today") {
-    TodayView()
+    TodayView(isActive: true)
 }

@@ -231,7 +231,7 @@ extension NSItemProvider {
     }
 }
 
-/// The confirmation sheet of "Podcapp Saved + Notifications" (FR 01 / EN 01),
+/// The confirmation sheet of ios/design/saved-layout.html (FR 01 / EN 01),
 /// ported against the artboard's own computed values rather than by eye: the
 /// 393x852 frame, the scrim, the 46pt mark, the 96pt disc inside its 128pt
 /// glow, and the type ramp 30/700 -0.6, 17/700 at 1.35, 13.5/500.

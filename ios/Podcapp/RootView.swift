@@ -70,11 +70,15 @@ struct RootView: View {
         }
     }
 
+    /// `candidate`, not `tab`: this builds the view for one of the four, while
+    /// `tab` stays the one on screen. The two are only equal for the visible
+    /// one, which is what `isActive` passes down -- the screens use it to
+    /// refresh when they are being looked at rather than all at once.
     @ViewBuilder
-    private func screen(_ tab: RootTab) -> some View {
-        switch tab {
+    private func screen(_ candidate: RootTab) -> some View {
+        switch candidate {
         case .today:
-            TodayView()
+            TodayView(isActive: tab == .today)
         case .read:
             // The Read tab hands over a chapter index, not a timecode: the
             // player is the only place that knows the timeline.
@@ -82,7 +86,7 @@ struct RootView: View {
                 EpisodePlayer.shared.open(episode, chapterIndex: chapterIndex)
             }
         case .sources:
-            LibraryView()
+            LibraryView(isActive: tab == .sources)
         case .settings:
             SettingsView()
         }

@@ -2,7 +2,7 @@ import CoreText
 import SwiftUI
 import UIKit
 
-// Design tokens decoded from the v3 prototype (/tmp/podcapp-shots/v3.html).
+// Design tokens decoded from the v3 prototype (ios/design/v3-layout.html).
 // Every value below was read off that prototype's markup or its live computed
 // styles: screens read from here and never hardcode a color or a size.
 //

@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-// The Read tab, tpl 70-98 of the v3 prototype (/tmp/podcapp-shots/v3.html): two
+// The Read tab, tpl 70-98 of the v3 prototype (ios/design/v3-layout.html): two
 // states in one file. The list of briefings, and one briefing as an article.
 
 struct ReadView: View {

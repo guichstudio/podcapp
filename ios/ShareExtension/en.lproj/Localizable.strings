@@ -38,8 +38,6 @@
 "All" = "All";
 "All episodes" = "All episodes";
 "Already saved: counted once." = "Already saved: counted once.";
-"An episode needs at least %lld saved links. Share %lld more." = "An episode needs at least %lld saved links. Share %lld more.";
-"An episode needs at least %lld saved links. Share 1 more." = "An episode needs at least %lld saved links. Share 1 more.";
 "Analysed" = "Analysed";
 "Analysed and attached to a story." = "Analysed and attached to a story.";
 "Analysed, waiting to be grouped." = "Analysed, waiting to be grouped.";
@@ -74,9 +72,6 @@
 "Checking" = "Checking";
 "Close" = "Close";
 "Close the player" = "Close the player";
-"Connected. Sharing is ready." = "Connected. Sharing is ready.";
-"Connecting" = "Connecting";
-"Continue" = "Continue";
 "Copied" = "Copied";
 "Copy" = "Copy";
 "Copy link" = "Copy link";
@@ -100,13 +95,11 @@
 "Duplicate" = "Duplicate";
 "EARLIER" = "EARLIER";
 "EXTRACTING" = "EXTRACTING";
-"Earlier" = "Earlier";
 "Editing" = "Editing";
 "Editorial" = "Editorial";
 "Editorial: intro/outro, no external facts" = "Editorial: intro/outro, no external facts";
 "ElevenLabs · previewed on the next generation" = "ElevenLabs · previewed on the next generation";
 "Email" = "Email";
-"Episode in the works" = "Episode in the works";
 "Episode in the works · the feed and this screen update as soon as it is ready." = "Episode in the works · the feed and this screen update as soon as it is ready.";
 "Episode ready · open it" = "Episode ready · open it";
 "Error %lld. %@" = "Error %lld. %@";
@@ -125,12 +118,10 @@
 "Four short sounds: saved, refused, generation queued, next chapter." = "Four short sounds: saved, refused, generation queued, next chapter.";
 "From Safari, YouTube, Mail, X…" = "From Safari, YouTube, Mail, X…";
 "GENERATING" = "GENERATING";
-"Generate" = "Generate";
 "Generate now" = "Generate now";
 "Generation" = "Generation";
 "Generation failed before the script was written." = "Generation failed before the script was written.";
 "Generation stopped. Start it again with the Generate button below." = "Generation stopped. Start it again with the Generate button below.";
-"Give it about ten minutes: the briefing lands in the feed and at the top of this screen as soon as it is ready." = "Give it about ten minutes: the briefing lands in the feed and at the top of this screen as soon as it is ready.";
 "HOW TO SHARE" = "HOW TO SHARE";
 "Haptics" = "Haptics";
 "History" = "History";
@@ -145,7 +136,6 @@
 "Invalid server address." = "Invalid server address.";
 "Issues" = "Issues";
 "It leaves your library for good. An episode that already cited it keeps the citation, flagged as no longer available." = "It leaves your library for good. An episode that already cited it keeps the citation, flagged as no longer available.";
-"Its address carries a token the server never sends back to the app: copy it from the machine that publishes the episodes." = "Its address carries a token the server never sends back to the app: copy it from the machine that publishes the episodes.";
 "It’s captured." = "It’s captured.";
 "Kept + set aside, with reasons" = "Kept + set aside, with reasons";
 "Language" = "Language";
@@ -162,7 +152,6 @@
 "Loading your sources…" = "Loading your sources…";
 "Low quality" = "Low quality";
 "Make a %@ episode" = "Make a %@ episode";
-"Manual" = "Manual";
 "Minimum reached" = "Minimum reached";
 "NEEDS A LOOK" = "NEEDS A LOOK";
 "Narration" = "Narration";
@@ -183,15 +172,12 @@
 "No text for this chapter: the episode has no readable script yet." = "No text for this chapter: the episode has no readable script yet.";
 "No verification report for this episode." = "No verification report for this episode.";
 "Not found on the server." = "Not found on the server.";
-"Not shown" = "Not shown";
-"Note saved" = "Note saved";
 "Nothing in this filter." = "Nothing in this filter.";
 "Nothing new since the last briefing. Share a link to Podcapp, from Safari or any app, to feed the next one." = "Nothing new since the last briefing. Share a link to Podcapp, from Safari or any app, to feed the next one.";
 "Nothing playing" = "Nothing playing";
 "Nothing playing." = "Nothing playing.";
 "Nothing to listen to yet." = "Nothing to listen to yet.";
 "Nothing to save." = "Nothing to save.";
-"OK" = "OK";
 "On" = "On";
 "Open a briefing from the Today tab to listen to it here." = "Open a briefing from the Today tab to listen to it here.";
 "Other" = "Other";
@@ -267,7 +253,6 @@
 "Sources" = "Sources";
 "Sources grouped into a story air as one chapter" = "Sources grouped into a story air as one chapter";
 "Sources in another language? Your recap stays in yours." = "Sources in another language? Your recap stays in yours.";
-"Started from the computer" = "Started from the computer";
 "Status “%@” unknown to the app." = "Status “%@” unknown to the app.";
 "Status: " = "Status: ";
 "Status: %@. The audio appears here once assembly is done." = "Status: %@. The audio appears here once assembly is done.";
@@ -280,7 +265,6 @@
 "Terms of Use" = "Terms of Use";
 "That’s it: you stay in your app." = "That’s it: you stay in your app.";
 "The Echo · Markets · 28 August 2026" = "The Echo · Markets · 28 August 2026";
-"The RSS feed works in Apple Podcasts, Overcast and the rest." = "The RSS feed works in Apple Podcasts, Overcast and the rest.";
 "The RSS feed works in Apple Podcasts, Overcast and the rest. Its address carries a token that is the only key to your episodes: share it with nobody." = "The RSS feed works in Apple Podcasts, Overcast and the rest. Its address carries a token that is the only key to your episodes: share it with nobody.";
 "The editorial plan for this episode was not kept." = "The editorial plan for this episode was not kept.";
 "The episode is published, but its script is empty." = "The episode is published, but its script is empty.";
@@ -290,7 +274,6 @@
 "The provider returned no identity token." = "The provider returned no identity token.";
 "The run stopped before publishing. Try again from Today." = "The run stopped before publishing. Try again from Today.";
 "The script is still being written. Come back in a few minutes." = "The script is still being written. Come back in a few minutes.";
-"These are shown, not set: they live on the machine that generates the episodes." = "These are shown, not set: they live on the machine that generates the episodes.";
 "They leave your library for good. An episode that already cited one keeps the citation, flagged as no longer available." = "They leave your library for good. An episode that already cited one keeps the citation, flagged as no longer available.";
 "This briefing has no text yet." = "This briefing has no text yet.";
 "This device" = "This device";
@@ -303,7 +286,6 @@
 "Transcript" = "Transcript";
 "Try again" = "Try again";
 "Two seconds." = "Two seconds.";
-"Unavailable: the server does not expose these actions yet." = "Unavailable: the server does not expose these actions yet.";
 "Unknown title" = "Unknown title";
 "Unreadable server response: %@" = "Unreadable server response: %@";
 "Unsupported" = "Unsupported";
@@ -351,9 +333,7 @@
 "rewritten to match the evidence" = "rewritten to match the evidence";
 "sentences checked" = "sentences checked";
 "source cited" = "source cited";
-"source ready" = "source ready";
 "sources cited" = "sources cited";
-"sources ready" = "sources ready";
 "unsourced" = "unsourced";
 "video" = "video";
 "video · article" = "video · article";
