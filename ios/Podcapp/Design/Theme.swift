@@ -79,9 +79,13 @@ enum Palette {
     // every card, so nothing on top of the background is opaque.
     /// Hero, past-episode and story cards. CSS backdrop-filter: none.
     static let cardFill = Color.white.opacity(0.62)
-    /// Blurred panels: the generation panel, settings groups, the expanded
-    /// library row. blur(26px) saturate(1.8).
-    static let panelFill = Color.white.opacity(0.52)
+    /// The generation panel, settings groups, the expanded library row.
+    /// The prototype washes these at .52 and puts blur(26px) saturate(1.8)
+    /// behind them; that material is gone (see `Shape.glass`), and .52 alone
+    /// reads thinner than the cards beside it. Raised to the cards' own wash so
+    /// a panel and a card read as the same material, which is what the design
+    /// intends even though it reaches it a different way.
+    static let panelFill = Color.white.opacity(0.62)
     /// Transport buttons and the speed/chapters/transcript row, and the source
     /// cards inside a sheet. blur(18px) saturate(1.7) on the transport.
     static let controlFill = Color.white.opacity(0.55)
@@ -157,7 +161,10 @@ enum Palette {
 
     // Tab bar (floating capsule, from v3.html's #dc-root markup)
     static let tabInactive = Color(hex: 0x8A87A0)
-    static let tabBarFill = Color(hex: 0xFCFCFA, opacity: 0.55)
+    /// .55 in the prototype, over blur(30px) saturate(1.8). Same reasoning as
+    /// `panelFill`: with no material under it the bar needs the cards' wash to
+    /// read as the same glass rather than as a thin film.
+    static let tabBarFill = Color(hex: 0xFCFCFA, opacity: 0.62)
     static let tabBarBorder = Color.white.opacity(0.88)
     /// Same hue as every other ambient shadow; the tab bar just carries more
     /// opacity (0.2 vs a card's 0.13) to read as a floating pill, not a card.
@@ -283,12 +290,25 @@ extension Shape {
     /// and saturate. Borders, clips and shadows stay at the call site — those
     /// differ per surface, this does not.
     func glass(_ fill: Color, _ treatment: Glass) -> some View {
+        // No material, on purpose, and `treatment` currently changes nothing.
+        //
+        // A material was the only way to reach the backdrop and carry the
+        // prototype's blur, but it desaturated what it sampled, which is what
+        // made these surfaces read grey. Re-saturating it fixed that on a
+        // simulator and did nothing on hardware: iOS renders every material as
+        // a flat opaque fill when Reduce Transparency is on, and saturating an
+        // opaque grey returns the same grey. The owner has that setting on, so
+        // the material was costing the tint and delivering no blur at all.
+        //
+        // A plain wash over the real background keeps the lavender by
+        // construction, in every accessibility state and on every compositor.
+        // What it gives up is the blur where content genuinely scrolls behind a
+        // surface -- measured at 95/255 under the tab bar on Library, and under
+        // 5/255 everywhere the backdrop is only the screen gradient. `Glass`
+        // stays because the call sites record which surfaces the prototype
+        // filters; that is the list to revisit if the blur is ever wanted back
+        // for people who have transparency enabled.
         self.fill(fill)
-            .background {
-                if treatment == .filtered {
-                    self.fill(.ultraThinMaterial).saturation(Palette.glassResaturate)
-                }
-            }
     }
 }
 
