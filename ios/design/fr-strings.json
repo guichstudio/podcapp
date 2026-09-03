@@ -219,9 +219,9 @@
   "Revoke": "Révoquer",
   "SOURCE": "SOURCE",
   "Save a few sources, then generate a briefing from the Today tab.": "Enregistrez des sources, puis générez un briefing depuis l’onglet Aujourd’hui.",
-  "Saved": "Sauvegardé",
+  "Saved": "Enregistré",
   "Saved. It will join your next briefing.": "Enregistré. Il rejoindra votre prochain briefing.",
-  "Saving": "Enregistrement",
+  "Saving": "Enregistrement…",
   "Science": "Science",
   "Script not written yet.": "Script pas encore écrit.",
   "Scripts and narration": "Scripts et narration",
@@ -360,5 +360,10 @@
   "Delete": "Supprimer",
   "Delete this source?": "Supprimer cette source ?",
   "Delete %lld sources?": "Supprimer %lld sources ?",
-  "They leave your library for good. An episode that already cited one keeps the citation, flagged as no longer available.": "Elles quittent votre bibliothèque définitivement. Un épisode qui en citait une garde la citation, signalée comme indisponible."
+  "They leave your library for good. An episode that already cited one keeps the citation, flagged as no longer available.": "Elles quittent votre bibliothèque définitivement. Un épisode qui en citait une garde la citation, signalée comme indisponible.",
+  "Podcapp": "Podcapp",
+  "article": "article",
+  "note": "note",
+  "links": "liens",
+  "Saved text": "Texte enregistré"
 }

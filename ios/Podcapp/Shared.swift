@@ -133,8 +133,18 @@ enum IngestError: LocalizedError {
 }
 
 struct Ingest {
+    /// What the server says once the capture has landed: how many links are
+    /// behind the next episode, and how many it needs. Both are optional
+    /// because an older deployment does not send them, and the sheet then
+    /// simply shows the save without the count.
+    struct Receipt {
+        let available: Int?
+        let minimum: Int?
+    }
+
     // The payload mirrors the endpoint: { url } for a link, { text } otherwise.
-    static func save(url: URL?, text: String?) async throws {
+    @discardableResult
+    static func save(url: URL?, text: String?) async throws -> Receipt {
         guard Config.isConfigured else { throw IngestError.notConfigured }
         guard let endpoint = URL(string: Config.baseURL + "/ingest") else { throw IngestError.badURL }
 
@@ -152,9 +162,10 @@ struct Ingest {
 
         let (data, response) = try await URLSession.shared.data(for: request)
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+        let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         guard (200..<300).contains(code) else {
-            let message = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
-            throw IngestError.http(code, message ?? "")
+            throw IngestError.http(code, json?["error"] as? String ?? "")
         }
+        return Receipt(available: json?["available"] as? Int, minimum: json?["minimum"] as? Int)
     }
 }

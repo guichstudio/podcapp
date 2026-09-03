@@ -202,6 +202,7 @@
 "Pipeline" = "Pipeline";
 "Play" = "Lecture";
 "Playback failed: unreadable audio file." = "Lecture impossible : fichier audio illisible.";
+"Podcapp" = "Podcapp";
 "Politics" = "Politique";
 "Previous chapter" = "Chapitre précédent";
 "Privacy policy" = "Politique de confidentialité";
@@ -225,9 +226,10 @@
 "Revoke" = "Révoquer";
 "SOURCE" = "SOURCE";
 "Save a few sources, then generate a briefing from the Today tab." = "Enregistrez des sources, puis générez un briefing depuis l’onglet Aujourd’hui.";
-"Saved" = "Sauvegardé";
+"Saved" = "Enregistré";
+"Saved text" = "Texte enregistré";
 "Saved. It will join your next briefing." = "Enregistré. Il rejoindra votre prochain briefing.";
-"Saving" = "Enregistrement";
+"Saving" = "Enregistrement…";
 "Science" = "Science";
 "Script not written yet." = "Script pas encore écrit.";
 "Scripts and narration" = "Scripts et narration";
@@ -317,6 +319,7 @@
 "Your daily radio: sourced by you, checked by us" = "Votre radio quotidienne : sourcée par vous, vérifiée par nous";
 "Your morning" = "Votre morning";
 "Your sources, briefings, audio and feed are erased for good. Nothing is kept." = "Vos sources, briefings, audio et flux sont effacés pour de bon. Rien n’est conservé.";
+"article" = "article";
 "assembling" = "en assemblage";
 "attached to a story" = "rattaché à un sujet";
 "chapter" = "chapitre";
@@ -325,8 +328,10 @@
 "checked by us." = "vérifié par nous.";
 "cut before air" = "coupées avant l’antenne";
 "failed" = "échec";
+"links" = "liens";
 "narrating" = "en narration";
 "not attached yet" = "pas encore rattaché";
+"note" = "note";
 "nothing new today" = "rien de nouveau aujourd’hui";
 "onboarding.recap.lang" = "FR";
 "onboarding.recap.quote" = "Le crédit privé montre ses premières fissures : Blue Owl à −40 %.";

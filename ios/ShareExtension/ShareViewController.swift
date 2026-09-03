@@ -16,7 +16,35 @@ final class ShareModel: ObservableObject {
             }
         }
     }
-    enum State: Equatable { case saving, saved(String), failed(String) }
+    enum State: Equatable { case saving, saved(Saved), failed(String) }
+
+    /// What the confirmation actually shows, from the design's own list: the
+    /// title, where it came from, and how close the next episode now is.
+    ///
+    /// The category chip the design puts beside the count is NOT here, and that
+    /// is deliberate. A source is filed on a shelf by the analyser, minutes
+    /// after this sheet has closed; there is nothing to show at save time and
+    /// inventing one would be the fake UI this project refuses elsewhere.
+    struct Saved: Equatable {
+        let title: String
+        let host: String
+        let kind: Kind
+        let at: Date
+        let available: Int?
+        let minimum: Int?
+
+        enum Kind: Equatable {
+            case article, video, note
+
+            var label: String {
+                switch self {
+                case .article: return String(localized: "article")
+                case .video: return String(localized: "video")
+                case .note: return String(localized: "note")
+                }
+            }
+        }
+    }
 }
 
 // The whole point of the app: receive a link from any other app and record it.
@@ -70,10 +98,14 @@ class ShareViewController: UIViewController {
             model.state = .failed(String(localized: "Nothing to save."))
             return
         }
+        // Most apps hand the page title over as the item's own content text --
+        // Safari always does -- which is the only place a title can come from
+        // at save time: extraction runs in the cloud, minutes later.
+        let offered = (item.attributedContentText?.string).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
         do {
             if let url = try await firstURL(in: providers) {
-                try await Ingest.save(url: url, text: nil)
-                model.state = .saved(url.host ?? url.absoluteString)
+                let receipt = try await Ingest.save(url: url, text: nil)
+                model.state = .saved(saved(url: url, title: offered, receipt: receipt))
                 return
             }
             guard let text = try await firstText(in: providers) else {
@@ -84,15 +116,51 @@ class ShareViewController: UIViewController {
             // attachment, and it is worth far more to the pipeline as a link.
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
             if let url = firstWebURL(in: trimmed) {
-                try await Ingest.save(url: url, text: nil)
-                model.state = .saved(url.host ?? url.absoluteString)
+                let receipt = try await Ingest.save(url: url, text: nil)
+                // The sentence the link was wrapped in is a better title than
+                // the host, but only when it is not simply the link again.
+                let wrapper = trimmed == url.absoluteString ? offered : trimmed
+                model.state = .saved(saved(url: url, title: wrapper, receipt: receipt))
             } else {
-                try await Ingest.save(url: nil, text: trimmed)
-                model.state = .saved(String(localized: "Note saved"))
+                let receipt = try await Ingest.save(url: nil, text: trimmed)
+                model.state = .saved(ShareModel.Saved(
+                    title: trimmed,
+                    host: String(localized: "Saved text"),
+                    kind: .note,
+                    at: Date(),
+                    available: receipt.available,
+                    minimum: receipt.minimum
+                ))
             }
         } catch {
             model.state = .failed(error.localizedDescription)
         }
+    }
+
+    /// A title only when the sharing app gave a real one: Instagram and X hand
+    /// over a caption that is worth keeping, while a title equal to the link
+    /// itself is noise. Falls back to the host, which is always true.
+    private func saved(url: URL, title: String?, receipt: Ingest.Receipt) -> ShareModel.Saved {
+        let host = (url.host ?? url.absoluteString).replacingOccurrences(of: "www.", with: "", options: .anchored)
+        let cleaned = title.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) } ?? ""
+        let usable = cleaned.isEmpty || cleaned == url.absoluteString || cleaned.hasPrefix("http") ? nil : cleaned
+        return ShareModel.Saved(
+            title: usable ?? host,
+            host: host,
+            kind: ShareViewController.kind(of: url),
+            at: Date(),
+            available: receipt.available,
+            minimum: receipt.minimum
+        )
+    }
+
+    /// Said from the address alone, because nothing else is known yet. Only the
+    /// video hosts are claimed; everything else is called an article rather
+    /// than guessed at.
+    private static func kind(of url: URL) -> ShareModel.Saved.Kind {
+        let host = (url.host ?? "").lowercased()
+        let video = ["youtube.com", "youtu.be", "m.youtube.com", "vimeo.com", "dailymotion.com", "tiktok.com"]
+        return video.contains(where: { host == $0 || host.hasSuffix("." + $0) }) ? .video : .article
     }
 
     /// The first http(s) URL among the attachments. Deliberately not "the first
@@ -163,46 +231,229 @@ extension NSItemProvider {
     }
 }
 
+/// The confirmation sheet of "Podcapp Saved + Notifications" (FR 01 / EN 01),
+/// ported against the artboard's own computed values rather than by eye: the
+/// 393x852 frame, the scrim, the 46pt mark, the 96pt disc inside its 128pt
+/// glow, and the type ramp 30/700 -0.6, 17/700 at 1.35, 13.5/500.
+///
+/// One thing from the artboard is missing on purpose: the category chip beside
+/// the count. Shelves are assigned by the analyser minutes after this sheet has
+/// closed, so there is nothing true to put there -- see ShareModel.Saved.
 struct ShareView: View {
     @ObservedObject var model: ShareModel
     let onDone: () -> Void
 
-    var body: some View {
-        VStack(spacing: 16) {
-            // A title, so a sheet that renders but has nothing else to show is
-            // still obviously Podcapp's rather than "an empty window".
-            Text("Podcapp")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.tertiary)
+    // The artboard's palette, local to the extension: it compiles only three
+    // files and none of them is the app's Palette.
+    private enum Ink {
+        static let base = Color(red: 0x0E / 255, green: 0x0D / 255, blue: 0x12 / 255)
+        static let text = Color(red: 0xF5 / 255, green: 0xF5 / 255, blue: 0xF3 / 255)
+        static let muted = Color(red: 0x8E / 255, green: 0x8A / 255, blue: 0xA0 / 255)
+        static let count = Color(red: 0xC4 / 255, green: 0xB9 / 255, blue: 0xFF / 255)
+        static let unit = Color(red: 0xB3 / 255, green: 0xAF / 255, blue: 0xC4 / 255)
+        static let green = Color(red: 0x3F / 255, green: 0xBF / 255, blue: 0x6B / 255)
+        static let glow = Color(red: 0x50 / 255, green: 0xD6 / 255, blue: 0x7C / 255)
+        static let warn = Color(red: 0xE8 / 255, green: 0x8B / 255, blue: 0x3D / 255)
+    }
 
-            switch model.state {
-            case .saving:
-                ProgressView()
-                Text("Saving").foregroundStyle(.secondary)
-            case let .saved(detail):
-                Image(systemName: "checkmark.circle.fill").font(.system(size: 44)).foregroundStyle(.green)
-                Text("Saved").font(.headline)
-                Text(detail).font(.footnote).foregroundStyle(.secondary).lineLimit(1)
-            case let .failed(message):
-                Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 44)).foregroundStyle(.orange)
-                Text("Failed").font(.headline)
-                Text(message).font(.footnote).foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center).padding(.horizontal)
+    var body: some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
+
+            mark
+            Text("Podcapp")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Ink.muted)
+                .padding(.top, 16)
+
+            disc.padding(.top, 42)
+
+            headline
+                .font(.system(size: 30, weight: .bold))
+                .tracking(-0.6)
+                .foregroundStyle(Ink.text)
+                .padding(.top, 28)
+
+            detail.padding(.top, 18)
+
+            Spacer(minLength: 0)
+
+            // The way out is always reachable, including while the request is
+            // still in flight: a share that hangs must never trap the reader in
+            // somebody else's app.
+            Button(action: onDone) {
+                Text("Close")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Ink.muted)
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 24)
+                    .contentShape(Rectangle())
             }
-            Button("Close", action: onDone).padding(.top, 4)
+            .buttonStyle(.plain)
+            .padding(.bottom, 24)
         }
-        .padding(28)
-        // Fill the host rather than hugging its content: the sheet is sized by
-        // the view controller, and a self-sized VStack in a zero-height host
-        // draws nothing at all.
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
+        .multilineTextAlignment(.center)
+        .background {
+            // The artboard darkens the host page from .6 to .9. Opaque here on
+            // purpose: an extension sheet that can render as nothing is exactly
+            // what cost this project an afternoon, and at those alphas over a
+            // dark page the difference is not worth the risk.
+            LinearGradient(
+                colors: [Ink.base.opacity(0.94), Ink.base],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .overlay(Ink.base.opacity(0.6))
+        }
         .onChange(of: model.state) { _, new in
-            // A success needs no acknowledgement and closes itself. A failure stays
-            // on screen, because the reason is the only useful part of it.
+            // A success needs no acknowledgement and closes itself. A failure
+            // stays, because the reason is the only useful part of it. 1.6s
+            // rather than 1: the sheet now has a title and a count to read.
             if case .saved = new {
-                Task { try? await Task.sleep(for: .seconds(1)); onDone() }
+                Task { try? await Task.sleep(for: .seconds(1.6)); onDone() }
             }
+        }
+    }
+
+    // MARK: - Pieces
+
+    @ViewBuilder
+    private var mark: some View {
+        if let logo = ShareView.logo {
+            Image(uiImage: logo)
+                .resizable()
+                .frame(width: 46, height: 46)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        } else {
+            // No mark rather than a stand-in: the wordmark below already says
+            // whose sheet this is.
+            Color.clear.frame(width: 46, height: 46)
+        }
+    }
+
+    /// Read out of the containing app's bundle. An appex lives at
+    /// Podcapp.app/PlugIns/ShareExtension.appex, so two levels up is the app,
+    /// and the image ships there already -- which beats duplicating it into the
+    /// extension, and beats a new resources build phase in a project file that
+    /// cannot currently be regenerated on this machine.
+    private static let logo: UIImage? = {
+        let app = Bundle.main.bundleURL.deletingLastPathComponent().deletingLastPathComponent()
+        return UIImage(contentsOfFile: app.appendingPathComponent("logo.png").path)
+    }()
+
+    /// The 96pt disc sitting inside a 128pt radial glow, per the artboard.
+    private var disc: some View {
+        ZStack {
+            Circle()
+                .fill(RadialGradient(colors: [glowColour.opacity(0.3), .clear], center: .center, startRadius: 0, endRadius: 45))
+                .frame(width: 128, height: 128)
+            Circle()
+                .fill(discColour)
+                .frame(width: 96, height: 96)
+                .overlay(Circle().strokeBorder(.white.opacity(0.4), lineWidth: 1))
+                .shadow(color: discColour.opacity(0.4), radius: 22, y: 18)
+            glyph
+        }
+        .frame(width: 128, height: 128)
+    }
+
+    @ViewBuilder
+    private var glyph: some View {
+        switch model.state {
+        case .saving:
+            ProgressView().tint(.white).scaleEffect(1.4)
+        case .saved:
+            Image(systemName: "checkmark")
+                .font(.system(size: 42, weight: .bold))
+                .foregroundStyle(.white)
+        case .failed:
+            Image(systemName: "exclamationmark")
+                .font(.system(size: 42, weight: .bold))
+                .foregroundStyle(.white)
+        }
+    }
+
+    private var discColour: Color {
+        if case .failed = model.state { return Ink.warn }
+        if case .saving = model.state { return Color.white.opacity(0.14) }
+        return Ink.green
+    }
+
+    private var glowColour: Color {
+        if case .failed = model.state { return Ink.warn }
+        return Ink.glow
+    }
+
+    private var headline: Text {
+        switch model.state {
+        case .saving: return Text("Saving")
+        case .saved: return Text("Saved")
+        case .failed: return Text("Failed")
+        }
+    }
+
+    @ViewBuilder
+    private var detail: some View {
+        switch model.state {
+        case .saving:
+            EmptyView()
+        case let .failed(message):
+            Text(message)
+                .font(.system(size: 13.5, weight: .medium))
+                .foregroundStyle(Ink.muted)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 40)
+        case let .saved(saved):
+            VStack(spacing: 0) {
+                Text(saved.title)
+                    .font(.system(size: 17, weight: .bold))
+                    .lineSpacing(22.95 - 17)
+                    .foregroundStyle(Ink.text)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: 290)
+
+                Text(ShareView.meta(saved))
+                    .font(.system(size: 13.5, weight: .medium))
+                    .foregroundStyle(Ink.muted)
+                    .lineLimit(1)
+                    .padding(.top, 12)
+
+                if let available = saved.available, let minimum = saved.minimum {
+                    countPill(available: available, minimum: minimum).padding(.top, 22)
+                }
+            }
+        }
+    }
+
+    /// "en.wikipedia.org · article · 15:49", the artboard's own line.
+    private static func meta(_ saved: ShareModel.Saved) -> String {
+        [saved.host, saved.kind.label, clock.string(from: saved.at)].joined(separator: " · ")
+    }
+
+    private static let clock: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = AppLocale.current
+        f.setLocalizedDateFormatFromTemplate("j:mm")
+        return f
+    }()
+
+    private func countPill(available: Int, minimum: Int) -> some View {
+        HStack(spacing: 10) {
+            Text(verbatim: "\(available)/\(minimum)")
+                .font(.system(size: 12.5, weight: .bold))
+                .foregroundStyle(Ink.count)
+            Text("links")
+                .font(.system(size: 12.5, weight: .medium))
+                .foregroundStyle(Ink.unit)
+        }
+        .padding(.vertical, 9)
+        .padding(.horizontal, 16)
+        .background {
+            Capsule()
+                .fill(.white.opacity(0.1))
+                .overlay(Capsule().strokeBorder(.white.opacity(0.18), lineWidth: 1))
         }
     }
 }

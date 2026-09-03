@@ -202,6 +202,7 @@
 "Pipeline" = "Pipeline";
 "Play" = "Play";
 "Playback failed: unreadable audio file." = "Playback failed: unreadable audio file.";
+"Podcapp" = "Podcapp";
 "Politics" = "Politics";
 "Previous chapter" = "Previous chapter";
 "Privacy policy" = "Privacy policy";
@@ -226,6 +227,7 @@
 "SOURCE" = "SOURCE";
 "Save a few sources, then generate a briefing from the Today tab." = "Save a few sources, then generate a briefing from the Today tab.";
 "Saved" = "Saved";
+"Saved text" = "Saved text";
 "Saved. It will join your next briefing." = "Saved. It will join your next briefing.";
 "Saving" = "Saving";
 "Science" = "Science";
@@ -317,6 +319,7 @@
 "Your daily radio: sourced by you, checked by us" = "Your daily radio: sourced by you, checked by us";
 "Your morning" = "Your morning";
 "Your sources, briefings, audio and feed are erased for good. Nothing is kept." = "Your sources, briefings, audio and feed are erased for good. Nothing is kept.";
+"article" = "article";
 "assembling" = "assembling";
 "attached to a story" = "attached to a story";
 "chapter" = "chapter";
@@ -325,8 +328,10 @@
 "checked by us." = "checked by us.";
 "cut before air" = "cut before air";
 "failed" = "failed";
+"links" = "links";
 "narrating" = "narrating";
 "not attached yet" = "not attached yet";
+"note" = "note";
 "nothing new today" = "nothing new today";
 "onboarding.recap.lang" = "EN";
 "onboarding.recap.quote" = "Private credit is showing its first cracks: Blue Owl down 40%.";

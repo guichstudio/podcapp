@@ -379,7 +379,22 @@ authed.post('/ingest', async (c) => {
       console.error('process-source trigger failed', row.id, err)
     }
   }
-  return c.json({ source_id: row.id, status: 'received', queued }, 202)
+  // The share sheet shows how close the next episode is, so the count travels
+  // back with the acknowledgement rather than costing the extension a second
+  // round trip it has no time for. Same definition the app's ring and the
+  // server's own refusal use, so the three can never disagree. A failure here
+  // must not fail the capture, which already succeeded: the sheet then shows
+  // the save without the count.
+  let available: number | null = null
+  try {
+    available = await countAvailableSources(c.get('conn'), c.get('userId'))
+  } catch (err) {
+    console.error('ingest count failed', row.id, err)
+  }
+  return c.json(
+    { source_id: row.id, status: 'received', queued, available, minimum: MIN_SOURCES_PER_EPISODE },
+    202,
+  )
 })
 
 // The app reports the language its interface resolved to, and the pipeline
