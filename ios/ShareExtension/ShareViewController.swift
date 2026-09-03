@@ -2,6 +2,50 @@ import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 
+
+/// Temporary instrument, not a feature. Remove with its call sites once the
+/// cause is known.
+///
+/// The extension fails on Louis's iPhone in a way nothing observable from this
+/// machine can separate: an empty sheet that closes could be our SwiftUI
+/// rendering nothing, or iOS showing its own placeholder because the appex
+/// never launched. There is no crash report either way, and macOS cannot stream
+/// a paired device's log. So the extension leaves a breadcrumb trail in the App
+/// Group container, which `devicectl device copy from` reads back -- and the
+/// absence of the file is itself the answer to "did the process ever start".
+enum ShareLog {
+    private static let clock: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm:ss.SSS"
+        return f
+    }()
+
+    private static var fileURL: URL? {
+        FileManager.default
+            .containerURL(forSecurityApplicationGroupIdentifier: Config.appGroup)?
+            .appendingPathComponent("share-debug.log")
+    }
+
+    /// First thing in viewDidLoad, so each attempt starts a fresh trail and an
+    /// old one is never mistaken for the current run.
+    static func begin() {
+        guard let url = fileURL else { return }
+        try? Data("--- run start\n".utf8).write(to: url)
+    }
+
+    static func note(_ line: String) {
+        guard let url = fileURL else { return }
+        let data = Data("\(clock.string(from: Date())) \(line)\n".utf8)
+        if let handle = try? FileHandle(forWritingTo: url) {
+            defer { try? handle.close() }
+            _ = try? handle.seekToEnd()
+            try? handle.write(contentsOf: data)
+        } else {
+            try? data.write(to: url)
+        }
+    }
+}
+
 @MainActor
 final class ShareModel: ObservableObject {
     // The haptic hangs on the state itself rather than on each of the six places
@@ -9,6 +53,7 @@ final class ShareModel: ObservableObject {
     // this sheet sits on top of somebody else's app.
     @Published var state: State = .saving {
         didSet {
+            ShareLog.note("state -> \(state)")
             switch state {
             case .saved: Feedback.saved(sound: false)
             case .failed: Feedback.refused(sound: false)
@@ -27,8 +72,21 @@ class ShareViewController: UIViewController {
     // instance to report the result into.
     private let model = ShareModel()
 
+    private let banner: UILabel = {
+        let l = UILabel()
+        l.translatesAutoresizingMaskIntoConstraints = false
+        l.numberOfLines = 0
+        l.textAlignment = .center
+        l.font = .systemFont(ofSize: 15, weight: .semibold)
+        l.textColor = .label
+        l.text = "Podcapp"
+        return l
+    }()
+
     override func viewDidLoad() {
         super.viewDidLoad()
+        ShareLog.begin()
+        ShareLog.note("viewDidLoad, group=\(Config.sharesStorageWithExtension) token=\(Config.isConfigured) base=\(Config.baseURL)")
         // The sheet has to paint something even if SwiftUI never lays out: a
         // share extension with a clear background over a zero-sized host reads
         // as "an empty window opened and closed", which is exactly how this
@@ -56,6 +114,18 @@ class ShareViewController: UIViewController {
             controller.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         ])
         controller.didMove(toParent: self)
+        ShareLog.note("hosting mounted, view=\(view.bounds.size.width)x\(view.bounds.size.height)")
+
+        // Drawn by UIKit, above the SwiftUI host, on purpose: if this line shows
+        // and the rest of the sheet stays empty, SwiftUI is what is not
+        // rendering; if the sheet is empty even of this, the extension is not
+        // getting to draw at all. Temporary, like ShareLog.
+        view.addSubview(banner)
+        NSLayoutConstraint.activate([
+            banner.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            banner.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            banner.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
+        ])
 
         Task { await handleInput() }
     }
@@ -65,14 +135,19 @@ class ShareViewController: UIViewController {
     }
 
     private func handleInput() async {
+        ShareLog.note("handleInput items=\(extensionContext?.inputItems.count ?? -1)")
         guard let item = (extensionContext?.inputItems as? [NSExtensionItem])?.first,
               let providers = item.attachments, !providers.isEmpty else {
             model.state = .failed(String(localized: "Nothing to save."))
             return
         }
+        ShareLog.note("attachments=\(providers.map { $0.registeredTypeIdentifiers.joined(separator: "+") }.joined(separator: " | "))")
         do {
             if let url = try await firstURL(in: providers) {
+                ShareLog.note("posting url \(url.absoluteString)")
                 try await Ingest.save(url: url, text: nil)
+                ShareLog.note("saved ok")
+                banner.text = "Podcapp — saved \(url.host ?? "")"
                 model.state = .saved(url.host ?? url.absoluteString)
                 return
             }
@@ -91,6 +166,8 @@ class ShareViewController: UIViewController {
                 model.state = .saved(String(localized: "Note saved"))
             }
         } catch {
+            ShareLog.note("threw: \(error.localizedDescription)")
+            banner.text = "Podcapp — failed\n\(error.localizedDescription)"
             model.state = .failed(error.localizedDescription)
         }
     }
