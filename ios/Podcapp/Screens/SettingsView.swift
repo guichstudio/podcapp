@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // The Settings tab of the v3 prototype (/tmp/podcapp-shots/v3.html): a stack of
 // blurred glass groups 12pt apart -- a language card, the voice picker, the
@@ -17,6 +18,7 @@ import SwiftUI
 // a 15-minute length, a schedule toggle -- only its visual treatment is kept
 // and the app's own fact is shown in it.
 struct SettingsView: View {
+    @Environment(\.openURL) private var openURL
     // Config is plain UserDefaults and publishes nothing, so the saved state is
     // mirrored here.
     @State private var isConfigured = Config.isConfigured
@@ -212,18 +214,34 @@ struct SettingsView: View {
         }
     }
 
-    // A readout, not a switch: iOS decides which localisation resolved, and the
-    // API has no language field to write. Deliberately not a Button -- the
-    // prototype's segmented shape with nothing tappable in it.
+    // It was a readout, on the reasoning that iOS decides which localisation
+    // resolved and the API has no language field to write. But the prototype's
+    // segmented capsule with one half filled reads as a switch no matter what
+    // the code intends -- the owner tapped it and reported it broken, which is
+    // the only test that counts. A control that looks actionable and does
+    // nothing is the same defect as the "Included" pill this app already
+    // removed for App Review.
+    //
+    // So it acts: tapping opens this app's page in iOS Settings, which is
+    // exactly where the language really can be changed. The shape keeps the
+    // prototype's weight and now tells the truth about itself.
     private var languagePicker: some View {
-        HStack(spacing: 0) {
-            languageOption("EN", selected: AppLocale.isEnglish)
-            languageOption("FR", selected: !AppLocale.isEnglish)
+        Button {
+            Feedback.tap()
+            if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+        } label: {
+            HStack(spacing: 0) {
+                languageOption("EN", selected: AppLocale.isEnglish)
+                languageOption("FR", selected: !AppLocale.isEnglish)
+            }
+            .clipShape(Capsule())
+            .overlay(Capsule().strokeBorder(Palette.controlBorder, lineWidth: 1))
+            .fixedSize()
         }
-        .clipShape(Capsule())
-        .overlay(Capsule().strokeBorder(Palette.controlBorder, lineWidth: 1))
-        .fixedSize()
+        .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text("Language"))
+        .accessibilityHint(Text("Interface and narration follow your phone. Change it in iOS Settings."))
     }
 
     private func languageOption(_ label: String, selected: Bool) -> some View {
