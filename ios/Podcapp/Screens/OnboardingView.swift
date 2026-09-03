@@ -776,7 +776,7 @@ private struct FormatsPage: View {
                     .darkPill()
                     .rotationEffect(.degrees(-2))
                     .artboardCentered(y: 670, xNudge: -2.5)
-                Text("Every link read for its text · newsletters by forward")
+                Text("Videos transcribed automatically · newsletters by forward")
                     .fs(11)
                     .foregroundStyle(Onbo.caption)
                     .artboardCentered(y: 735)

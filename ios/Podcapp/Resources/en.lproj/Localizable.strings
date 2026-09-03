@@ -104,7 +104,6 @@
 "Episode ready · open it" = "Episode ready · open it";
 "Error %lld. %@" = "Error %lld. %@";
 "Every briefing, as an article." = "Every briefing, as an article.";
-"Every link read for its text · newsletters by forward" = "Every link read for its text · newsletters by forward";
 "Every morning at 6:00, or from Today" = "Every morning at 6:00, or from Today";
 "Every sentence against its source" = "Every sentence against its source";
 "Everything you never had time to " = "Everything you never had time to ";
@@ -297,6 +296,7 @@
 "Verification pass" = "Verification pass";
 "Verified" = "Verified";
 "Video" = "Video";
+"Videos transcribed automatically · newsletters by forward" = "Videos transcribed automatically · newsletters by forward";
 "Welcome to Podcapp" = "Welcome to Podcapp";
 "Where it comes from" = "Where it comes from";
 "Writing" = "Writing";
