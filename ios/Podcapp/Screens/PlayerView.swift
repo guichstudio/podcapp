@@ -1183,7 +1183,9 @@ private struct PlayerPill: View {
                 .foregroundStyle(Palette.ink)
                 .padding(.horizontal, 15)
                 .padding(.vertical, 9)
-                .glassPill(shadow: Palette.controlShadow)
+                // No backdrop-filter on these three in the design: they sit on
+                // the wash alone.
+                .glassPill(.none, shadow: Palette.controlShadow)
         }
         .buttonStyle(.plain)
     }
@@ -1200,7 +1202,7 @@ private struct PlayerSkipButton: View {
                 .typo(Typo.tagPill.tabular)
                 .foregroundStyle(Palette.ink)
                 .frame(width: 46, height: 46)
-                .glassPill(shadow: Palette.transportShadow)
+                .glassPill(.filtered, shadow: Palette.transportShadow)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(accessibility)
@@ -1223,13 +1225,15 @@ private struct PlayerGroupLabel: View {
 }
 
 private extension View {
-    /// The prototype's glass control: a filtered wash, a hairline that
-    /// brightens along the top edge in place of CSS's `inset 0 1px 0`, and the
-    /// ambient violet drop.
-    func glassPill(shadow: Shadow) -> some View {
+    /// The prototype's glass control: a wash, a hairline that brightens along
+    /// the top edge in place of CSS's `inset 0 1px 0`, and the ambient violet
+    /// drop. The two controls that share this shape do not share a backdrop:
+    /// the design filters the transport's skip buttons and leaves the speed and
+    /// sheet pills unfiltered, so the treatment is the caller's to say.
+    func glassPill(_ treatment: Glass, shadow: Shadow) -> some View {
         background {
             Capsule()
-                .glass(Palette.controlFill, .filtered)
+                .glass(Palette.controlFill, treatment)
                 .overlay {
                     Capsule().strokeBorder(
                         LinearGradient(
