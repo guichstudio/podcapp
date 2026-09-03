@@ -29,13 +29,32 @@ class ShareViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        // The sheet has to paint something even if SwiftUI never lays out: a
+        // share extension with a clear background over a zero-sized host reads
+        // as "an empty window opened and closed", which is exactly how this
+        // failed on device. An opaque background plus real constraints means
+        // the worst case is a blank *card*, not a blank screen.
+        view.backgroundColor = .systemBackground
+
         let controller = UIHostingController(
             rootView: ShareView(model: model, onDone: { [weak self] in self?.finish() })
         )
+        // The hosting view must not inherit SwiftUI's clear default either.
+        controller.view.backgroundColor = .systemBackground
         addChild(controller)
-        controller.view.frame = view.bounds
-        controller.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        // Constraints rather than frame + autoresizingMask: viewDidLoad runs
+        // before the extension's view has been sized, so the frame copied here
+        // can be .zero, and autoresizing only grows it if the parent is later
+        // resized -- which does not happen when the host presents the view
+        // already at its final size.
+        controller.view.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(controller.view)
+        NSLayoutConstraint.activate([
+            controller.view.topAnchor.constraint(equalTo: view.topAnchor),
+            controller.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            controller.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            controller.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+        ])
         controller.didMove(toParent: self)
 
         Task { await handleInput() }
@@ -150,6 +169,12 @@ struct ShareView: View {
 
     var body: some View {
         VStack(spacing: 16) {
+            // A title, so a sheet that renders but has nothing else to show is
+            // still obviously Podcapp's rather than "an empty window".
+            Text("Podcapp")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.tertiary)
+
             switch model.state {
             case .saving:
                 ProgressView()
@@ -167,6 +192,11 @@ struct ShareView: View {
             Button("Close", action: onDone).padding(.top, 4)
         }
         .padding(28)
+        // Fill the host rather than hugging its content: the sheet is sized by
+        // the view controller, and a self-sized VStack in a zero-height host
+        // draws nothing at all.
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemBackground))
         .onChange(of: model.state) { _, new in
             // A success needs no acknowledgement and closes itself. A failure stays
             // on screen, because the reason is the only useful part of it.
