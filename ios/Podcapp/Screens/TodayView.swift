@@ -10,6 +10,12 @@ import UIKit
 // verbatim instead of inventing its own diagnosis.
 
 struct TodayView: View {
+    // RootView keeps every opened tab alive behind .opacity(0), so `.task`
+    // fires once and never again: without this, a link shared from another app
+    // left the counter below reading whatever it read at launch, and the save
+    // looked like it had not happened. Coming back to the app is exactly when
+    // the count should be re-read.
+    @Environment(\.scenePhase) private var scenePhase
     @State private var phase: Phase = .loading
     @State private var backstage: EpisodeDetail?
     @State private var targetMinutes = 5
@@ -40,6 +46,11 @@ struct TodayView: View {
         .background(ScreenBackground())
         .refreshable { await load(reset: false) }
         .task { await load() }
+        // reset: false keeps the rows on screen while the reload runs, so
+        // returning to the app never flashes back to the loading state.
+        .onChange(of: scenePhase) { _, new in
+            if new == .active { Task { await load(reset: false) } }
+        }
         .sheet(item: $backstage) { TodayBackstageSheet(detail: $0) }
     }
 

@@ -7,6 +7,10 @@ import SwiftUI
 // and its per-row actions are absent — see the notes on LibraryStatus.
 
 struct LibraryView: View {
+    // Same reason as TodayView: the tab stays alive behind .opacity(0), so
+    // `.task` runs once. A link shared from another app has to be here when
+    // you come back, or the share looks like it was swallowed.
+    @Environment(\.scenePhase) private var scenePhase
     @State private var sources: [SavedSource] = []
     // The shelves the server files sources under, and the one being looked at.
     // "all" is not a shelf; it is the absence of a filter.
@@ -60,6 +64,9 @@ struct LibraryView: View {
         .background(ScreenBackground())
         .refreshable { await load() }
         .task { await load() }
+        .onChange(of: scenePhase) { _, new in
+            if new == .active { Task { await load() } }
+        }
     }
 
     // MARK: - Shelves

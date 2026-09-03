@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // The shell of ios/design/layout.html: the gradient every screen sits on, the
 // four screens, the custom glass tab bar at the bottom, and the mini player
@@ -89,6 +90,13 @@ struct RootView: View {
 
     // MARK: - Tab bar
 
+    /// Ends editing wherever it is happening. `UIApplication.shared` is fine
+    /// here: RootView belongs to the app target only, never to the share
+    /// extension, where that symbol is unavailable.
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+
     private var tabBar: some View {
         HStack(spacing: 0) {
             ForEach(RootTab.allCases) { candidate in
@@ -96,6 +104,14 @@ struct RootView: View {
                     // Silent on the tab you are already on: a tab bar that
                     // ticks when nothing moves reads as a glitch.
                     if candidate != tab { Feedback.select() }
+                    // The tabs are hidden with .opacity(0), not removed, so the
+                    // screen you leave keeps its first responder: leaving the
+                    // Library while its capture field is focused left the
+                    // keyboard up over Today, with no field on screen to
+                    // dismiss it and the content shoved up under the status
+                    // bar by keyboard avoidance. Resigning globally is what
+                    // ends it, and it covers any field added later.
+                    dismissKeyboard()
                     // Fast response so the pill reads as attached to your tap,
                     // with damping high enough that it settles into the new
                     // tab rather than overshooting and wobbling back.

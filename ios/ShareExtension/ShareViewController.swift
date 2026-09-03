@@ -64,9 +64,9 @@ class ShareViewController: UIViewController {
             // Several apps hand a link over as plain text rather than as a URL
             // attachment, and it is worth far more to the pipeline as a link.
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            if let url = URL(string: trimmed), url.scheme?.hasPrefix("http") == true {
+            if let url = firstWebURL(in: trimmed) {
                 try await Ingest.save(url: url, text: nil)
-                model.state = .saved(url.host ?? trimmed)
+                model.state = .saved(url.host ?? url.absoluteString)
             } else {
                 try await Ingest.save(url: nil, text: trimmed)
                 model.state = .saved(String(localized: "Note saved"))
@@ -76,11 +76,45 @@ class ShareViewController: UIViewController {
         }
     }
 
+    /// The first http(s) URL among the attachments. Deliberately not "the first
+    /// public.url attachment": several apps put a deep link (youtube://...) or a
+    /// file URL in front of the web address, and the pipeline can only fetch a
+    /// page over http. A non-web URL is skipped rather than saved, so the text
+    /// path below still gets its turn.
     private func firstURL(in providers: [NSItemProvider]) async throws -> URL? {
         for provider in providers where provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
-            if let url = try await provider.loadItem(forTypeIdentifier: UTType.url.identifier) as? URL {
-                return url
-            }
+            guard let url = try await provider.loadItem(forTypeIdentifier: UTType.url.identifier) as? URL,
+                  isWeb(url) else { continue }
+            return url
+        }
+        return nil
+    }
+
+    private func isWeb(_ url: URL) -> Bool {
+        guard let scheme = url.scheme?.lowercased() else { return false }
+        return scheme == "http" || scheme == "https"
+    }
+
+    /// The first web link *inside* a piece of text. Instagram, X and YouTube
+    /// hand over a sentence with the link embedded -- "Check this out!
+    /// https://youtu.be/abc", "https://x.com/u/status/1 via @x" -- and
+    /// URL(string:) on the whole sentence returns nil, so the promo text was
+    /// saved instead of the article. NSDataDetector is what iOS itself uses to
+    /// find links in prose, trailing punctuation and following words included.
+    ///
+    /// The link wins over the prose whenever there is one, even mid-sentence.
+    /// That is a deliberate trade: this is a link-capture extension, the words
+    /// wrapped around a shared post are the sharing app's, not the reader's,
+    /// and a fetched article is worth more to the briefing than a caption. Text
+    /// the reader means to keep verbatim goes through the app's own paste
+    /// field, which still only treats a string STARTING with http(s) as a link.
+    private func firstWebURL(in text: String) -> URL? {
+        guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else {
+            return nil
+        }
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        for match in detector.matches(in: text, options: [], range: range) {
+            if let url = match.url, isWeb(url) { return url }
         }
         return nil
     }

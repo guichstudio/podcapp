@@ -23,6 +23,16 @@ settings:
     CODE_SIGN_STYLE: Automatic
     GENERATE_INFOPLIST_FILE: YES
     ENABLE_USER_SCRIPT_SANDBOXING: YES
+    # Xcode 16+ splits a Debug build into a stub executable plus a
+    # <target>.debug.dylib, so SwiftUI Previews can swap code without relinking.
+    # The share extension does not survive it: installed with devicectl rather
+    # than run under Xcode's debugger, the appex never launches, and iOS opens
+    # the containing app instead -- no confirmation sheet, nothing saved.
+    # Verified 2026-09-03 in the simulator: the same commit shares fine in
+    # Release and silently opens the app in Debug. Every install here goes
+    # through devicectl or TestFlight, never through Previews, so this costs
+    # nothing and makes a sideloaded Debug build behave like the shipped one.
+    ENABLE_DEBUG_DYLIB: NO
 
 targets:
   Podcapp:
