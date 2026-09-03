@@ -199,8 +199,7 @@ struct LibraryView: View {
                     .padding(.vertical, 11)
                     .background {
                         Capsule()
-                            .fill(Palette.pillFill)
-                            .background(.ultraThinMaterial, in: Capsule())
+                            .glass(Palette.pillFill, .filtered)
                             .overlay(Capsule().strokeBorder(Palette.glassEdge(Palette.cardBorder), lineWidth: 1))
                             .dropShadow(Palette.fieldShadow)
                     }
@@ -454,11 +453,7 @@ struct LibraryView: View {
                 .padding(12)
                 .background {
                     RoundedRectangle(cornerRadius: Radius.detail, style: .continuous)
-                        .fill(Palette.panelFill)
-                        .background(
-                            .ultraThinMaterial,
-                            in: RoundedRectangle(cornerRadius: Radius.detail, style: .continuous)
-                        )
+                        .glass(Palette.panelFill, .filtered)
                         .overlay(
                             RoundedRectangle(cornerRadius: Radius.detail, style: .continuous)
                                 .strokeBorder(Palette.glassEdge(Palette.panelBorder), lineWidth: 1)

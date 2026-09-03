@@ -125,9 +125,10 @@ struct SettingsView: View {
     // MARK: - Pieces the prototype repeats
 
     /// The prototype's settings group: `rgba(255,255,255,.52)` over a 26px
-    /// backdrop blur, a white hairline, radius 16 and the ambient card shadow.
-    /// Local to this screen because `PlainCard` is the opaquer card the story
-    /// and episode lists use, and other screens depend on it as it is.
+    /// backdrop filter, a white hairline, radius 16 and the ambient card
+    /// shadow. Local to this screen because `PlainCard` is the opaquer card
+    /// the story and episode lists use, and other screens depend on it as it
+    /// is.
     private struct SettingsCard<Content: View>: View {
         @ViewBuilder var content: Content
 
@@ -137,8 +138,7 @@ struct SettingsView: View {
             content
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background {
-                    shape.fill(Palette.panelFill)
-                        .background(.ultraThinMaterial, in: shape)
+                    shape.glass(Palette.panelFill, .filtered)
                 }
                 // Rows draw their separators edge to edge; the clip is what
                 // keeps them off the rounded corners.

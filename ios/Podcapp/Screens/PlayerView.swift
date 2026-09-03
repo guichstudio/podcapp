@@ -499,8 +499,7 @@ struct MiniPlayerBar: View {
         .padding(.vertical, 8)
         .background {
             Capsule()
-                .fill(Palette.miniFill)
-                .background(.ultraThinMaterial, in: Capsule())
+                .glass(Palette.miniFill, .filtered)
                 // The played fraction runs along the bottom edge, clipped by
                 // the capsule so it disappears into the rounded ends.
                 .overlay {
@@ -802,8 +801,7 @@ struct PlayerView: View {
             .padding(.vertical, 13)
             .background {
                 Capsule()
-                    .fill(Palette.miniFill)
-                    .background(.ultraThinMaterial, in: Capsule())
+                    .glass(Palette.miniFill, .filtered)
                     .overlay {
                         Capsule().strokeBorder(Palette.glassEdge(Palette.miniBorder), lineWidth: 1)
                     }
@@ -872,7 +870,7 @@ private struct PlayerSheetView: View {
         // The design's sheet is a 66% off-white wash over a heavy backdrop
         // blur, not an opaque panel: the player has to stay readable under it.
         .presentationBackground {
-            Palette.sheetFill.background(.ultraThinMaterial)
+            Rectangle().glass(Palette.sheetFill, .filtered)
         }
     }
 }
@@ -1225,14 +1223,13 @@ private struct PlayerGroupLabel: View {
 }
 
 private extension View {
-    /// The prototype's glass control: a white wash over a blur, a hairline that
+    /// The prototype's glass control: a filtered wash, a hairline that
     /// brightens along the top edge in place of CSS's `inset 0 1px 0`, and the
     /// ambient violet drop.
     func glassPill(shadow: Shadow) -> some View {
         background {
             Capsule()
-                .fill(Palette.controlFill)
-                .background(.ultraThinMaterial, in: Capsule())
+                .glass(Palette.controlFill, .filtered)
                 .overlay {
                     Capsule().strokeBorder(
                         LinearGradient(

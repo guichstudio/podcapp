@@ -369,8 +369,9 @@ private struct TodayCard<Content: View>: View {
     var padding = EdgeInsets(top: 14, leading: 14, bottom: 14, trailing: 14)
     var fill: Color = Palette.cardFill
     var edge: Color = Palette.cardBorder
-    /// Only the generation panel blurs what is behind it; the cards do not.
-    var blurred = false
+    /// The prototype filters only the generation panel's backdrop; the cards
+    /// carry no backdrop-filter at all.
+    var glass: Glass = .none
     var content: Content
 
     init(
@@ -378,14 +379,14 @@ private struct TodayCard<Content: View>: View {
         padding: EdgeInsets = EdgeInsets(top: 14, leading: 14, bottom: 14, trailing: 14),
         fill: Color = Palette.cardFill,
         edge: Color = Palette.cardBorder,
-        blurred: Bool = false,
+        glass: Glass = .none,
         @ViewBuilder content: () -> Content
     ) {
         self.cornerRadius = cornerRadius
         self.padding = padding
         self.fill = fill
         self.edge = edge
-        self.blurred = blurred
+        self.glass = glass
         self.content = content()
     }
 
@@ -395,7 +396,7 @@ private struct TodayCard<Content: View>: View {
         padding: CGFloat,
         fill: Color = Palette.cardFill,
         edge: Color = Palette.cardBorder,
-        blurred: Bool = false,
+        glass: Glass = .none,
         @ViewBuilder content: () -> Content
     ) {
         self.init(
@@ -403,7 +404,7 @@ private struct TodayCard<Content: View>: View {
             padding: EdgeInsets(top: padding, leading: padding, bottom: padding, trailing: padding),
             fill: fill,
             edge: edge,
-            blurred: blurred,
+            glass: glass,
             content: content
         )
     }
@@ -415,8 +416,7 @@ private struct TodayCard<Content: View>: View {
             .padding(padding)
             .background {
                 shape
-                    .fill(fill)
-                    .background { if blurred { shape.fill(.ultraThinMaterial) } }
+                    .glass(fill, glass)
                     .overlay {
                         shape.strokeBorder(Palette.glassEdge(edge), lineWidth: 1)
                     }
@@ -640,7 +640,7 @@ private struct TodayGenerateCard: View {
     }
 
     private var card: some View {
-        TodayCard(cornerRadius: Radius.panel, padding: 16, fill: Palette.panelFill, edge: Palette.panelBorder, blurred: true) {
+        TodayCard(cornerRadius: Radius.panel, padding: 16, fill: Palette.panelFill, edge: Palette.panelBorder, glass: .filtered) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .center, spacing: 10) {
                     VStack(alignment: .leading, spacing: 2) {

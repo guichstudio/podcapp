@@ -136,9 +136,11 @@ struct RootView: View {
         }
         .padding(5)
         .background {
+            // Lists scroll through the bottom inset rather than stopping at
+            // it, so here the blur has real content to soften and not just a
+            // gradient — the one thing the glow-only surfaces cannot say.
             Capsule()
-                .fill(Palette.tabBarFill)
-                .background(.ultraThinMaterial, in: Capsule())
+                .glass(Palette.tabBarFill, .filtered)
                 .overlay {
                     // The design's box-shadow carries a 1px white inset highlight
                     // along the top edge on top of the solid border; SwiftUI has

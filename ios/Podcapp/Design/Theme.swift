@@ -95,6 +95,21 @@ enum Palette {
     /// under them and so need more body.
     static let tileFillStrong = Color.white.opacity(0.80)
 
+    /// CSS's `saturate()`, translated. The prototype's glass runs
+    /// `backdrop-filter: blur(N) saturate(1.7-1.8)`, and the saturate is the
+    /// half that carries the look: it pushes the background's lavender through
+    /// the wash. SwiftUI's `.ultraThinMaterial` does the opposite and drains it
+    /// — a backdrop of chroma 29 came back out of it at 16, and the settings
+    /// screen's glass averaged chroma 5 against the prototype's 13, which is
+    /// what "grey" meant. `.saturation` does reach what a material sampled,
+    /// though, so the design's own filter can be had back. Not at 1.8: the
+    /// material keeps only about 55% of the colour it samples, so 1.8 has to be
+    /// divided by that to land in the same place. At 3, the same screen matches
+    /// the prototype to a mean of 3/255 over 400 sampled patches, and needs no
+    /// tint on top: the colour is the background's own, not a constant, so it
+    /// still falls off with the glows the way the prototype's does.
+    static let glassResaturate: Double = 3
+
     // Surface borders. White borders are the glass edge; ink borders are the
     // structural ones (rules, chip outlines, segmented controls).
     static let cardBorder = Color.white.opacity(0.85)
@@ -228,6 +243,7 @@ enum Radius {
 
 /// CSS backdrop-filter radii, for the surfaces that blur what is behind them.
 /// All of them also saturate: 1.8, except `field` and `control` at 1.7.
+/// Kept as the spec these surfaces were read from; `Glass` is what draws them.
 enum Blur {
     static let field: CGFloat = 20
     static let control: CGFloat = 18
@@ -235,6 +251,45 @@ enum Blur {
     static let mini: CGFloat = 28
     static let tabBar: CGFloat = 30
     static let sheet: CGFloat = 36
+}
+
+// MARK: - Glass
+
+/// Whether the prototype filters what is behind a surface.
+///
+/// This is the one thing a glass surface has to declare, because SwiftUI needs
+/// a material to reach its backdrop at all and a material is not free: it also
+/// desaturates, which is what made these surfaces read grey. `Palette
+/// .glassResaturate` undoes that, so a filtered surface here is the prototype's
+/// `blur() saturate()` and an unfiltered one is a plain translucent fill.
+///
+/// The blur itself is nearly free of effect over `ScreenBackground` alone — its
+/// glows shift by under 1/255 across a 26pt window — but it matters where
+/// content travels behind: the tab bar's inset region, the mini player, a sheet
+/// over the player. It costs nothing to keep it in both cases, and the material
+/// is the only handle on the backdrop the saturate needs.
+enum Glass {
+    /// No backdrop-filter in the prototype: the white wash and nothing else.
+    /// Story and episode cards, filter chips, icon tiles.
+    case none
+    /// `backdrop-filter: blur(N) saturate(1.7-1.8)`. Panels, the search field,
+    /// the tab bar, the player's controls and sheets.
+    case filtered
+}
+
+extension Shape {
+    /// One glass surface's backdrop: the white wash the token specifies and,
+    /// where the design filters it, the material carrying the prototype's blur
+    /// and saturate. Borders, clips and shadows stay at the call site — those
+    /// differ per surface, this does not.
+    func glass(_ fill: Color, _ treatment: Glass) -> some View {
+        self.fill(fill)
+            .background {
+                if treatment == .filtered {
+                    self.fill(.ultraThinMaterial).saturation(Palette.glassResaturate)
+                }
+            }
+    }
 }
 
 // MARK: - Shadows
