@@ -28,10 +28,21 @@ descriptions drift apart:
 xcodegen generate --spec ios/project.yml
 ```
 
-Any XcodeGen version works (the binary lives in `/tmp/xcodegen/` after a `curl`
-of the GitHub release, and `/tmp` is wiped on reboot). The 2.42 pin this file
-used to carry existed only because newer releases write project format 77,
-which Xcode 15.4 could not open; this Mac has run Xcode 26 since 2026-09-01.
+Any XcodeGen version works. The 2.42 pin this file used to carry existed only
+because newer releases write project format 77, which Xcode 15.4 could not open;
+this Mac has run Xcode 26 since 2026-09-01.
+
+**XcodeGen is not installed right now.** The binary used to live in
+`/tmp/xcodegen/` after a `curl` of the GitHub release, and `/tmp` is wiped on
+reboot, so `xcodegen` is simply missing until someone fetches it again. That is
+not theoretical: on 2026-09-03 the share extension had to be re-signed and
+`Podcapp.xcodeproj` was edited **by hand** because the generator was gone.
+
+Every hand-edit made that way has been mirrored into `project.yml`
+(`ENABLE_DEBUG_DYLIB: NO`, and the Debug-only manual signing on both targets),
+so regenerating should reproduce them — but nothing has verified that, because
+nothing could. The first person to install XcodeGen again should regenerate and
+diff the project before trusting it.
 
 `project.yml` also generates both `Info.plist` files: editing them by hand looks
 like it works until the next `xcodegen generate` silently reverts it. Version

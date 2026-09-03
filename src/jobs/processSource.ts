@@ -125,6 +125,17 @@ export async function processSource(
   const [row] = await db.select().from(sources).where(eq(sources.id, sourceId))
   if (!row) throw new Error(`source ${sourceId} not found`)
 
+  // A source the reader has set aside must not be clustered back into a story
+  // behind their back. Today no caller can do that -- the pending drain only
+  // picks up 'received' and 'extracting', and putting one back clears the mark
+  // before it triggers this -- but the rule belongs here rather than in the
+  // discipline of every future caller, and it costs one field on a row already
+  // read. Nothing is spent: this returns before extraction.
+  if (row.setAsideAt) {
+    logger.info({ sourceId }, 'set aside, not clustering')
+    return { sourceId, status: row.status, error: 'set aside by the reader' }
+  }
+
   // 1. extract
   await setStatus(db, row.id, 'extracting')
   const extracted = await runExtract(row)
