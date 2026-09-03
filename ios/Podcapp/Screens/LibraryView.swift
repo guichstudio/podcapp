@@ -1055,25 +1055,46 @@ private struct SwipeableRow<Content: View>: View {
     @State private var committed: CGFloat = 0
 
     private let actionWidth: CGFloat = 172
+    /// How far a tile's shadow reaches past the row. Palette.tileShadow and
+    /// Palette.cardShadow both stay well inside this.
+    private let shadowRoom: CGFloat = 24
 
     var body: some View {
-        ZStack(alignment: .leading) {
-            // A hidden copy of the row sets the height. A GeometryReader fills
-            // whatever it is given and never sizes to its content, so without
-            // this the strip would need a fixed height and would cut the
-            // two-line titles the design allows.
-            content.hidden()
-
-            GeometryReader { geo in
-                HStack(spacing: 0) {
-                    content.frame(width: geo.size.width)
-                    actions.frame(width: actionWidth)
+        content
+            .offset(x: offset)
+            // The actions ride in from the trailing edge as an overlay, so the
+            // row keeps its natural height and is built ONCE. The first version
+            // put them in an HStack inside a GeometryReader and needed a hidden
+            // second copy of the row to give that reader a height -- which also
+            // meant every pulsing status chip animated twice, invisibly.
+            // While the drawer is open the row itself answers a tap by closing
+            // it, the way a swipe list does everywhere else: without this, a tap
+            // fell through to the row and expanded its detail panel underneath
+            // the still-open actions.
+            .overlay {
+                if offset != 0 {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            close()
+                            if open == id { open = nil }
+                        }
                 }
-                .offset(x: offset)
-                .animation(.spring(response: 0.3, dampingFraction: 0.85), value: offset)
             }
-        }
-        .clipped()
+            // Added after the tap-catcher on purpose: the buttons have to sit
+            // above it or they would never be reachable.
+            .overlay(alignment: .trailing) {
+                actions
+                    .frame(width: actionWidth)
+                    .frame(maxHeight: .infinity)
+                    .offset(x: actionWidth + offset)
+            }
+            // Masked rather than clipped. `.clipped()` cuts to the row's own
+            // bounds, which took the drop shadow off every tile and card inside
+            // it; the mask is taller than the row on both sides, so shadows
+            // survive while the drawer is still hidden horizontally.
+            .mask(Rectangle().padding(.vertical, -shadowRoom))
+            .animation(.spring(response: 0.3, dampingFraction: 0.85), value: offset)
         .contentShape(Rectangle())
         .gesture(enabled ? drag : nil)
         // Opening one row closes every other: two half-open rows read as a bug.
@@ -1127,6 +1148,15 @@ private struct SwipeableRow<Content: View>: View {
                 offset = min(0, max(-actionWidth, committed + value.translation.width))
             }
             .onEnded { value in
+                // The same direction test as onChanged, and it has to be here
+                // too: a mostly-vertical flick with a little leftward velocity
+                // left `offset` at 0 but still had enough predicted width to
+                // snap the drawer open under a scroll.
+                guard abs(value.translation.width) > abs(value.translation.height) else {
+                    close()
+                    if open == id { open = nil }
+                    return
+                }
                 let projected = offset + value.predictedEndTranslation.width * 0.2
                 if projected < -actionWidth / 2 {
                     committed = -actionWidth

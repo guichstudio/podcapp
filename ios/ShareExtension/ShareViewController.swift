@@ -257,6 +257,44 @@ struct ShareView: View {
     }
 
     var body: some View {
+        // Scrollable, because the sheet cannot grow and the reader can. At the
+        // largest accessibility text sizes a three-line title plus the 30pt
+        // headline pushed Close off the bottom of a fixed VStack, and an
+        // extension sheet with its only exit off-screen is a trap. The frame
+        // below keeps the centred artboard look whenever it does fit.
+        GeometryReader { geo in
+            ScrollView {
+                // At least as tall as the sheet, so the Spacers keep the
+                // artboard's centred composition; taller than it only when the
+                // text is, and then it scrolls.
+                content.frame(minHeight: geo.size.height)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+            // The artboard darkens the host page from .6 to .9. Opaque here on
+            // purpose: an extension sheet that can render as nothing is exactly
+            // what cost this project an afternoon, and at those alphas over a
+            // dark page the difference is not worth the risk.
+            LinearGradient(
+                colors: [Ink.base.opacity(0.94), Ink.base],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .overlay(Ink.base.opacity(0.6))
+        }
+        .onChange(of: model.state) { _, new in
+            // A success needs no acknowledgement and closes itself. A failure
+            // stays, because the reason is the only useful part of it. 1.6s
+            // rather than 1: the sheet now has a title and a count to read.
+            if case .saved = new {
+                Task { try? await Task.sleep(for: .seconds(1.6)); onDone() }
+            }
+        }
+    }
+
+    private var content: some View {
         VStack(spacing: 0) {
             Spacer(minLength: 0)
 
@@ -292,28 +330,8 @@ struct ShareView: View {
             .buttonStyle(.plain)
             .padding(.bottom, 24)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity)
         .multilineTextAlignment(.center)
-        .background {
-            // The artboard darkens the host page from .6 to .9. Opaque here on
-            // purpose: an extension sheet that can render as nothing is exactly
-            // what cost this project an afternoon, and at those alphas over a
-            // dark page the difference is not worth the risk.
-            LinearGradient(
-                colors: [Ink.base.opacity(0.94), Ink.base],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .overlay(Ink.base.opacity(0.6))
-        }
-        .onChange(of: model.state) { _, new in
-            // A success needs no acknowledgement and closes itself. A failure
-            // stays, because the reason is the only useful part of it. 1.6s
-            // rather than 1: the sheet now has a title and a count to read.
-            if case .saved = new {
-                Task { try? await Task.sleep(for: .seconds(1.6)); onDone() }
-            }
-        }
     }
 
     // MARK: - Pieces

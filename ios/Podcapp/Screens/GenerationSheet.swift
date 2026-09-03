@@ -164,6 +164,11 @@ struct GenerationSheet: View {
         while !Task.isCancelled {
             do {
                 let fresh = try await API.shared.episode(id: episodeId)
+                // A poll that succeeds clears the last one's complaint. Without
+                // this, one dropped request during a ten-minute run left "the
+                // network connection was lost" on screen for the rest of it,
+                // under a progress bar that was still advancing.
+                failure = nil
                 detail = fresh
                 if fresh.status != status {
                     status = fresh.status
