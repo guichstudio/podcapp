@@ -36,6 +36,18 @@ export const MIN_EXTRACTION_QUALITY = 0.35
 // not a tuning. It is deliberately NOT a change to the quality score, so the
 // scores of the cached eval corpus are untouched.
 export const MIN_EXTRACTION_CHARS = 1200
+
+// Transcription. A shared video is read for what was SAID, which a page fetch
+// cannot give: fetching a TED talk's page returns 31,103 characters of
+// description, sidebar and comments, and a briefing must not be written from a
+// comment section.
+export const SCRIBE_MODEL = 'scribe_v2'
+
+// The article floor above is calibrated on prose and would reject a minute of
+// speech. Speech runs about 150 words a minute, so 400 characters is roughly
+// twenty-five seconds -- under that there is not enough said to build a claim
+// from, and the source says so rather than failing silently.
+export const MIN_TRANSCRIPT_CHARS = 400
 // Tuned on eval/dataset with jina-embeddings-v5-text-small (2026-08-29): true
 // duplicates land at 0.90-0.97 but a meta-source wrongly absorbed stories at
 // 0.909; blind merge only above 0.93, the 0.70-0.93 band goes to the adjudicator.

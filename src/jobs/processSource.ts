@@ -7,6 +7,7 @@ import { sources, stories } from '../db/schema.js'
 import { canonicalizeUrl, sourceHash } from '../extract/canonical.js'
 import { extractEmail } from '../extract/email.js'
 import { extractText } from '../extract/text.js'
+import { extractVideo, isVideoUrl } from '../extract/video.js'
 import { extractWeb } from '../extract/web.js'
 import { addCost, callStructured, embed, type CostLedger } from '../llm/index.js'
 import { logger } from '../log.js'
@@ -26,6 +27,10 @@ async function runExtract(row: SourceRow): Promise<ExtractResult> {
   }
   if (row.type === 'web') {
     if (!row.url) return { ok: false, status: 'extraction_failed', error: 'web source without url' }
+    // A video is not a page. Checked before extractWeb because the page fetch
+    // would succeed and return the wrong thing -- the description and the
+    // comments -- which is worse than failing.
+    if (isVideoUrl(row.url)) return extractVideo(row.url)
     return extractWeb(row.url)
   }
   if (row.type === 'email') {
