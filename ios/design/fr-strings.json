@@ -278,7 +278,6 @@
   "Verification pass": "Passe de vérification",
   "Verified": "Vérifiée",
   "Video": "Vidéo",
-  "Videos transcribed automatically · newsletters by forward": "Vidéos transcrites automatiquement · newsletters par transfert",
   "Welcome to Podcapp": "Bienvenue sur Podcapp",
   "Where it comes from": "D’où ça vient",
   "Writing": "Écriture",
@@ -353,5 +352,6 @@
   "source missing": "source introuvable",
   "sources missing": "sources introuvables",
   "TRUE": "VRAI",
-  "FAKE": "FAKE"
+  "FAKE": "FAKE",
+  "Every link read for its text · newsletters by forward": "Chaque lien lu pour son texte · newsletters par transfert"
 }

@@ -104,6 +104,7 @@
 "Episode ready · open it" = "Épisode prêt · l’ouvrir";
 "Error %lld. %@" = "Erreur %lld. %@";
 "Every briefing, as an article." = "Chaque briefing, en article.";
+"Every link read for its text · newsletters by forward" = "Chaque lien lu pour son texte · newsletters par transfert";
 "Every morning at 6:00, or from Today" = "Chaque matin à 6 h, ou depuis Aujourd’hui";
 "Every sentence against its source" = "Chaque phrase face à sa source";
 "Everything you never had time to " = "Tout ce que vous n’avez pas eu le temps de ";
@@ -296,7 +297,6 @@
 "Verification pass" = "Passe de vérification";
 "Verified" = "Vérifiée";
 "Video" = "Vidéo";
-"Videos transcribed automatically · newsletters by forward" = "Vidéos transcrites automatiquement · newsletters par transfert";
 "Welcome to Podcapp" = "Bienvenue sur Podcapp";
 "Where it comes from" = "D’où ça vient";
 "Writing" = "Écriture";
