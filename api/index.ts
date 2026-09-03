@@ -17,6 +17,17 @@ import { createSession, listSessions, revokeAllSessions, revokeSession, sessionF
 import { AuthError, type Provider } from '../src/auth/types.js'
 import { verifyIdentityToken } from '../src/auth/verify.js'
 
+// THE deployed API. This file, and only this file, is what the iOS app talks
+// to: every /auth route, /sources, /episodes and /me lives here.
+//
+// src/api/index.ts is a DIFFERENT server -- the one `pnpm dev` runs -- and it is
+// not this file with fewer routes. It is the laptop's operator surface: it
+// generates episodes inline instead of queueing them, serves the RSS feed and
+// the run artefacts, and holds the storage client. It does not implement
+// sign-in at all. So `pnpm dev` cannot serve the phone, and a route added here
+// does not appear there. That has already cost a debugging cycle; see the note
+// at the top of that file for which side owns what.
+//
 // The endpoints that have to be reachable from a phone: capture, and reading
 // back what capture produced.
 //

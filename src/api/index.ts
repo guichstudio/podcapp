@@ -18,6 +18,22 @@ import { logger } from '../log.js'
 import { buildFeed, COVER_KEYS, feedKey, type FeedEpisode } from '../rss/feed.js'
 import { createStorage } from '../storage/index.js'
 
+// The laptop's operator surface, run by `pnpm dev`. NOT the API the phone uses.
+//
+// api/index.ts is the deployed one and owns everything the app talks to:
+// /auth/*, /sources, /sources/delete, /sources/aside, /episodes (list),
+// /me/sessions. None of them exist here, so a build pointed at this server
+// cannot even sign in -- which is the trap: `pnpm dev` looks like the API and
+// is not.
+//
+// What lives here and nowhere else is what needs Node and the storage client:
+// POST /episodes GENERATES inline rather than queueing a Trigger task, plus
+// /rss/:token, /stories, /sources/:id and /admin/runs/* for inspecting a run.
+// That is why the two are not merged -- the same path means different things on
+// each side -- and why the duplicated read routes below are the ones to be
+// suspicious of when the two disagree.
+
+
 type Env = { Variables: { userId: string; db: Db } }
 
 const FEED_TITLE = 'Podcapp'
