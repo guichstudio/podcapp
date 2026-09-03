@@ -1,14 +1,24 @@
-import { MIN_TRANSCRIPT_CHARS, SCRIBE_MODEL, env } from '../config.js'
+import { execFile } from 'node:child_process'
+import { mkdtemp, readFile, readdir, rm, stat } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { promisify } from 'node:util'
+import { MAX_TRANSCRIBE_SECONDS, MIN_TRANSCRIPT_CHARS, SCRIBE_MODEL, env } from '../config.js'
 import type { ExtractResult } from '../core/types.js'
 import { logger } from '../log.js'
 import { scoreExtraction } from './quality.js'
 
-const API = 'https://api.elevenlabs.io/v1/speech-to-text'
+const run = promisify(execFile)
+
+// Installed into the image by the yt-dlp build extension; overridable so a
+// laptop can point at its own copy.
+const YTDLP = process.env.YTDLP_PATH ?? 'yt-dlp'
+const SCRIBE = 'https://api.elevenlabs.io/v1/speech-to-text'
 
 // Only hosts where a link is unambiguously a piece of speech. Instagram and X
 // are deliberately absent: a reel is video but a post is text, and their pages
 // carry the caption -- which is usually the thing worth hearing about. Sending
-// every X link to a paid transcriber would spend money to get less.
+// every X link to a per-minute transcriber would spend money to get less.
 const VIDEO_PATTERNS: RegExp[] = [
   /^(www\.|m\.)?youtube\.com\/(watch|shorts|live)\b/,
   /^(www\.)?youtu\.be\/[\w-]+/,
@@ -27,93 +37,195 @@ export function isVideoUrl(raw: string): boolean {
   }
 }
 
-/// The first rung of ARCHITECTURE's transcript ladder: the platform's own
-/// captions, which are free.
+interface Probe {
+  duration?: number | undefined
+  title?: string | undefined
+  language?: string | undefined
+  subtitles: string[]
+  automatic: string[]
+}
+
+// execFile, never a shell: the URL comes from whatever the reader shared.
+async function ytDlp(args: string[], timeoutMs: number): Promise<string> {
+  const { stdout } = await run(YTDLP, ['--no-warnings', '--no-playlist', ...args], {
+    timeout: timeoutMs,
+    maxBuffer: 32 * 1024 * 1024,
+  })
+  return stdout
+}
+
+async function probe(url: string): Promise<Probe> {
+  const raw = await ytDlp(['--skip-download', '-J', url], 60_000)
+  const meta = JSON.parse(raw) as {
+    duration?: number
+    title?: string
+    language?: string
+    subtitles?: Record<string, unknown>
+    automatic_captions?: Record<string, unknown>
+  }
+  return {
+    duration: meta.duration,
+    title: meta.title,
+    language: meta.language,
+    subtitles: Object.keys(meta.subtitles ?? {}),
+    automatic: Object.keys(meta.automatic_captions ?? {}),
+  }
+}
+
+/// Which subtitle track to ask for, cheapest and truest first.
 ///
-/// It returns null because the rung is currently closed, and that was measured
-/// on 2026-09-03 rather than assumed. The watch page still lists 41 caption
-/// tracks, but every track's baseUrl now answers 200 with an empty body --
-/// timedtext wants a proof-of-origin token bound to a player session -- and the
-/// InnerTube player endpoint answers 400 for the mobile clients and UNPLAYABLE
-/// for the web one. Reaching them again means yt-dlp's machinery: rotating
-/// client versions and PO tokens, which break every few weeks.
-///
-/// Left as a function rather than deleted so the ladder is visible in the code
-/// and the cheap rung can be reconnected without rearranging anything.
-async function platformCaptions(_url: string): Promise<string | null> {
+/// The video's own language before English: the writer translates from claims
+/// anyway, so a track in the original is a better source than someone's
+/// translation of it. A track written by a human before one written by a
+/// recogniser, for the same reason.
+function pickTrack(meta: Probe): { lang: string; auto: boolean } | null {
+  const wanted = [meta.language, 'en', 'fr'].filter((l): l is string => !!l)
+  const match = (list: string[], lang: string) =>
+    list.find((code) => code === lang || code.startsWith(`${lang}-`))
+  for (const lang of wanted) {
+    const manual = match(meta.subtitles, lang)
+    if (manual) return { lang: manual, auto: false }
+  }
+  for (const lang of wanted) {
+    const auto = match(meta.automatic, lang)
+    if (auto) return { lang: auto, auto: true }
+  }
   return null
 }
 
-/// The second rung: ElevenLabs Scribe, which takes the URL directly. Nothing is
-/// downloaded, converted or stored on our side -- the platform serves them, not
-/// us -- which is also what keeps this clear of the App Store's rule about
-/// third-party media.
-async function transcribe(url: string): Promise<{ text: string; lang?: string | undefined; seconds?: number | undefined }> {
+/// WebVTT to prose: drop the cue numbers, the timings and the inline karaoke
+/// tags, and collapse the repeats auto-captions emit as a line scrolls.
+export function vttToText(vtt: string): string {
+  const out: string[] = []
+  for (const line of vtt.split('\n')) {
+    const s = line.trim()
+    if (!s || s.startsWith('WEBVTT') || s.startsWith('Kind:') || s.startsWith('Language:') || s.startsWith('NOTE')) continue
+    if (s.includes('-->') || /^\d+$/.test(s)) continue
+    const clean = s.replace(/<[^>]+>/g, '').trim()
+    if (!clean || out[out.length - 1] === clean) continue
+    out.push(clean)
+  }
+  return out.join(' ').replace(/\s+/g, ' ').trim()
+}
+
+async function fetchSubtitles(url: string, track: { lang: string; auto: boolean }, dir: string): Promise<string | null> {
+  await ytDlp(
+    [
+      '--skip-download',
+      track.auto ? '--write-auto-subs' : '--write-subs',
+      '--sub-langs',
+      track.lang,
+      '--sub-format',
+      'vtt/best',
+      '-o',
+      join(dir, 'subs.%(ext)s'),
+      url,
+    ],
+    120_000,
+  )
+  const file = (await readdir(dir)).find((f) => f.endsWith('.vtt'))
+  if (!file) return null
+  const text = vttToText(await readFile(join(dir, file), 'utf8'))
+  return text || null
+}
+
+/// The paid rung. Downloaded rather than handed over as a URL: ElevenLabs can
+/// take a source_url, but YouTube and TikTok block its fetcher -- measured at
+/// one success in eight, and the success was a 2005 clip. yt-dlp gets the audio
+/// that ElevenLabs cannot.
+async function transcribeAudio(url: string, dir: string): Promise<string> {
+  await ytDlp(['-f', 'bestaudio/best', '-o', join(dir, 'audio.%(ext)s'), url], 600_000)
+  const file = (await readdir(dir)).find((f) => f.startsWith('audio.'))
+  if (!file) throw new Error('yt-dlp produced no audio file')
+  const path = join(dir, file)
+  const size = (await stat(path)).size
+
   const form = new FormData()
   form.append('model_id', SCRIBE_MODEL)
-  form.append('source_url', url)
-  const res = await fetch(API, { method: 'POST', headers: { 'xi-api-key': env('ELEVENLABS_API_KEY') }, body: form })
+  form.append('file', new Blob([await readFile(path)]), file)
+  const res = await fetch(SCRIBE, { method: 'POST', headers: { 'xi-api-key': env('ELEVENLABS_API_KEY') }, body: form })
   if (!res.ok) throw new Error(`scribe ${res.status}: ${(await res.text()).slice(0, 300)}`)
-  const body = (await res.json()) as {
-    text?: string
-    language_code?: string
-    words?: { end?: number }[]
-  }
-  const words = body.words ?? []
-  return {
-    text: (body.text ?? '').trim(),
-    lang: body.language_code,
-    seconds: words.length ? words[words.length - 1]?.end : undefined,
-  }
+  const body = (await res.json()) as { text?: string }
+  logger.info({ bytes: size }, 'audio transcribed')
+  return (body.text ?? '').trim()
 }
 
 /// A video source: what was SAID, not the page around it.
 ///
-/// This is why the branch exists. Fetching a YouTube page as a page returns the
-/// description, the sidebar and the comments -- measured at 31,103 characters
-/// for a TED talk, whose longest lines were other viewers' opinions. A briefing
-/// that promises every sentence is checked against its source cannot be written
-/// from the comment section.
+/// This is why the branch exists at all. Fetching a video's page as a page
+/// succeeds and returns the wrong thing -- a TED talk came back as 31,103
+/// characters whose longest lines were viewers' comments -- and a briefing that
+/// promises every sentence is checked against its source cannot be written from
+/// a comment section. The same talk's own subtitle track is 12,360 characters
+/// of the talk.
 export async function extractVideo(url: string): Promise<ExtractResult> {
-  let text: string
-  let lang: string | undefined
-  let seconds: number | undefined
-  let rung: 'captions' | 'scribe'
-
-  const captions = await platformCaptions(url)
-  if (captions) {
-    text = captions
-    rung = 'captions'
-  } else {
+  const dir = await mkdtemp(join(tmpdir(), 'podcapp-video-'))
+  try {
+    let meta: Probe
     try {
-      const spoken = await transcribe(url)
-      text = spoken.text
-      lang = spoken.lang
-      seconds = spoken.seconds
-      rung = 'scribe'
+      meta = await probe(url)
     } catch (err) {
-      // A private, deleted or region-locked video is a readable failure, not a
-      // crash: the outro names it and moves on.
-      return { ok: false, status: 'extraction_failed', error: `transcription failed: ${(err as Error).message}` }
+      return { ok: false, status: 'extraction_failed', error: `could not read the video: ${message(err)}` }
     }
-  }
 
-  if (text.length < MIN_TRANSCRIPT_CHARS) {
+    let text: string | null = null
+    let rung: 'captions' | 'scribe' = 'captions'
+
+    const track = pickTrack(meta)
+    if (track) {
+      try {
+        text = await fetchSubtitles(url, track, dir)
+      } catch (err) {
+        // A missing track is not a failure of the source: fall through and pay.
+        logger.warn({ url, track, err: message(err) }, 'subtitles unavailable, falling back')
+      }
+    }
+
+    if (!text) {
+      // The only rung that costs money, so the guard sits here rather than at
+      // the top: a video with subtitles is free at any length.
+      if (meta.duration && meta.duration > MAX_TRANSCRIBE_SECONDS) {
+        return {
+          ok: false,
+          status: 'unsupported',
+          error: `no subtitles and ${Math.round(meta.duration / 60)} minutes long, over the ${Math.round(MAX_TRANSCRIBE_SECONDS / 60)}-minute transcription limit`,
+        }
+      }
+      try {
+        text = await transcribeAudio(url, dir)
+        rung = 'scribe'
+      } catch (err) {
+        return { ok: false, status: 'extraction_failed', error: `transcription failed: ${message(err)}` }
+      }
+    }
+
+    if (text.length < MIN_TRANSCRIPT_CHARS) {
+      return {
+        ok: false,
+        status: 'low_quality',
+        error: `only ${text.length} characters of speech, under ${MIN_TRANSCRIPT_CHARS} (a clip too short to say anything)`,
+      }
+    }
+
+    logger.info({ url, rung, chars: text.length, seconds: meta.duration }, 'video read')
     return {
-      ok: false,
-      status: 'low_quality',
-      error: `only ${text.length} characters of speech, under ${MIN_TRANSCRIPT_CHARS} (a clip too short to say anything)`,
+      ok: true,
+      extraction: {
+        clean_text: text,
+        title: meta.title,
+        lang: meta.language,
+        quality: scoreExtraction(text),
+        raw: { transcript_source: rung, seconds: meta.duration },
+      },
     }
+  } finally {
+    await rm(dir, { recursive: true, force: true })
   }
+}
 
-  logger.info({ url, rung, chars: text.length, seconds }, 'video transcribed')
-  return {
-    ok: true,
-    extraction: {
-      clean_text: text,
-      quality: scoreExtraction(text),
-      lang,
-      raw: { transcript_source: rung, seconds },
-    },
-  }
+function message(err: unknown): string {
+  const text = err instanceof Error ? err.message : String(err)
+  // yt-dlp puts the useful line on stderr; keep it, it names the real reason
+  // (private video, region lock, "please update yt-dlp").
+  return text.split('\n').slice(-3).join(' ').slice(0, 300)
 }

@@ -1,4 +1,5 @@
 import { ffmpeg } from '@trigger.dev/build/extensions/core'
+import { ytDlp } from './src/trigger/ytDlp.js'
 import { defineConfig } from '@trigger.dev/sdk'
 
 export default defineConfig({
@@ -18,7 +19,7 @@ export default defineConfig({
   build: {
     // Apt-installs ffmpeg onto PATH in the deployed image; assemble() probes
     // ffmpeg-static first and falls back to the bare 'ffmpeg' on PATH.
-    extensions: [ffmpeg()],
+    extensions: [ffmpeg(), ytDlp()],
     // ffmpeg-static resolves its binary from its own package directory at
     // require time; bundling it would bake a path into the bundle that does not
     // exist. Kept external it is installed on the image and resolves to a Linux

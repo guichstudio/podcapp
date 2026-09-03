@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { isVideoUrl } from './video.js'
+import { isVideoUrl, vttToText } from './video.js'
 
 // Routing is the part that costs money when it is wrong: a link sent to the
 // transcriber is billed by the minute, and a video sent to the page fetcher
@@ -40,4 +40,43 @@ test('a malformed or non-http url never routes to a paid call', () => {
   for (const url of ['', 'not a url', 'javascript:alert(1)', 'file:///etc/passwd', 'ftp://youtube.com/watch?v=x']) {
     assert.ok(!isVideoUrl(url), `${url} should not be treated as a video`)
   }
+})
+
+// The conversion, not the network: a caption file is the free rung's whole
+// output, and everything downstream reads what comes out of here.
+test('WebVTT becomes prose', () => {
+  const vtt = `WEBVTT
+Kind: captions
+Language: en
+
+1
+00:00:01.000 --> 00:00:04.000
+A few years ago, I broke into my own house.
+
+2
+00:00:04.000 --> 00:00:07.500
+I had just driven home, it was around midnight.`
+  assert.equal(
+    vttToText(vtt),
+    'A few years ago, I broke into my own house. I had just driven home, it was around midnight.',
+  )
+})
+
+test('auto-caption scrolling repeats collapse, and karaoke tags go', () => {
+  const vtt = `WEBVTT
+
+00:00:01.000 --> 00:00:03.000
+this is a three
+
+00:00:03.000 --> 00:00:05.000
+this is a three
+
+00:00:05.000 --> 00:00:07.000
+<00:00:05.100><c>it's sloppily written</c>`
+  assert.equal(vttToText(vtt), "this is a three it's sloppily written")
+})
+
+test('an empty or header-only track yields nothing rather than junk', () => {
+  assert.equal(vttToText('WEBVTT\n\nKind: captions\nLanguage: en\n'), '')
+  assert.equal(vttToText(''), '')
 })

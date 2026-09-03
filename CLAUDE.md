@@ -165,6 +165,7 @@ Session prompt: "Wire `POST /ingest` + Postmark inbound + per-user auth tokens; 
 | 2026-08 | Cut from V1: YouTube, PDF, X/Twitter, Deep Dive, interest scores, contradictions, agentic orchestration | Prove editorial quality first; pipeline > agent |
 | 2026-08 | Phase 0 manual golden path added before any code | Validate the listening experience before building infra |
 | 2026-08-28 | ElevenLabs Scribe (STT) added to the toolbox for video sources | Video transcripts unlock X/Facebook videos; same provider as TTS, one API key |
+| 2026-09-03 | Video links take the transcript ladder: yt-dlp subtitles first, ElevenLabs Scribe on the audio when there are none | Fetching a video's PAGE succeeds and returns the wrong thing — a TED talk came back as 31,103 characters whose longest lines were viewers' comments, while its own subtitle track is 12,360 characters of the talk. Measured before building: platform captions are unreachable over plain HTTP (timedtext answers 200 with an empty body, InnerTube 400/UNPLAYABLE), and Scribe's `source_url` is blocked by YouTube and TikTok — one success in eight, a 2005 clip. yt-dlp reaches both. Auto-captions are near-universal, so the paid rung is rare; it is capped at 60 minutes anyway |
 | 2026-08-28 | Sources without clean extraction are named and discarded in the outro | Trust is a feature; never summarize from memory (FLock X article case) |
 | 2026-08-28 | A no-transcript video may ship on its official sources doc, hedged on air | Species video: claims doc = usable evidence if the script says so (accuracy > breadth) |
 | 2026-08-29 | Brain = DeepSeek v4 (`deepseek-v4-flash`/`-pro`, ids verified via /models), embeddings = `jina-embeddings-v5-text-small` 1024 dims | Louis provided DeepSeek key ($50); Jina free tier + same key raises Reader limits |
@@ -230,6 +231,13 @@ Session prompt: "Wire `POST /ingest` + Postmark inbound + per-user auth tokens; 
 
 - Repo lives at `~/Code/podcapp` since 2026-08-29 (macOS TCC blocks the app's access to `~/Desktop`; the Desktop copy is stale).
 - `.env` (gitignored) holds ELEVENLABS_API_KEY; add the other keys there.
+- Video extraction needs `yt-dlp` on PATH, or `YTDLP_PATH` pointing at it. The
+  deployed worker gets the standalone Linux binary from the `ytDlp()` build
+  extension in `trigger.config.ts`, pinned there. On a laptop:
+  `curl -L -o /usr/local/bin/yt-dlp https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos && chmod +x /usr/local/bin/yt-dlp`.
+  The npm package is deliberately NOT used: it ships yt-dlp as a Python script
+  and needs Python 3.10+, which this Mac does not have. When shared videos start
+  failing with "Please update yt-dlp", bump the version in that extension.
 
 ## Reference material (`docs/reference/`, not V1 scope)
 

@@ -48,6 +48,14 @@ export const SCRIBE_MODEL = 'scribe_v2'
 // twenty-five seconds -- under that there is not enough said to build a claim
 // from, and the source says so rather than failing silently.
 export const MIN_TRANSCRIPT_CHARS = 400
+
+// Transcription is billed by the minute (330 ElevenLabs credits, about $0.05 at
+// the rate this project measured for TTS), so an hour-long video with no
+// subtitles would cost roughly a whole episode's narration. Sixty minutes is
+// the ceiling; past it the source is refused with a reason the reader can act
+// on rather than quietly costing three dollars. Subtitles are free at any
+// length, so the guard only applies to the paid rung.
+export const MAX_TRANSCRIBE_SECONDS = 60 * 60
 // Tuned on eval/dataset with jina-embeddings-v5-text-small (2026-08-29): true
 // duplicates land at 0.90-0.97 but a meta-source wrongly absorbed stories at
 // 0.909; blind merge only above 0.93, the 0.70-0.93 band goes to the adjudicator.
