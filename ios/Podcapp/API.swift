@@ -108,6 +108,10 @@ struct SavedSource: Decodable, Identifiable, Sendable {
     // Set whenever status is a failure; it is the reason to put on screen.
     let error: String?
     let capturedAt: Date
+    /// Set aside by the reader: kept in the library, out of the running. Absent
+    /// from an older server, which is why it decodes as a plain Bool with a
+    /// default rather than as an optional the whole screen has to unwrap.
+    var setAside: Bool = false
     // True once the source has been clustered into a story on the laptop, so it
     // is a candidate for the next episode.
     let inStory: Bool
@@ -222,6 +226,15 @@ actor API {
         try await post("/sources/delete", body: DeleteSourcesBody(ids: ids), as: DeleteSourcesAck.self).deleted
     }
 
+    /// Takes sources out of the running without losing them, or puts them back.
+    /// Setting aside removes them from the open stories, so they stop counting
+    /// toward the four-link rule and can never air; putting one back hands it to
+    /// the pipeline again, which re-clusters from the text it already has.
+    @discardableResult
+    func setSourcesAside(_ ids: [String], aside: Bool) async throws -> Int {
+        try await post("/sources/aside", body: AsideBody(ids: ids, aside: aside), as: AsideAck.self).changed
+    }
+
     /// Asks the server to queue a briefing. Returns the id of the queued
     /// episode; a refusal (409 double generation, 503 cloud not wired) arrives
     /// as APIError.http carrying the server's French message.
@@ -332,6 +345,8 @@ actor API {
     }
 
     private struct EpisodeList: Decodable { let episodes: [EpisodeSummary] }
+    private struct AsideBody: Encodable { let ids: [String]; let aside: Bool }
+    private struct AsideAck: Decodable { let changed: Int }
     private struct DeleteSourcesBody: Encodable { let ids: [String] }
     private struct DeleteSourcesAck: Decodable { let deleted: Int }
     private struct LanguageBody: Encodable { let language: String }

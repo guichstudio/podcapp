@@ -46,6 +46,7 @@
 "Anything goes in." = "Tout y passe.";
 "Apple Podcasts, Overcast" = "Apple Podcasts, Overcast";
 "Article" = "Article";
+"Aside" = "De côté";
 "Assembling" = "Assemblage";
 "At least %lld links are needed to build an episode." = "Il faut au moins %lld liens pour fabriquer un épisode.";
 "Audio only" = "Audio seul";
@@ -143,6 +144,7 @@
 "Intro/outro: no external fact." = "Intro/outro : aucun fait externe.";
 "Invalid server address." = "Adresse du serveur invalide.";
 "Issues" = "Problèmes";
+"It leaves your library for good. An episode that already cited it keeps the citation, flagged as no longer available." = "Elle quitte votre bibliothèque définitivement. Un épisode qui la citait garde la citation, signalée comme indisponible.";
 "Its address carries a token the server never sends back to the app: copy it from the machine that publishes the episodes." = "Son adresse contient un jeton que le serveur ne renvoie pas à l’app : copiez-la depuis l’ordinateur qui publie les épisodes.";
 "It’s captured." = "C’est capturé.";
 "Kept + set aside, with reasons" = "Retenus + écartés, avec raisons";
@@ -210,6 +212,7 @@
 "Private RSS feed included · plays in any podcast app" = "Flux RSS privé inclus · s’écoute dans n’importe quelle app podcast";
 "Private credit, Wall Street’s cockroach" = "Crédit privé, le cafard de Wall Street";
 "Published" = "Publié";
+"Put back" = "Remettre en jeu";
 "QUEUED" = "EN FILE";
 "Queued" = "En file";
 "Queued. Extraction runs at the next pass." = "En file. L’extraction se lance au prochain traitement.";
@@ -224,6 +227,7 @@
 "Received" = "Reçu";
 "Replay the intro" = "Revoir l’intro";
 "Revoke" = "Révoquer";
+"SET ASIDE" = "DE CÔTÉ";
 "SOURCE" = "SOURCE";
 "Save a few sources, then generate a briefing from the Today tab." = "Enregistrez des sources, puis générez un briefing depuis l’onglet Aujourd’hui.";
 "Saved" = "Enregistré";
@@ -238,7 +242,7 @@
 "Selecting" = "Sélection";
 "Sending…" = "Envoi en cours…";
 "Server unreachable. %@" = "Serveur injoignable. %@";
-"Set aside" = "Écarté";
+"Set aside" = "Mettre de côté";
 "Settings" = "Réglages";
 "Shall we?" = "On commence ?";
 "Share a few links from Safari, then hit Generate below: the first episode shows up here as soon as it is ready." = "Partagez quelques liens depuis Safari, puis lancez Générer ci-dessous : le premier épisode apparaîtra ici dès qu’il sera prêt.";

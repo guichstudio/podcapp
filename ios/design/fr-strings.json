@@ -228,7 +228,7 @@
   "Selecting": "Sélection",
   "Sending…": "Envoi en cours…",
   "Server unreachable. %@": "Serveur injoignable. %@",
-  "Set aside": "Écarté",
+  "Set aside": "Mettre de côté",
   "Settings": "Réglages",
   "Shall we?": "On commence ?",
   "Share a few links from Safari, then hit Generate below: the first episode shows up here as soon as it is ready.": "Partagez quelques liens depuis Safari, puis lancez Générer ci-dessous : le premier épisode apparaîtra ici dès qu’il sera prêt.",
@@ -365,5 +365,9 @@
   "article": "article",
   "note": "note",
   "links": "liens",
-  "Saved text": "Texte enregistré"
+  "Saved text": "Texte enregistré",
+  "Put back": "Remettre en jeu",
+  "SET ASIDE": "DE CÔTÉ",
+  "It leaves your library for good. An episode that already cited it keeps the citation, flagged as no longer available.": "Elle quitte votre bibliothèque définitivement. Un épisode qui la citait garde la citation, signalée comme indisponible.",
+  "Aside": "De côté"
 }

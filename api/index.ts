@@ -877,6 +877,35 @@ authed.get('/episodes/:id', async (c) => {
 // deleted ids, and a story left with nothing is removed only when it is still
 // open -- an aired story is the record of what was broadcast, not a working
 // set.
+/// Takes a set of source ids out of the caller's open stories.
+///
+/// In TypeScript rather than one clever statement: a uuid[] parameter inside
+/// drizzle's sql template does not survive the neon-http driver -- it answered
+/// 500 until this was rewritten -- and a user has a handful of stories, so
+/// reading them and writing back only the ones that changed costs less than the
+/// bug did.
+///
+/// An open story left with nothing behind it is removed: it can never air and
+/// counts for nothing. That happens whether this call emptied it or an earlier
+/// one did, because a half-applied delete once left exactly that row behind.
+/// An aired story is never touched: it is the record of what was broadcast.
+async function detachFromStories(conn: Conn, userId: string, ids: Set<string>): Promise<void> {
+  const owning = await conn
+    .select({ id: stories.id, sourceIds: stories.sourceIds, status: stories.status })
+    .from(stories)
+    .where(eq(stories.userId, userId))
+  for (const story of owning) {
+    const kept = story.sourceIds.filter((sid) => !ids.has(sid))
+    const where = and(eq(stories.userId, userId), eq(stories.id, story.id))
+    if (kept.length === 0 && story.status === 'open') {
+      await conn.delete(stories).where(where)
+      continue
+    }
+    if (kept.length === story.sourceIds.length) continue
+    await conn.update(stories).set({ sourceIds: kept }).where(where)
+  }
+}
+
 const DeleteSourcesSchema = z.object({ ids: z.array(z.string().uuid()).min(1).max(100) })
 
 authed.post('/sources/delete', async (c) => {
@@ -896,33 +925,58 @@ authed.post('/sources/delete', async (c) => {
   if (owned.length === 0) return c.json({ deleted: 0 })
   const found = new Set(owned.map((row) => row.id))
 
-  // The story rewrite happens in TypeScript rather than in one clever
-  // statement: a uuid[] parameter inside drizzle's sql template does not
-  // survive the neon-http driver (it answered 500 until this was rewritten),
-  // and a user has a handful of stories, so reading them and writing back only
-  // the ones that actually changed costs less than the bug did.
-  const owning = await conn
-    .select({ id: stories.id, sourceIds: stories.sourceIds, status: stories.status })
-    .from(stories)
-    .where(eq(stories.userId, userId))
-  for (const story of owning) {
-    const kept = story.sourceIds.filter((sid) => !found.has(sid))
-    const where = and(eq(stories.userId, userId), eq(stories.id, story.id))
-    // An open story with nothing behind it is dead weight: it can never air and
-    // it counts for nothing. It goes whether this call emptied it or an earlier
-    // one did -- the emptied-but-not-removed case is real, a half-applied
-    // delete left exactly that row behind while this endpoint was being built.
-    if (kept.length === 0 && story.status === 'open') {
-      await conn.delete(stories).where(where)
-      continue
-    }
-    if (kept.length === story.sourceIds.length) continue
-    await conn.update(stories).set({ sourceIds: kept }).where(where)
-  }
-
+  await detachFromStories(conn, userId, found)
   await conn.delete(sources).where(and(eq(sources.userId, userId), inArray(sources.id, [...found])))
 
   return c.json({ deleted: found.size })
+})
+
+// Setting a source aside keeps the row and takes it out of the running: it
+// leaves the open stories, so it cannot be counted toward the four-link rule,
+// selected for an episode, or cited on air. Nothing in the editorial path
+// changes -- a source behind no open story is a shape it already handles for
+// everything not yet clustered.
+//
+// Putting one back clears the mark and hands it to process-source again, which
+// skips extraction when clean_text is already there and simply re-clusters from
+// the stored text. That is why the row is kept whole rather than gutted.
+const AsideSchema = z.object({ ids: z.array(z.string().uuid()).min(1).max(100), aside: z.boolean() })
+
+authed.post('/sources/aside', async (c) => {
+  const parsed = AsideSchema.safeParse(await c.req.json().catch(() => null))
+  if (!parsed.success) return c.json({ error: 'expected { ids: [uuid], aside: boolean }' }, 400)
+  const conn = c.get('conn')
+  const userId = c.get('userId')
+  const { ids, aside } = parsed.data
+
+  const owned = await conn
+    .select({ id: sources.id })
+    .from(sources)
+    .where(and(eq(sources.userId, userId), inArray(sources.id, ids)))
+  if (owned.length === 0) return c.json({ changed: 0 })
+  const found = new Set(owned.map((row) => row.id))
+
+  await conn
+    .update(sources)
+    .set({ setAsideAt: aside ? new Date() : null })
+    .where(and(eq(sources.userId, userId), inArray(sources.id, [...found])))
+
+  if (aside) {
+    await detachFromStories(conn, userId, found)
+  } else if (process.env.TRIGGER_SECRET_KEY) {
+    // One run each, and a failure is logged rather than returned: the mark is
+    // already cleared, which is what the reader asked for, and the laptop drain
+    // picks the rest up.
+    for (const id of found) {
+      try {
+        await triggerTask('process-source', { sourceId: id })
+      } catch (err) {
+        console.error('recluster trigger failed', id, err)
+      }
+    }
+  }
+
+  return c.json({ changed: found.size })
 })
 
 authed.get('/sources', async (c) => {
@@ -946,6 +1000,7 @@ authed.get('/sources', async (c) => {
         extractionQuality: sources.extractionQuality,
         error: sources.error,
         capturedAt: sources.capturedAt,
+        setAsideAt: sources.setAsideAt,
       })
       .from(sources)
       .where(eq(sources.userId, userId))
@@ -974,6 +1029,7 @@ authed.get('/sources', async (c) => {
       extractionQuality: s.extractionQuality,
       error: s.error,
       capturedAt: s.capturedAt.toISOString(),
+      setAside: s.setAsideAt !== null,
       inStory: clustered.has(s.id),
     })),
     available,

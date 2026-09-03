@@ -33,6 +33,10 @@ struct LibraryView: View {
     // whatever was open.
     @State private var selecting = false
     @State private var selection: Set<String> = []
+    // At most one row shows its actions at a time, which is what a swipe list
+    // does everywhere else on the phone.
+    @State private var swiped: String?
+    @State private var confirmingRow: SavedSource?
     @State private var confirmingDelete = false
     @State private var deleting = false
     @State private var deleteError: String?
@@ -80,10 +84,55 @@ struct LibraryView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(ScreenBackground())
+        .confirmationDialog(
+            Text("Delete this source?"),
+            isPresented: Binding(get: { confirmingRow != nil }, set: { if !$0 { confirmingRow = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button(role: .destructive) {
+                if let row = confirmingRow { Task { await delete(row) } }
+                confirmingRow = nil
+            } label: { Text("Delete") }
+            Button(role: .cancel) { confirmingRow = nil } label: { Text("Cancel") }
+        } message: {
+            Text("It leaves your library for good. An episode that already cited it keeps the citation, flagged as no longer available.")
+        }
         .refreshable { await load() }
         .task { await load() }
         .onChange(of: scenePhase) { _, new in
             if new == .active { Task { await load() } }
+        }
+    }
+
+    // MARK: - Row actions
+
+    /// Sets a source aside or puts it back. The row is updated in place from
+    /// what the server confirms rather than optimistically: this is the only
+    /// signal that the story housekeeping behind it actually ran.
+    @MainActor
+    private func setAside(_ source: SavedSource, _ aside: Bool) async {
+        deleteError = nil
+        do {
+            _ = try await API.shared.setSourcesAside([source.id], aside: aside)
+            Feedback.saved()
+            await load()
+        } catch {
+            deleteError = error.localizedDescription
+            Feedback.refused()
+        }
+    }
+
+    @MainActor
+    private func delete(_ source: SavedSource) async {
+        deleteError = nil
+        do {
+            let removed = try await API.shared.deleteSources([source.id])
+            if removed > 0 { sources.removeAll { $0.id == source.id } }
+            Feedback.saved()
+            await load()
+        } catch {
+            deleteError = error.localizedDescription
+            Feedback.refused()
         }
     }
 
@@ -463,7 +512,33 @@ struct LibraryView: View {
                         if section.grouped { groupingBanner }
 
                         ForEach(section.rows) { source in
-                            row(source)
+                            SwipeableRow(
+                                id: source.id,
+                                open: $swiped,
+                                // Selection mode owns the whole row: a swipe
+                                // there would fight the checkbox.
+                                enabled: !selecting,
+                                isAside: source.setAside,
+                                onAside: { Task { await setAside(source, !source.setAside) } },
+                                onDelete: { confirmingRow = source }
+                            ) {
+                                row(source)
+                            }
+                            .contextMenu {
+                                if !selecting {
+                                    Button {
+                                        Task { await setAside(source, !source.setAside) }
+                                    } label: {
+                                        Label(
+                                            source.setAside ? String(localized: "Put back") : String(localized: "Set aside"),
+                                            systemImage: source.setAside ? "arrow.uturn.backward" : "tray.and.arrow.down"
+                                        )
+                                    }
+                                    Button(role: .destructive) { confirmingRow = source } label: {
+                                        Label(String(localized: "Delete"), systemImage: "trash")
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -573,9 +648,18 @@ struct LibraryView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                SourceStatusChip(label: state.chip, kind: state.kind, pulses: state.pulses)
-                    .padding(.top, 2)
+                if source.setAside {
+                    // Its own chip rather than the pipeline's: once a source is
+                    // out of the running, READY or EXTRACTING is no longer the
+                    // fact that matters about it.
+                    SourceStatusChip(label: String(localized: "SET ASIDE"), kind: .neutral, pulses: false)
+                        .padding(.top, 2)
+                } else {
+                    SourceStatusChip(label: state.chip, kind: state.kind, pulses: state.pulses)
+                        .padding(.top, 2)
+                }
             }
+            .opacity(source.setAside ? 0.55 : 1)
             .contentShape(Rectangle())
             .onTapGesture {
                 if selecting {
@@ -627,7 +711,7 @@ struct LibraryView: View {
     }
 
     private var sections: [LibrarySection] {
-        let visible = shelved.filter { filter.keeps(LibraryStatus.of($0)) }
+        let visible = shelved.filter { filter.keeps($0) }
         let problems = visible.filter { LibraryStatus.of($0).isProblem }
         let healthy = visible.filter { !LibraryStatus.of($0).isProblem }
         let calendar = Calendar.current
@@ -728,7 +812,7 @@ private struct SourceStatusChip: View {
 // MARK: - Filters, sections, status mapping
 
 private enum LibraryFilter: String, CaseIterable, Identifiable {
-    case all, ready, issues
+    case all, ready, issues, aside
 
     var id: String { rawValue }
 
@@ -737,14 +821,21 @@ private enum LibraryFilter: String, CaseIterable, Identifiable {
         case .all: return String(localized: "All")
         case .ready: return String(localized: "Ready")
         case .issues: return String(localized: "Issues")
+        // A state, not the imperative the swipe button uses.
+        case .aside: return String(localized: "Aside")
         }
     }
 
-    func keeps(_ status: LibraryStatus) -> Bool {
+    /// `all` shows everything, set-aside rows included: they are still in the
+    /// library and hiding them would make a swipe look like a delete. The other
+    /// filters are about the pipeline's opinion of a source, which no longer
+    /// applies once the reader has taken it out of the running.
+    func keeps(_ source: SavedSource) -> Bool {
         switch self {
         case .all: return true
-        case .ready: return status.isReady
-        case .issues: return status.isProblem
+        case .aside: return source.setAside
+        case .ready: return !source.setAside && LibraryStatus.of(source).isReady
+        case .issues: return !source.setAside && LibraryStatus.of(source).isProblem
         }
     }
 }
@@ -902,5 +993,115 @@ private enum LibraryRow {
 
     private static func decimal(_ value: Double) -> String {
         String(format: "%.2f", value).replacingOccurrences(of: ".", with: ",")
+    }
+}
+
+/// A row you can push to the left to reveal two actions, plus the same two
+/// under a long press.
+///
+/// Not `List` + `.swipeActions`: the Library is a ScrollView of hand-drawn rows
+/// on a gradient, and a List would throw the design away. The actions sit
+/// BESIDE the row inside a clipped strip rather than behind it, because a row
+/// with a transparent background would otherwise show them through itself.
+private struct SwipeableRow<Content: View>: View {
+    let id: String
+    @Binding var open: String?
+    let enabled: Bool
+    let isAside: Bool
+    let onAside: () -> Void
+    let onDelete: () -> Void
+    @ViewBuilder var content: Content
+
+    @State private var offset: CGFloat = 0
+    @State private var committed: CGFloat = 0
+
+    private let actionWidth: CGFloat = 172
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            // A hidden copy of the row sets the height. A GeometryReader fills
+            // whatever it is given and never sizes to its content, so without
+            // this the strip would need a fixed height and would cut the
+            // two-line titles the design allows.
+            content.hidden()
+
+            GeometryReader { geo in
+                HStack(spacing: 0) {
+                    content.frame(width: geo.size.width)
+                    actions.frame(width: actionWidth)
+                }
+                .offset(x: offset)
+                .animation(.spring(response: 0.3, dampingFraction: 0.85), value: offset)
+            }
+        }
+        .clipped()
+        .contentShape(Rectangle())
+        .gesture(enabled ? drag : nil)
+        // Opening one row closes every other: two half-open rows read as a bug.
+        .onChange(of: open) { _, now in
+            if now != id { close() }
+        }
+        .onChange(of: enabled) { _, on in
+            if !on { close() }
+        }
+    }
+
+    private var actions: some View {
+        HStack(spacing: 0) {
+            action(
+                label: isAside ? String(localized: "Put back") : String(localized: "Set aside"),
+                icon: isAside ? "arrow.uturn.backward" : "tray.and.arrow.down",
+                tint: Palette.accentDeep
+            ) {
+                close()
+                onAside()
+            }
+            action(label: String(localized: "Delete"), icon: "trash", tint: Palette.danger) {
+                close()
+                onDelete()
+            }
+        }
+    }
+
+    private func action(label: String, icon: String, tint: Color, run: @escaping () -> Void) -> some View {
+        Button {
+            Feedback.tap()
+            run()
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: icon).font(.system(size: 17, weight: .semibold))
+                Text(label).typo(Typo.metaSmall).lineLimit(1).minimumScaleFactor(0.8)
+            }
+            .foregroundStyle(Palette.onDark)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(tint)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var drag: some Gesture {
+        DragGesture(minimumDistance: 14)
+            .onChanged { value in
+                // Horizontal only: the vertical component belongs to the
+                // ScrollView this row lives in.
+                guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                offset = min(0, max(-actionWidth, committed + value.translation.width))
+            }
+            .onEnded { value in
+                let projected = offset + value.predictedEndTranslation.width * 0.2
+                if projected < -actionWidth / 2 {
+                    committed = -actionWidth
+                    offset = -actionWidth
+                    open = id
+                } else {
+                    close()
+                    if open == id { open = nil }
+                }
+            }
+    }
+
+    private func close() {
+        committed = 0
+        offset = 0
     }
 }

@@ -46,6 +46,7 @@
 "Anything goes in." = "Anything goes in.";
 "Apple Podcasts, Overcast" = "Apple Podcasts, Overcast";
 "Article" = "Article";
+"Aside" = "Aside";
 "Assembling" = "Assembling";
 "At least %lld links are needed to build an episode." = "At least %lld links are needed to build an episode.";
 "Audio only" = "Audio only";
@@ -143,6 +144,7 @@
 "Intro/outro: no external fact." = "Intro/outro: no external fact.";
 "Invalid server address." = "Invalid server address.";
 "Issues" = "Issues";
+"It leaves your library for good. An episode that already cited it keeps the citation, flagged as no longer available." = "It leaves your library for good. An episode that already cited it keeps the citation, flagged as no longer available.";
 "Its address carries a token the server never sends back to the app: copy it from the machine that publishes the episodes." = "Its address carries a token the server never sends back to the app: copy it from the machine that publishes the episodes.";
 "It’s captured." = "It’s captured.";
 "Kept + set aside, with reasons" = "Kept + set aside, with reasons";
@@ -210,6 +212,7 @@
 "Private RSS feed included · plays in any podcast app" = "Private RSS feed included · plays in any podcast app";
 "Private credit, Wall Street’s cockroach" = "Private credit, Wall Street’s cockroach";
 "Published" = "Published";
+"Put back" = "Put back";
 "QUEUED" = "QUEUED";
 "Queued" = "Queued";
 "Queued. Extraction runs at the next pass." = "Queued. Extraction runs at the next pass.";
@@ -224,6 +227,7 @@
 "Received" = "Received";
 "Replay the intro" = "Replay the intro";
 "Revoke" = "Revoke";
+"SET ASIDE" = "SET ASIDE";
 "SOURCE" = "SOURCE";
 "Save a few sources, then generate a briefing from the Today tab." = "Save a few sources, then generate a briefing from the Today tab.";
 "Saved" = "Saved";

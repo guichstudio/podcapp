@@ -108,6 +108,10 @@ export const sources = pgTable(
     category: text('category'),
     embedding: vector('embedding'),
     extractionQuality: real('extraction_quality'),
+    // Set aside by the reader: kept in the library, but out of the running. A
+    // timestamp rather than a boolean so the row can say when, and so putting
+    // it back is a plain null.
+    setAsideAt: timestamp('set_aside_at', { withTimezone: true }),
     status: text('status').notNull().default('received'),
     error: text('error'),
   },
