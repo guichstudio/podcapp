@@ -1,5 +1,10 @@
 .DS_Store
-node_modules/
+# No trailing slash: with one this matches a directory but not a SYMLINK to
+# one, and a git worktree can only have the symlink -- dependencies are
+# installed once in the main checkout. Every worktree therefore showed an
+# untracked node_modules, which is noise and, worse, something a broad
+# `git add` would commit.
+node_modules
 .env
 .env.*
 dist/
