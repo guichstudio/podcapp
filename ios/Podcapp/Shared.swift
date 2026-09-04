@@ -25,7 +25,7 @@ enum Config {
     /// issues no secret for it, and the code exchange is protected by PKCE
     /// instead. The server must carry the SAME value in GOOGLE_CLIENT_ID,
     /// because that is the audience it checks the id_token against.
-    static let googleClientId = ""
+    static let googleClientId = "996102731506-54oent5htl6n67ipkp3ggvd93r9b31ul.apps.googleusercontent.com"
 
     // The App Group container only exists when the build carries its
     // entitlement. `UserDefaults(suiteName:)` is the WRONG probe for that: it
