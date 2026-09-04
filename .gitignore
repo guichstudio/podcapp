@@ -15,3 +15,4 @@ phase2_script_*-audio/
 ios/**/xcuserdata/
 ios/**/*.xcworkspace/xcuserdata/
 ios/build/
+.tools/

@@ -13,6 +13,19 @@ const run = promisify(execFile)
 // Installed into the image by the yt-dlp build extension; overridable so a
 // laptop can point at its own copy.
 const YTDLP = process.env.YTDLP_PATH ?? 'yt-dlp'
+
+/// A signed-in request makes YouTube serve its player challenge, and yt-dlp
+/// cannot solve that without a JavaScript runtime: with the jar and no runtime
+/// every video dies on "The page needs to be reloaded", which is WORSE than no
+/// jar at all. Measured 2026-09-04 -- two videos that read fine unauthenticated
+/// failed the moment cookies were sent, and both came back with Deno present.
+///
+/// Deno rather than the Node already running this process: yt-dlp reports
+/// Node 20 as "unsupported", and the runtime is not something to couple to the
+/// project's own Node version. The deployed image puts deno on PATH, where
+/// yt-dlp finds it unaided; DENO_PATH is for a laptop keeping its copy in
+/// .tools/ instead of installing one system-wide.
+const DENO = process.env.DENO_PATH
 const SCRIBE = 'https://api.elevenlabs.io/v1/speech-to-text'
 
 // Only hosts where a link is unambiguously a piece of speech. Instagram and X
@@ -73,7 +86,8 @@ export async function cookieJar(dir: string): Promise<string | null> {
 // execFile, never a shell: the URL comes from whatever the reader shared.
 async function ytDlp(args: string[], timeoutMs: number, cookies: string | null): Promise<string> {
   const jar = cookies ? ['--cookies', cookies] : []
-  const { stdout } = await run(YTDLP, ['--no-warnings', '--no-playlist', ...jar, ...args], {
+  const js = DENO ? ['--js-runtimes', `deno:${DENO}`] : []
+  const { stdout } = await run(YTDLP, ['--no-warnings', '--no-playlist', ...jar, ...js, ...args], {
     timeout: timeoutMs,
     maxBuffer: 32 * 1024 * 1024,
   })

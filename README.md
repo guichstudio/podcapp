@@ -125,6 +125,15 @@ la vidéo lui-même) prend le même mur : une réussite sur quatre à la mesure.
 servent à télécharger depuis un datacenter, et c'est le compte Google entier
 qui saute, pas la session.
 
+Le pot NE SUFFIT PAS seul. Une requête authentifiée déclenche le défi
+JavaScript du lecteur YouTube, que yt-dlp ne sait pas résoudre sans moteur JS :
+mesuré le 2026-09-04, deux vidéos qui se lisaient très bien anonymement ont
+échoué sur « The page needs to be reloaded » dès l'envoi des cookies, et sont
+revenues avec Deno présent. Le pot sans Deno est donc PIRE que pas de pot. Deno
+est installé dans l'image du worker (`src/trigger/ytDlp.ts`) ; en local il vit
+dans `.tools/` et `DENO_PATH` le désigne. Pas Node : yt-dlp déclare Node 20
+« unsupported ».
+
 Comment fabriquer le pot, une fois :
 
 1. fenêtre de navigation privée, connexion au compte jetable, aller sur
