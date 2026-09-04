@@ -72,6 +72,7 @@
 "Checking" = "Checking";
 "Close" = "Close";
 "Close the player" = "Close the player";
+"Continue with Google" = "Continue with Google";
 "Copied" = "Copied";
 "Copy" = "Copy";
 "Copy link" = "Copy link";
@@ -123,6 +124,7 @@
 "Generation" = "Generation";
 "Generation failed before the script was written." = "Generation failed before the script was written.";
 "Generation stopped. Start it again with the Generate button below." = "Generation stopped. Start it again with the Generate button below.";
+"Google sign-in is not available in this build." = "Google sign-in is not available in this build.";
 "HOW TO SHARE" = "HOW TO SHARE";
 "Haptics" = "Haptics";
 "History" = "History";

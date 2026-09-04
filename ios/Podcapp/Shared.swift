@@ -15,6 +15,18 @@ enum Config {
     /// and the site cannot drift apart.
     static let siteURL = "https://podcapp.fr"
 
+    /// The Google OAuth client id for this app, from Google Cloud Console
+    /// (credential type iOS, bundle id com.louisguichard.podcapp). Empty means
+    /// the build was not configured for Google, and the sign-in screen then
+    /// simply does not offer it -- a button that cannot work is worse than an
+    /// absent one, and this project does not ship inert UI.
+    ///
+    /// It is not a secret: an iOS OAuth client is public by design, Google
+    /// issues no secret for it, and the code exchange is protected by PKCE
+    /// instead. The server must carry the SAME value in GOOGLE_CLIENT_ID,
+    /// because that is the audience it checks the id_token against.
+    static let googleClientId = ""
+
     // The App Group container only exists when the build carries its
     // entitlement. `UserDefaults(suiteName:)` is the WRONG probe for that: it
     // returns a defaults object either way (nil only for the main bundle id)

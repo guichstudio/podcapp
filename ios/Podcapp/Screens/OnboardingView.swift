@@ -159,6 +159,16 @@ struct OnboardingView: View {
                 .disabled(status == .checking)
                 .opacity(status == .checking ? 0.5 : 1)
 
+            // Only when this build carries a client id: an OAuth button that
+            // cannot complete is worse than no button.
+            if Auth.googleIsConfigured {
+                googleButton
+                    .frame(width: 272)
+                    .padding(.top, 12)
+                    .disabled(status == .checking)
+                    .opacity(status == .checking ? 0.5 : 1)
+            }
+
             // App Review needs a way in without a personal Apple ID; everyone
             // else never has to see it. One line, easy to miss on purpose.
             emailSignIn
@@ -208,6 +218,44 @@ struct OnboardingView: View {
         }
         .signInWithAppleButtonStyle(.black)
         .frame(height: 50)
+    }
+
+    /// Apple's own button is a system control we cannot restyle, so this one is
+    /// drawn to match it rather than to match the rest of the app: same height,
+    /// same corner radius, same weight. Google's brand rules ask for their mark
+    /// beside the words; the app ships no image assets for it, so the wordmark
+    /// alone is used -- honest, and it does not invent a logo.
+    private var googleButton: some View {
+        Button {
+            Feedback.tap()
+            Task { await handleGoogle() }
+        } label: {
+            Text("Continue with Google")
+                .typo(Typo.buttonMedium)
+                .foregroundStyle(Palette.ink)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(Color.white, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Palette.ink.opacity(0.18), lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func handleGoogle() async {
+        status = .checking
+        do {
+            _ = try await Auth.signInWithGoogle(rawNonce: nonce)
+            onDone()
+        } catch {
+            Config.sessionToken = ""
+            // A nonce is single-use: without this, a second attempt after a
+            // failure would be refused as a replay. Same reason as Apple's.
+            nonce = Auth.makeNonce()
+            status = .failed(error.localizedDescription)
+        }
     }
 
     private func handleApple(_ result: Result<ASAuthorization, Error>) async {

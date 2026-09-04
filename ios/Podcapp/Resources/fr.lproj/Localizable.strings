@@ -72,6 +72,7 @@
 "Checking" = "Vérification";
 "Close" = "Fermer";
 "Close the player" = "Fermer le lecteur";
+"Continue with Google" = "Continuer avec Google";
 "Copied" = "Copié";
 "Copy" = "Copier";
 "Copy link" = "Copier le lien";
@@ -123,6 +124,7 @@
 "Generation" = "Génération";
 "Generation failed before the script was written." = "La génération a échoué avant l’écriture du script.";
 "Generation stopped. Start it again with the Generate button below." = "La génération s’est arrêtée. Relancez-la avec le bouton Générer ci-dessous.";
+"Google sign-in is not available in this build." = "La connexion Google n'est pas disponible dans cette version.";
 "HOW TO SHARE" = "COMMENT PARTAGER";
 "Haptics" = "Vibrations";
 "History" = "Histoire";
