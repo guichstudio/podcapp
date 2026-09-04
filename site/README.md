@@ -27,8 +27,31 @@ cd site && vercel --prod
 ```
 
 Ajouter un article : dupliquer un dossier de `blog/` ET son equivalent `fr/blog/`,
-changer le contenu, croiser les `hreflang` et la bascule de langue entre les deux,
-puis ajouter la carte dans les deux `index.html` et les URL dans `sitemap.xml`.
+changer le contenu, croiser les `hreflang` (les trois : `en`, `fr`, `x-default`
+qui pointe la version anglaise) et la bascule de langue entre les deux, adapter le
+bloc `application/ld+json` du `<head>` (`BlogPosting` + `BreadcrumbList` : titre,
+description, `datePublished`, `url`), puis ajouter la carte dans les deux
+`index.html`, la referencer dans le `blogPost` des deux index, et poser les deux
+URL dans `sitemap.xml` avec leur `lastmod`.
+
+## SEO
+
+Chaque page indexable porte : `canonical` absolu, le trio `hreflang`
+(`en` / `fr` / `x-default` vers l'anglais), `robots` avec `max-image-preview:large`,
+les balises Open Graph, et un `@graph` JSON-LD (`Organization` partout, plus
+`WebSite`+`WebPage` sur les landings, `Blog` sur les index, `BlogPosting`+
+`BreadcrumbList` sur les articles). Les pages legales restent `noindex`.
+
+`sitemap.xml` liste exactement les 10 URL canoniques, chacune avec son `lastmod`
+(date du dernier changement de CONTENU, pas d'une retouche de balisage) et le jeu
+complet d'alternates. `robots.txt` le declare.
+
+Le site repond aussi sur `podcapp-site.vercel.app` : les `canonical` absolus
+renvoient tout vers `podcapp.fr`, donc pas de contenu duplique aux yeux de Google.
+
+Google Search Console : propriete de type **Domaine** (couvre l'apex, `www`, http
+et https d'un coup), validee par un enregistrement TXT dans la zone OVH, puis
+soumettre `sitemap.xml` dans Sitemaps.
 
 La mise en page reprend telle quelle l'artboard Claude Design (`Podcapp Landing FR`) :
 couleurs, rayons, ombres et tailles sont identiques au-dessus de 1060 px de large.

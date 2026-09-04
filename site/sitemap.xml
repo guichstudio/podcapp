@@ -3,6 +3,7 @@
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://podcapp.fr/</loc>
+    <lastmod>2026-09-03</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/fr/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://podcapp.fr/"/>
@@ -10,62 +11,74 @@
   </url>
   <url>
     <loc>https://podcapp.fr/fr/</loc>
+    <lastmod>2026-09-03</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/fr/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://podcapp.fr/"/>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://podcapp.fr/blog/</loc>
+    <lastmod>2026-09-01</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/blog/"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/fr/blog/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://podcapp.fr/blog/"/>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://podcapp.fr/fr/blog/</loc>
+    <lastmod>2026-09-01</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/blog/"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/fr/blog/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://podcapp.fr/blog/"/>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://podcapp.fr/blog/nothing-unsourced-on-air/</loc>
+    <lastmod>2026-08-29</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/blog/nothing-unsourced-on-air/"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/fr/blog/zero-affirmation-non-sourcee/"/>
-    <lastmod>2026-08-29</lastmod>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://podcapp.fr/blog/nothing-unsourced-on-air/"/>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://podcapp.fr/fr/blog/zero-affirmation-non-sourcee/</loc>
+    <lastmod>2026-08-29</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/blog/nothing-unsourced-on-air/"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/fr/blog/zero-affirmation-non-sourcee/"/>
-    <lastmod>2026-08-29</lastmod>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://podcapp.fr/blog/nothing-unsourced-on-air/"/>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://podcapp.fr/blog/the-airtime-budget/</loc>
+    <lastmod>2026-08-21</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/blog/the-airtime-budget/"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/fr/blog/le-budget-d-antenne/"/>
-    <lastmod>2026-08-21</lastmod>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://podcapp.fr/blog/the-airtime-budget/"/>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://podcapp.fr/fr/blog/le-budget-d-antenne/</loc>
+    <lastmod>2026-08-21</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/blog/the-airtime-budget/"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/fr/blog/le-budget-d-antenne/"/>
-    <lastmod>2026-08-21</lastmod>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://podcapp.fr/blog/the-airtime-budget/"/>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://podcapp.fr/blog/the-source-we-could-not-read/</loc>
+    <lastmod>2026-08-12</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/blog/the-source-we-could-not-read/"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/fr/blog/la-source-qu-on-n-a-pas-pu-lire/"/>
-    <lastmod>2026-08-12</lastmod>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://podcapp.fr/blog/the-source-we-could-not-read/"/>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://podcapp.fr/fr/blog/la-source-qu-on-n-a-pas-pu-lire/</loc>
+    <lastmod>2026-08-12</lastmod>
     <xhtml:link rel="alternate" hreflang="en" href="https://podcapp.fr/blog/the-source-we-could-not-read/"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://podcapp.fr/fr/blog/la-source-qu-on-n-a-pas-pu-lire/"/>
-    <lastmod>2026-08-12</lastmod>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://podcapp.fr/blog/the-source-we-could-not-read/"/>
     <priority>0.5</priority>
   </url>
 </urlset>
