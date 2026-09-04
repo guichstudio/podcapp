@@ -60,6 +60,11 @@ struct LibraryView: View {
         case idle, sending, done(String), failed(String)
     }
 
+    /// The capture field's focus, held here because dismissing the keyboard is
+    /// the screen's job, not the field's: nothing inside a TextField can react
+    /// to a scroll or to a tap somewhere else on the page.
+    @FocusState private var captureFocused: Bool
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -94,6 +99,18 @@ struct LibraryView: View {
             .padding(.bottom, 24)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        // Dragging the list down puts the keyboard away, which is what every
+        // hand expects and what nothing here did.
+        .scrollDismissesKeyboard(.interactively)
+        // simultaneousGesture, not a clear view behind the content and not a
+        // plain onTapGesture. Behind: the ScrollView wins hit-testing and the
+        // tap never reaches it -- measured, the field kept its focus. On top:
+        // it swallows the row taps and the field's own, and tapping the field
+        // would close the keyboard it just opened, which is exactly how the
+        // onboarding screen once made its SecureField unreachable. Simultaneous
+        // fires alongside whatever was tapped: a row still expands, and the
+        // keyboard goes away either way.
+        .simultaneousGesture(TapGesture().onEnded { captureFocused = false })
         .background(ScreenBackground())
         .confirmationDialog(
             Text("Delete this source?"),
@@ -389,6 +406,7 @@ struct LibraryView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 TextField("Paste a link or some text…", text: $draft, axis: .vertical)
+                    .focused($captureFocused)
                     .lineLimit(1...4)
                     .typo(Typo.field)
                     .foregroundStyle(Palette.ink)
