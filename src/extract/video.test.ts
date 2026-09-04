@@ -195,3 +195,19 @@ test('a jar whose newlines a web form ate fails loudly instead of sending nothin
   // and the same for a value that is neither a jar nor base64 of one
   assert.throws(() => decodeJar('some pasted nonsense'), /base64/)
 })
+
+test('a proxy password never survives into the error text', () => {
+  const err = new Error(
+    [
+      'Command failed: yt-dlp --proxy http://user:s3cr3t@geo.iproyal.com:12321 --skip-download https://youtu.be/x',
+      'ERROR: unable to connect to proxy http://user:s3cr3t@geo.iproyal.com:12321: timed out',
+      '',
+    ].join('\n'),
+  )
+  const out = message(err)
+  assert.ok(!out.includes('s3cr3t'), `proxy password leaked: ${out}`)
+  assert.ok(!out.includes('user:'), `proxy credentials leaked: ${out}`)
+  // the diagnosis itself survives, otherwise the row says nothing useful
+  assert.match(out, /unable to connect to proxy/)
+  assert.match(out, /<proxy>/)
+})

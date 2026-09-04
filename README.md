@@ -113,8 +113,23 @@ Trigger.dev : `DATABASE_URL`, `R2_*`, `ELEVENLABS_API_KEY`, `DEEPSEEK_API_KEY`,
 `ANTHROPIC_API_KEY`, `JINA_API_KEY`, `TRIGGER_SECRET_KEY`,
 `POSTMARK_INBOUND_TOKEN`.
 
-`YOUTUBE_COOKIES` est le seul secret optionnel, et il ne vit que sur
-Trigger.dev. **EN L'ÉTAT IL NE SERT À RIEN** — le mécanisme est complet et
+`YOUTUBE_PROXY` est ce qui fait marcher les vidéos, et rien d'autre n'y arrive.
+Format `http://identifiant:motdepasse@hote:port` (IPRoyal résidentiel). YouTube
+refuse TOUTE adresse de centre de données — mesuré le 2026-09-04 dans les trois
+régions de Trigger.dev, avec un pot de cookies valide et sans, au caractère près
+le même refus — et répond normalement à une adresse résidentielle. Ce n'est pas
+un contournement de compte : c'est la même requête depuis une adresse que
+YouTube sert, ce qui est précisément pourquoi elle n'a besoin d'aucun cookie.
+
+Le coût est dérisoire parce que le chemin gratuit est minuscule : les sous-titres
+d'une vidéo de 18 min pèsent 168 Ko, contre 17,9 Mo pour son audio. Un gigaoctet
+de trafic proxy vaut des milliers de vidéos, et chez IPRoyal il n'expire pas.
+
+L'URL porte un mot de passe : `message()` masque toute URL à identifiants avant
+qu'elle atteigne `sources.error`, que `GET /sources` affiche dans l'app.
+
+`YOUTUBE_COOKIES` est un secret optionnel qui ne vit que sur Trigger.dev.
+**AVEC LE PROXY IL EST INUTILE — À SUPPRIMER** — le mécanisme est complet et
 vérifié, mais YouTube refuse les adresses de Trigger.dev quelle que soit la
 session présentée. Mesuré le 2026-09-04, les six combinaisons :
 

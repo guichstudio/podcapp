@@ -26,6 +26,21 @@ const YTDLP = process.env.YTDLP_PATH ?? 'yt-dlp'
 /// yt-dlp finds it unaided; DENO_PATH is for a laptop keeping its copy in
 /// .tools/ instead of installing one system-wide.
 const DENO = process.env.DENO_PATH
+
+/// The one thing that actually works. YouTube refuses every datacenter address
+/// -- measured 2026-09-04 across all three Trigger.dev regions, with a valid
+/// signed-in cookie jar and without, byte-for-byte the same refusal -- and
+/// answers a residential one normally. A residential proxy is not a way around
+/// an account or a paywall: it is the same request from an address YouTube
+/// serves, which is why it needs no cookies at all.
+///
+/// Cheap because the free rung is tiny: the subtitles of an 18-minute video
+/// move 168 KB, against 17.9 MB for its audio. A gigabyte of proxy traffic is
+/// thousands of videos.
+///
+/// The URL carries a password, so it must never reach a log or a source row --
+/// see redactSecrets in message().
+const PROXY = process.env.YOUTUBE_PROXY
 const SCRIBE = 'https://api.elevenlabs.io/v1/speech-to-text'
 
 // Only hosts where a link is unambiguously a piece of speech. Instagram and X
@@ -124,7 +139,8 @@ export function decodeJar(raw: string): string {
 async function ytDlp(args: string[], timeoutMs: number, cookies: string | null): Promise<string> {
   const jar = cookies ? ['--cookies', cookies] : []
   const js = DENO ? ['--js-runtimes', `deno:${DENO}`] : []
-  const { stdout } = await run(YTDLP, ['--no-warnings', '--no-playlist', ...jar, ...js, ...args], {
+  const via = PROXY ? ['--proxy', PROXY] : []
+  const { stdout } = await run(YTDLP, ['--no-warnings', '--no-playlist', ...jar, ...js, ...via, ...args], {
     timeout: timeoutMs,
     maxBuffer: 32 * 1024 * 1024,
   })
@@ -376,5 +392,12 @@ export function message(err: unknown): string {
   // yt-dlp puts the useful line on stderr; keep it, it names the real reason
   // (private video, region lock, "please update yt-dlp"). The jar's path can
   // still appear inside that line -- yt-dlp quotes the file it failed to read.
-  return lines.slice(-3).join(' ').replace(/\S*podcapp-video-\S+/g, '<jar>').slice(0, 300)
+  return lines
+    .slice(-3)
+    .join(' ')
+    .replace(/\S*podcapp-video-\S+/g, '<jar>')
+    // Any URL carrying credentials -- the proxy is one, and its password would
+    // otherwise ride into sources.error the same way the jar's path nearly did.
+    .replace(/[a-z][a-z0-9+.-]*:\/\/[^\s/@]*:[^\s/@]*@/gi, '<proxy>')
+    .slice(0, 300)
 }
