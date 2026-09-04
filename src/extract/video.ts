@@ -161,10 +161,26 @@ async function fetchSubtitles(
   return text || null
 }
 
-/// The paid rung. Downloaded rather than handed over as a URL: ElevenLabs can
-/// take a source_url, but YouTube and TikTok block its fetcher -- measured at
-/// one success in eight, and the success was a 2005 clip. yt-dlp gets the audio
-/// that ElevenLabs cannot.
+/// The paid rung. Downloaded rather than handed over as a URL, and the reason
+/// is not the one the documentation suggests.
+///
+/// ElevenLabs documents source_url as accepting "YouTube video URLs, TikTok
+/// video URLs, and other video hosting services", and their own product does
+/// it. Their API, on this workspace, does not: measured 2026-09-04 over nine
+/// distinct videos and three URL shapes (watch?v=, youtu.be, m.youtube.com),
+/// every one came back "Failed to download the file from the provided URL
+/// (upstream status 400)". The single exception is the 2005 clip every demo
+/// uses, which smells like a cache hit rather than a fetch.
+///
+/// The controls matter more than the failures, because they rule out the
+/// explanations one would otherwise chase for an afternoon: a plain public mp3
+/// of 342 seconds on our own R2 bucket transcribes fine through the SAME
+/// parameter and key, so the fetcher works, the key is sufficient, and neither
+/// duration nor synchronous mode is the limit. Music and public-institution
+/// videos fail alike, so it is not a copyright filter. It is YouTube, and it is
+/// theirs, not ours.
+///
+/// So yt-dlp gets the audio, and the cookie jar above is what lets it.
 async function transcribeAudio(url: string, dir: string, cookies: string | null): Promise<string> {
   await ytDlp(['-f', 'bestaudio/best', '-o', join(dir, 'audio.%(ext)s'), url], 600_000, cookies)
   const file = (await readdir(dir)).find((f) => f.startsWith('audio.'))
