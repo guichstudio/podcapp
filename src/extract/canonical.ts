@@ -1,6 +1,10 @@
 import { createHash } from 'node:crypto'
 
-const TRACKING_PARAMS = /^(utm_|fbclid|gclid|mc_cid|mc_eid|ref$|s$|si$)/
+// `si` was YouTube's share token and is still here; `is` is the one its app
+// appends today, and it is random per share -- so without it the same video
+// shared twice canonicalises to two different URLs, hashes differently, and
+// dedupe never fires. Seen 2026-09-04 on a video Louis shared from his phone.
+const TRACKING_PARAMS = /^(utm_|fbclid|gclid|mc_cid|mc_eid|ref$|s$|si$|is$)/
 
 export function canonicalizeUrl(raw: string): string {
   const u = new URL(raw)

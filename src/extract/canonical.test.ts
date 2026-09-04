@@ -76,3 +76,12 @@ test('sourceHash only covers the first 2000 characters of the text', () => {
   assert.equal(sourceHash('https://example.com/a', `${head}FIN`), sourceHash('https://example.com/a', `${head}AUTRE`))
   assert.notEqual(sourceHash('https://example.com/a', `${'a'.repeat(1999)}X`), sourceHash('https://example.com/a', `${'a'.repeat(1999)}Y`))
 })
+
+test("the YouTube app's share token does not defeat dedupe", () => {
+  // The same video shared twice from the phone carries a different `is` each
+  // time; both must canonicalise to the same URL or nothing ever dedupes.
+  const a = canonicalizeUrl('https://youtube.com/watch?v=ZrNhJ5YtUdg&is=5XCCPsUeQmICSuDt')
+  const b = canonicalizeUrl('https://youtube.com/watch?v=ZrNhJ5YtUdg&is=9QQQQsUeQmICSuDt')
+  assert.equal(a, b)
+  assert.equal(a, 'https://youtube.com/watch?v=ZrNhJ5YtUdg')
+})
