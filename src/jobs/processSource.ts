@@ -165,7 +165,16 @@ export async function processSource(
     .from(sources)
     .where(and(eq(sources.userId, row.userId), eq(sources.sourceHash, hash), ne(sources.id, row.id)))
   if (dupe) {
-    await db.update(sources).set({ status: 'duplicate', sourceHash: hash, error: `duplicate of ${dupe.id}` }).where(eq(sources.id, row.id))
+    // The hash is deliberately NOT written here. source_hash is NOT NULL and
+    // unique per user, so /ingest seeds every row with a unique `pending-<uuid>`
+    // placeholder; stamping the real hash on a row we have just identified as a
+    // duplicate writes the exact value the other row already holds, and the
+    // insert-time constraint rejects it. Observed in production 2026-09-04:
+    // re-sharing an article already saved crashed the job and left the source
+    // stuck in 'extracting' forever, which is the one state the pipeline
+    // promises never to leave a source in. The duplicate keeps its placeholder;
+    // its identity belongs to the row it duplicates, named in the error.
+    await db.update(sources).set({ status: 'duplicate', error: `duplicate of ${dupe.id}` }).where(eq(sources.id, row.id))
     return { sourceId, status: 'duplicate', clustering: 'exact_duplicate' }
   }
 
