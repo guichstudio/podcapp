@@ -61,6 +61,24 @@ struct RootView: View {
                     }
                 }
             }
+            // Swiping sideways moves between tabs, the way every tabbed app on
+            // this phone behaves. `.gesture`, not `.simultaneousGesture`: the
+            // Library holds a horizontal category rail and rows that swipe to
+            // reveal actions, and a simultaneous recogniser would fire on those
+            // too -- scrolling the rail would change tab under the finger.
+            // Plain `.gesture` loses to a child that claims the drag, which is
+            // exactly the arbitration wanted here.
+            .gesture(
+                DragGesture(minimumDistance: 24)
+                    .onEnded { value in
+                        // Decisively horizontal, or nothing: a diagonal flick
+                        // during a vertical scroll must not change tab.
+                        let dx = value.translation.width
+                        let dy = value.translation.height
+                        guard abs(dx) > 60, abs(dx) > abs(dy) * 2 else { return }
+                        move(by: dx < 0 ? 1 : -1)
+                    }
+            )
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 VStack(spacing: 0) {
                     MiniPlayerBar()
@@ -68,6 +86,19 @@ struct RootView: View {
                 }
             }
         }
+    }
+
+    /// One step along the tab bar, stopping at both ends rather than wrapping:
+    /// a wrap turns "I have gone too far" into "I am somewhere else entirely".
+    private func move(by step: Int) {
+        guard let here = RootTab.allCases.firstIndex(of: tab) else { return }
+        let next = here + step
+        guard RootTab.allCases.indices.contains(next) else { return }
+        let destination = RootTab.allCases[next]
+        Feedback.select()
+        dismissKeyboard()
+        opened.insert(destination)
+        withAnimation(.easeInOut(duration: 0.18)) { tab = destination }
     }
 
     /// `candidate`, not `tab`: this builds the view for one of the four, while
