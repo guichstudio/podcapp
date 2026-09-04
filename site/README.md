@@ -46,6 +46,25 @@ les balises Open Graph, et un `@graph` JSON-LD (`Organization` partout, plus
 (date du dernier changement de CONTENU, pas d'une retouche de balisage) et le jeu
 complet d'alternates. `robots.txt` le declare.
 
+### Carte sociale (Open Graph)
+
+`assets/og/card-{en,fr}.jpg`, 1200x630, referencees par `og:image`,
+`twitter:image` et le JSON-LD de chaque page dans sa langue. Ce ne sont pas des
+assets tombes du ciel : `card.html` les dessine avec `site.css` (meme Inter
+Tight, memes tokens) et `make-og.sh` les screenshotte en Chrome headless puis
+les encode en JPEG q92 (60 Ko contre 310 Ko en PNG, aucune difference visible).
+
+```
+sh site/assets/og/make-og.sh
+```
+
+Changer la copie dans `card.html` ; les chaines FR sont dans le script en bas du
+fichier, une seule mise en page pour les deux langues. Les classes du gabarit
+sont prefixees `og-` parce que `site.css` definit deja `.card`, `.foot`, `.row`.
+ATTENTION : `/assets/*` est servi en `immutable` un an, donc une carte refaite
+sous le meme nom reste en cache chez les clients ; si le visuel change vraiment,
+changer aussi le nom du fichier.
+
 Le site repond aussi sur `podcapp-site.vercel.app` : les `canonical` absolus
 renvoient tout vers `podcapp.fr`, donc pas de contenu duplique aux yeux de Google.
 
