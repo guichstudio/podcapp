@@ -79,8 +79,45 @@ export async function cookieJar(dir: string): Promise<string | null> {
   const raw = process.env.YOUTUBE_COOKIES
   if (!raw?.trim()) return null
   const path = join(dir, 'cookies.txt')
-  await writeFile(path, raw.endsWith('\n') ? raw : `${raw}\n`, { mode: 0o600 })
+  const jar = decodeJar(raw)
+  await writeFile(path, jar.endsWith('\n') ? jar : `${jar}\n`, { mode: 0o600 })
   return path
+}
+
+/// The Netscape format is tab-separated and one cookie per line, and a dashboard
+/// field is neither of those things. Measured 2026-09-04 on the deployed worker:
+/// pasted into Trigger.dev's environment-variable box, a 44-line jar arrived as
+/// ONE line of the same byte count -- every newline had become a space -- so
+/// yt-dlp read the whole thing as a comment, loaded zero cookies, and YouTube
+/// answered 429 then 403. Nothing in the configuration looked wrong.
+///
+/// So base64, which survives any web form. A raw jar is still accepted, because
+/// a laptop reading a real file has no reason to encode it.
+///
+/// What separates them is not "contains a tab" -- the flattened jar keeps every
+/// tab it had, it just has nowhere to put them -- but whether a single usable
+/// DATA line exists: not blank, not a comment, and split into the format's
+/// seven fields. That is exactly the property yt-dlp needs and exactly the one
+/// the dashboard destroyed.
+export function decodeJar(raw: string): string {
+  const usable = (text: string) =>
+    text.split('\n').some((l) => l.trim() && !l.startsWith('#') && l.split('\t').length >= 7)
+
+  const trimmed = raw.trim()
+  if (usable(trimmed)) return trimmed
+  let decoded = ''
+  try {
+    decoded = Buffer.from(trimmed, 'base64').toString('utf8').trim()
+  } catch {
+    decoded = ''
+  }
+  if (usable(decoded)) return decoded
+  // Never fall through to "no cookies": that reads as the bot wall further down
+  // and sends whoever debugs it looking at YouTube instead of at this string.
+  throw new Error(
+    'YOUTUBE_COOKIES holds no usable cookie line, so nothing would be sent. ' +
+      'A web form eats the newlines a Netscape jar needs: store it base64-encoded.',
+  )
 }
 
 // execFile, never a shell: the URL comes from whatever the reader shared.
@@ -223,7 +260,12 @@ async function transcribeAudio(url: string, dir: string, cookies: string | null)
 export async function extractVideo(url: string): Promise<ExtractResult> {
   const dir = await mkdtemp(join(tmpdir(), 'podcapp-video-'))
   try {
-    const cookies = await cookieJar(dir)
+    let cookies: string | null
+    try {
+      cookies = await cookieJar(dir)
+    } catch (err) {
+      return { ok: false, status: 'extraction_failed', error: message(err) }
+    }
 
     let meta: Probe
     try {

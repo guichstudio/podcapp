@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
-import { accessHint, cookieJar, isVideoUrl, message, vttToText } from './video.js'
+import { accessHint, cookieJar, decodeJar, isVideoUrl, message, vttToText } from './video.js'
 
 // Routing is the part that costs money when it is wrong: a link sent to the
 // transcriber is billed by the minute, and a video sent to the page fetcher
@@ -176,4 +176,22 @@ test('only the bot wall is blamed on the jar', () => {
   ]) {
     assert.equal(accessHint(other, true), other, `wrongly blamed on the jar: ${other}`)
   }
+})
+
+const JAR = '# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t0\tSID\tvalue\n'
+
+test('a raw jar passes through, a base64 one is decoded', () => {
+  assert.equal(decodeJar(JAR), JAR.trim())
+  assert.ok(decodeJar(JAR).includes('SID'))
+  assert.equal(decodeJar(Buffer.from(JAR).toString('base64')), JAR.trim())
+  // Whitespace around a pasted base64 blob is normal and must not break it.
+  assert.equal(decodeJar(`  ${Buffer.from(JAR).toString('base64')}\n`), JAR.trim())
+})
+
+test('a jar whose newlines a web form ate fails loudly instead of sending nothing', () => {
+  // Exactly what the Trigger.dev field produced: same bytes, newlines as spaces.
+  const flattened = JAR.replace(/\n/g, ' ')
+  assert.throws(() => decodeJar(flattened), /base64/)
+  // and the same for a value that is neither a jar nor base64 of one
+  assert.throws(() => decodeJar('some pasted nonsense'), /base64/)
 })

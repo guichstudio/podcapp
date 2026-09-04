@@ -143,8 +143,17 @@ Comment fabriquer le pot, une fois :
    jar.txt --skip-download <une URL YouTube>`) ;
 3. **fermer la fenêtre privée sans se déconnecter** — se déconnecter fait
    tourner la session et périme le pot sur-le-champ ;
-4. coller le contenu du fichier dans la variable `YOUTUBE_COOKIES` de
-   l'environnement `prod` sur cloud.trigger.dev.
+4. **encoder en base64** — `base64 -i jar.txt | pbcopy` — puis coller dans la
+   variable `YOUTUBE_COOKIES` de l'environnement `prod` sur cloud.trigger.dev.
+
+Le base64 n'est pas une précaution de principe. Collé tel quel, un pot de 44
+lignes est arrivé dans le champ du tableau de bord sur UNE ligne, du même
+nombre d'octets : chaque saut de ligne était devenu une espace. yt-dlp a lu
+l'ensemble comme un commentaire et chargé zéro cookie, et rien dans la
+configuration n'avait l'air faux. `decodeJar` accepte les deux formes et refuse
+bruyamment tout ce qui ne contient aucune ligne de données exploitable, plutôt
+que de partir sans cookies — un échec qui ressemble alors au mur anti-bot et
+envoie chercher au mauvais endroit.
 
 Le pot périme tout seul au bout de quelques semaines. Quand ça arrive, la
 ligne `sources.error` le dit en toutes lettres (« the YOUTUBE_COOKIES jar was
