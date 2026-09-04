@@ -8,7 +8,7 @@ import { episodes, explainedConcepts, sources, stories } from '../db/schema.js'
 import { callStructured, type CostLedger } from '../llm/index.js'
 import { logger } from '../log.js'
 import { BLOCKLIST_STRIP, EDIT_V1_SYSTEM, blocklistHits, editV1User } from '../prompts/edit.v1.js'
-import { EDITORIAL_V1_SYSTEM, editorialV1User, type EditorialStoryDigest } from '../prompts/editorial.v1.js'
+import { EDITORIAL_V2_SYSTEM, editorialV2User, type EditorialStoryDigest } from '../prompts/editorial.v2.js'
 import { GROUNDING_V1_SYSTEM, groundingV1User } from '../prompts/grounding.v1.js'
 import { INTRO_OUTRO_V1_SYSTEM, introOutroV1User } from '../prompts/writer.v1.js'
 import { writerV2System, writerV2User } from '../prompts/writer.v2.js'
@@ -370,6 +370,17 @@ async function runEpisode(
     .from(explainedConcepts)
     .where(eq(explainedConcepts.userId, opts.userId))
 
+  // The extractor no longer refuses a page that read badly, so the score has to
+  // reach the one place that can weigh it against the claims themselves.
+  const openSourceIds = [...new Set(open.flatMap((st) => st.sourceIds))]
+  const qualities = openSourceIds.length
+    ? await db
+        .select({ id: sources.id, quality: sources.extractionQuality })
+        .from(sources)
+        .where(inArray(sources.id, openSourceIds))
+    : []
+  const qualityById = new Map(qualities.map((q) => [q.id, q.quality ?? 1]))
+
   // 1. select + outline
   const digests: EditorialStoryDigest[] = open.map((s) => {
     const claims = s.claims as Claim[]
@@ -379,6 +390,9 @@ async function runEpisode(
       topic: s.topic,
       source_count: s.sourceIds.length,
       claim_count: claims.length,
+      // The weakest link decides how much the editor should hedge: one badly
+      // read source in a story is enough to soften the angle.
+      weakest_source_quality: Math.min(...s.sourceIds.map((id) => qualityById.get(id) ?? 1), 1),
       top_claims: claims.slice(0, 6).map((c) => c.text),
       captured: s.lastSeenAt.toISOString().slice(0, 10),
     }
@@ -389,8 +403,8 @@ async function runEpisode(
     {
       // Reasoning stage: thinking tokens come out of the same budget as the answer.
       maxTokens: 32_000,
-      system: EDITORIAL_V1_SYSTEM,
-      user: editorialV1User({
+      system: EDITORIAL_V2_SYSTEM,
+      user: editorialV2User({
         target_sec: opts.targetSec,
         language,
         stories: digests,

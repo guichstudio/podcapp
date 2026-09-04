@@ -53,6 +53,17 @@ const VIDEO_PATTERNS: RegExp[] = [
   /^(www\.)?tiktok\.com\/.+\/video\//,
   /^(www\.)?vimeo\.com\/\d+/,
   /^(www\.)?dailymotion\.com\/video\//,
+  // Facebook, but only the shapes whose PATH says video. `/share/r/` and
+  // `/share/v/` are what the Facebook app puts on the clipboard for a reel and
+  // a video; `/share/p/` is a post and stays with the page reader. Verified
+  // 2026-09-04 through the proxy: the two wrappers Louis had actually shared,
+  // which had landed low_quality at 0.2 as an interstitial with no article
+  // text, both resolve to their real video and title.
+  /^(www\.|m\.|web\.)?facebook\.com\/watch\b/,
+  /^(www\.|m\.|web\.)?facebook\.com\/reel\//,
+  /^(www\.|m\.|web\.)?facebook\.com\/share\/[rv]\//,
+  /^(www\.|m\.|web\.)?facebook\.com\/[^/]+\/videos\//,
+  /^fb\.watch\//,
 ]
 
 export function isVideoUrl(raw: string): boolean {

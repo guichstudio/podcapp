@@ -1,4 +1,4 @@
-import { JINA_READER_BASE, MIN_EXTRACTION_CHARS, MIN_EXTRACTION_QUALITY } from '../config.js'
+import { JINA_READER_BASE, MIN_EXTRACTION_CHARS } from '../config.js'
 import type { ExtractResult } from '../core/types.js'
 import { scoreExtraction } from './quality.js'
 
@@ -43,15 +43,23 @@ export async function extractWeb(url: string): Promise<ExtractResult> {
     }
   }
 
+  // The score ADVISES, it does not refuse. It reads prose density, and prose
+  // density is a poor judge of what a reader meant to save: a transcript, a
+  // liveblog, a thread, a page of figures all score badly while carrying
+  // exactly what the listener wanted. Blocking on it dropped real material
+  // silently, which is the opposite of this pipeline's promise -- it exists to
+  // NAME what it could not read, not to quietly bin what it read poorly.
+  //
+  // What still refuses is the length gate above, and it is the sharper tool:
+  // an anti-bot page or a consent wall is SHORT, and no amount of prose
+  // scoring separates a thin article from "Page unavailable" the way a
+  // character count does.
+  //
+  // The score travels on instead: `extraction_quality` on the row, and the
+  // weakest source's score in the editorial digest, where the editor is told
+  // to hedge the angle or drop the story on thin evidence. A judgement made
+  // with the claims in front of it beats a threshold that never saw them.
   const quality = scoreExtraction(content)
-  if (quality < MIN_EXTRACTION_QUALITY) {
-    return {
-      ok: false,
-      status: 'low_quality',
-      error: `extraction quality ${quality} below ${MIN_EXTRACTION_QUALITY} (paywall, listing page or thin content)`,
-      raw: payload,
-    }
-  }
   return {
     ok: true,
     extraction: {

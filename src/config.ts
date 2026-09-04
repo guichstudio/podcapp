@@ -69,7 +69,7 @@ export const DEFAULT_TARGET_MINUTES = 5
 export const MAX_TARGET_MINUTES = 5
 // No episode from a thin pile (Louis, 2026-09-01): fewer than four saved links
 // in the open stories and nothing is generated, by hand or by the cron.
-export const MIN_SOURCES_PER_EPISODE = 4
+export const MIN_SOURCES_PER_EPISODE = 3
 // Measured, not assumed, per narrator. French: the 2026-08-29 episode ran
 // 1973 words in 842.8s = 140.4 wpm. English (Eric): 67 words in 24.79s on the
 // 2026-09-01 listening test = 162 wpm. Used for the estimated_sec metric.
@@ -93,6 +93,7 @@ export const INTRO_OUTRO_SEC = 60
 export const PROMPT_VERSIONS = {
   analyzer: 'v2',
   adjudicate: 'v2',
+  editorial: 'v2',
 } as const
 
 // USD per 1M tokens; kept close to provider price sheets, updated by hand.

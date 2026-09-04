@@ -211,3 +211,19 @@ test('a proxy password never survives into the error text', () => {
   assert.match(out, /unable to connect to proxy/)
   assert.match(out, /<proxy>/)
 })
+
+test("Facebook's video shapes route to transcription, its posts do not", () => {
+  // The exact wrappers the Facebook app produced, which used to land
+  // low_quality at 0.2 because the interstitial carries no article text.
+  assert.ok(isVideoUrl('https://www.facebook.com/share/r/19bYJZxdi6/?mibextid=wwXIfr'))
+  assert.ok(isVideoUrl('https://www.facebook.com/share/v/abc123/'))
+  assert.ok(isVideoUrl('https://www.facebook.com/watch/?v=10153231379946729'))
+  assert.ok(isVideoUrl('https://www.facebook.com/reel/1234567890'))
+  assert.ok(isVideoUrl('https://www.facebook.com/lemonde.fr/videos/1234567890/'))
+  assert.ok(isVideoUrl('https://fb.watch/abc-123/'))
+  // A shared POST is text: sending it to a per-minute transcriber would spend
+  // money to get less than the page reader already gets.
+  assert.ok(!isVideoUrl('https://www.facebook.com/share/p/abc123/'))
+  assert.ok(!isVideoUrl('https://www.facebook.com/zuck/posts/12345'))
+  assert.ok(!isVideoUrl('https://www.facebook.com/'))
+})
