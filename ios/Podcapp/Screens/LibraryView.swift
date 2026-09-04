@@ -44,6 +44,7 @@ struct LibraryView: View {
     // whatever was open.
     @State private var selecting = false
     @State private var selection: Set<String> = []
+    @State private var generating = false
     // At most one row shows its actions at a time, which is what a swipe list
     // does everywhere else on the phone.
     @State private var swiped: String?
@@ -201,7 +202,11 @@ struct LibraryView: View {
     }
 
     private var selectionBar: some View {
-        HStack(spacing: 12) {
+        // spacing 8 and a count that yields first: with three controls and a
+        // counter, 12pt and an equal claim on the width broke "Supprimer" over
+        // two lines. The two capsules never compress -- a verb cut in half is
+        // worse than a tight row.
+        HStack(spacing: 8) {
             Button {
                 Feedback.tap()
                 let visible = sections.flatMap(\.rows).map(\.id)
@@ -223,6 +228,32 @@ struct LibraryView: View {
             Text("\(selection.count) selected")
                 .typo(Typo.metaSmall)
                 .foregroundStyle(Palette.muted2)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .layoutPriority(-1)
+
+            // Make an episode out of exactly what is ticked. Placed before
+            // Delete so the destructive action stays last, where a thumb going
+            // for one is least likely to hit the other.
+            Button {
+                Feedback.tap()
+                Task { await generate(picked: Array(selection)) }
+            } label: {
+                Group {
+                    if generating {
+                        ProgressView().tint(Palette.onDark)
+                    } else {
+                        Text("Episode").typo(Typo.navButton).lineLimit(1)
+                    }
+                }
+                .foregroundStyle(Palette.onDark)
+                .fixedSize(horizontal: true, vertical: false)
+                .frame(height: 34)
+                .padding(.horizontal, 14)
+                .background(canGenerateSelection ? Palette.ink : Palette.muted2, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .disabled(!canGenerateSelection || generating)
 
             Button {
                 Feedback.tap()
@@ -232,12 +263,13 @@ struct LibraryView: View {
                     if deleting {
                         ProgressView().tint(Palette.onDark)
                     } else {
-                        Text("Delete").typo(Typo.navButton)
+                        Text("Delete").typo(Typo.navButton).lineLimit(1)
                     }
                 }
                 .foregroundStyle(Palette.onDark)
+                .fixedSize(horizontal: true, vertical: false)
                 .frame(height: 34)
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 14)
                 .background(selection.isEmpty ? Palette.muted2 : Palette.danger, in: Capsule())
             }
             .buttonStyle(.plain)
@@ -385,6 +417,34 @@ struct LibraryView: View {
     }
 
     @MainActor
+    /// The same floor the server enforces, checked here only to grey the
+    /// button: the server is the one that decides, and its refusal carries the
+    /// count and the wording.
+    private var canGenerateSelection: Bool { selection.count >= minimum }
+
+    /// An episode from exactly these links. Unlike the shelf button this does
+    /// not care whether their stories are still open: picking something already
+    /// broadcast is the point of remaking an episode from it.
+    private func generate(picked: [String]) async {
+        guard !picked.isEmpty else { return }
+        generationError = nil
+        generating = true
+        defer { generating = false }
+        do {
+            let id = try await API.shared.generateEpisode(targetMin: 5, sourceIds: picked)
+            generation = GenerationTarget(id: id)
+            selecting = false
+            selection.removeAll()
+            Feedback.launched()
+        } catch APIError.http(_, let message) where !message.isEmpty {
+            generationError = message
+            Feedback.refused()
+        } catch {
+            generationError = error.localizedDescription
+            Feedback.refused()
+        }
+    }
+
     private func generate(shelf: String) async {
         generationError = nil
         do {

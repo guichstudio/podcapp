@@ -238,10 +238,19 @@ actor API {
     /// Asks the server to queue a briefing. Returns the id of the queued
     /// episode; a refusal (409 double generation, 503 cloud not wired) arrives
     /// as APIError.http carrying the server's French message.
-    /// A category scopes the episode to one shelf; the four-link rule then
-    /// applies to that shelf alone, server side.
-    func generateEpisode(targetMin: Int, category: String? = nil) async throws -> String {
-        try await post("/episodes", body: GenerateBody(target_min: targetMin, category: category), as: GenerateAck.self).episode_id
+    /// A category scopes the episode to one shelf; the link rule then applies
+    /// to that shelf alone, server side.
+    ///
+    /// `sourceIds` is the hand-picked run: exactly these saved links, whatever
+    /// state their stories are in -- reusing something already broadcast is the
+    /// point of "remake it with these". It wins over `category`, since the
+    /// picked list already IS the selection.
+    func generateEpisode(targetMin: Int, category: String? = nil, sourceIds: [String]? = nil) async throws -> String {
+        try await post(
+            "/episodes",
+            body: GenerateBody(target_min: targetMin, category: sourceIds == nil ? category : nil, source_ids: sourceIds),
+            as: GenerateAck.self
+        ).episode_id
     }
 
     /// Tells the server which language to write and speak the next episodes in.
@@ -359,7 +368,7 @@ actor API {
         // The shelves, in the server's order. Absent on older servers.
         let categories: [String]?
     }
-    private struct GenerateBody: Encodable { let target_min: Int; let category: String? }
+    private struct GenerateBody: Encodable { let target_min: Int; let category: String?; let source_ids: [String]? }
     private struct GenerateAck: Decodable { let episode_id: String }
 
     private func get<T: Decodable>(_ path: String, as type: T.Type) async throws -> T {

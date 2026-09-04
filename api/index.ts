@@ -1,5 +1,5 @@
 import { neon } from '@neondatabase/serverless'
-import { and, arrayOverlaps, desc, eq, inArray, sql } from 'drizzle-orm'
+import { and, arrayOverlaps, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { Hono, type Context } from 'hono'
 import { handle } from 'hono/vercel'
@@ -75,8 +75,12 @@ const IngestSchema = z.union([
 
 const EpisodeRequestSchema = z.object({
   target_min: z.number().int().min(1).max(MAX_TARGET_MINUTES).optional(),
-  // One shelf of the library; the four-link rule then applies to that shelf.
+  // One shelf of the library; the link rule then applies to that shelf.
   category: z.enum(CATEGORIES).optional(),
+  // A hand-picked episode: exactly these saved links. Capped at 50 because the
+  // editor is given every one of them and a briefing lasts five minutes at
+  // most -- past that the ask is not an episode, it is an archive.
+  source_ids: z.array(z.string().uuid()).min(1).max(50).optional(),
 })
 
 const SignInSchema = z.object({
@@ -588,9 +592,26 @@ authed.post('/episodes', async (c) => {
   // The rule before the queue: a thin pile is refused with the count, not
   // turned into a two-minute episode.
   const category = parsed.data.category
-  const available = await countAvailableSources(conn, userId, category)
-  if (!hasEnoughSources(available)) {
-    return c.json({ error: shortageMessage(user.outputLanguage, available), available, minimum: MIN_SOURCES_PER_EPISODE, category: category ?? null }, 422)
+  const requested = parsed.data.source_ids
+  let available: number
+  if (requested) {
+    // Counted from the rows themselves, never from the request: a list can
+    // repeat an id, name a row belonging to someone else, or name one that has
+    // been deleted since the app drew the screen. Only what this user actually
+    // owns, and can be read, counts toward the minimum.
+    const owned = await conn
+      .select({ id: sources.id })
+      .from(sources)
+      .where(and(eq(sources.userId, userId), inArray(sources.id, requested), isNull(sources.setAsideAt)))
+    available = owned.length
+    if (!hasEnoughSources(available)) {
+      return c.json({ error: shortageMessage(user.outputLanguage, available), available, minimum: MIN_SOURCES_PER_EPISODE, category: null }, 422)
+    }
+  } else {
+    available = await countAvailableSources(conn, userId, category)
+    if (!hasEnoughSources(available)) {
+      return c.json({ error: shortageMessage(user.outputLanguage, available), available, minimum: MIN_SOURCES_PER_EPISODE, category: category ?? null }, 422)
+    }
   }
 
   // An active row only blocks while its run can still be alive: maxDuration is
@@ -642,7 +663,14 @@ authed.post('/episodes', async (c) => {
   try {
     await triggerTask(
       'generate-episode',
-      { episodeId: row.id, userId, targetSec, language: user.outputLanguage, ...(category ? { category } : {}) },
+      {
+        episodeId: row.id,
+        userId,
+        targetSec,
+        language: user.outputLanguage,
+        ...(category && !requested ? { category } : {}),
+        ...(requested ? { sourceIds: requested } : {}),
+      },
       // Keyed on the row: if the ack was lost but the run was accepted, a retry
       // reuses it instead of paying writer and TTS twice.
       `episode-${row.id}`,

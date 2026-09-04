@@ -68,6 +68,10 @@ const GenerateEpisodePayload = z.object({
   targetSec: z.number().int().min(60).max(MAX_TARGET_MINUTES * 60),
   language: z.string().min(2),
   category: z.string().optional(),
+  // A hand-picked run: exactly these saved links, whatever state their stories
+  // are in. The bound is the same 50 the API accepts, so a run started from the
+  // Trigger.dev dashboard cannot ask for more than the app ever can.
+  sourceIds: z.array(z.string().min(1)).min(1).max(50).optional(),
 })
 
 // generateEpisode leaves the row status alone when it throws (it persists run
@@ -120,6 +124,7 @@ export const generateEpisodeTask = schemaTask({
         userId: payload.userId,
         targetSec: payload.targetSec,
         language: payload.language, category: payload.category,
+        sourceIds: payload.sourceIds,
         episodeId: payload.episodeId,
         storage,
       })

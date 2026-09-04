@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, inArray, isNull } from 'drizzle-orm'
+import { and, arrayOverlaps, desc, eq, gt, inArray, isNull } from 'drizzle-orm'
 import { z } from 'zod'
 import { INTRO_OUTRO_SEC, MIN_SOURCES_PER_EPISODE, PROMPT_VERSIONS, wordsPerMinute, writerWordsPerMinute } from '../config.js'
 import { countWords, entityTokens, isCheckable, splitSentences } from '../core/sentences.js'
@@ -309,7 +309,7 @@ function artifactsFrom(run: RunState, targetSec: number, language: string, ledge
 // everything the debug endpoint and the eval runner need.
 export async function generateEpisode(
   db: Db,
-  opts: { userId: string; targetSec: number; language?: string; category?: string | undefined; episodeId?: string; storage?: Storage },
+  opts: { userId: string; targetSec: number; language?: string; category?: string | undefined; sourceIds?: string[] | undefined; episodeId?: string; storage?: Storage },
   ledger: CostLedger = {},
 ): Promise<EpisodeArtifacts> {
   const run: RunState = {
@@ -339,17 +339,29 @@ export async function generateEpisode(
 
 async function runEpisode(
   db: Db,
-  opts: { userId: string; targetSec: number; language?: string; category?: string | undefined; episodeId?: string; storage?: Storage },
+  opts: { userId: string; targetSec: number; language?: string; category?: string | undefined; sourceIds?: string[] | undefined; episodeId?: string; storage?: Storage },
   ledger: CostLedger,
   run: RunState,
 ): Promise<EpisodeArtifacts> {
   const language = opts.language ?? 'fr'
+  // A hand-picked run ignores story status on purpose: "remake it with these
+  // links" is a request to REUSE material, and anything already broadcast is
+  // `aired`. Open-only is what a daily briefing needs, not what a deliberate
+  // pick needs. The shelf filter drops too: the picked list IS the selection.
+  const picked = opts.sourceIds?.length ? opts.sourceIds : null
   const open = await db
     .select()
     .from(stories)
-    // A category-scoped episode sees one shelf; the four-link rule then applies
-    // to that shelf alone, which is what makes "Make a Finance episode" honest.
-    .where(and(eq(stories.userId, opts.userId), eq(stories.status, 'open'), ...(opts.category ? [eq(stories.category, opts.category)] : [])))
+    // A category-scoped episode sees one shelf; the link rule then applies to
+    // that shelf alone, which is what makes "Make a Finance episode" honest.
+    .where(
+      and(
+        eq(stories.userId, opts.userId),
+        ...(picked
+          ? [arrayOverlaps(stories.sourceIds, picked)]
+          : [eq(stories.status, 'open'), ...(opts.category ? [eq(stories.category, opts.category)] : [])]),
+      ),
+    )
     .orderBy(desc(stories.lastSeenAt))
   if (open.length === 0) throw new Error('no open stories to build an episode from')
   // The API and the cron already refused a thin pile; a queued run that got
