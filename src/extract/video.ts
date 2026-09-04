@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { mkdtemp, readFile, readdir, rm, stat } from 'node:fs/promises'
+import { mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
@@ -45,17 +45,43 @@ interface Probe {
   automatic: string[]
 }
 
+/// YouTube answers a datacenter address with "Sign in to confirm you're not a
+/// bot". Measured 2026-09-03: the identical yt-dlp call that reads a video from
+/// a laptop is refused from the Trigger.dev worker, so every video shared from
+/// the phone failed in production while the feature passed every test locally.
+/// A cookie jar exported from a signed-in browser is yt-dlp's documented answer
+/// and the only one that keeps the video's own subtitles -- the free, exact,
+/// human-written rung -- reachable from the cloud.
+///
+/// Optional by design. Without it the ladder still runs and simply fails with a
+/// readable reason, because a source this pipeline could not read gets named on
+/// air rather than invented.
+///
+/// The jar is a live credential: written 0600 into the run's own temp directory
+/// (removed in the caller's finally), never logged, and never shared between
+/// runs -- yt-dlp rewrites the file as the session rotates. Entries are
+/// domain-scoped in the Netscape format, so yt-dlp sends a cookie only to the
+/// host it came from: handing the jar to a TikTok URL leaks nothing.
+export async function cookieJar(dir: string): Promise<string | null> {
+  const raw = process.env.YOUTUBE_COOKIES
+  if (!raw?.trim()) return null
+  const path = join(dir, 'cookies.txt')
+  await writeFile(path, raw.endsWith('\n') ? raw : `${raw}\n`, { mode: 0o600 })
+  return path
+}
+
 // execFile, never a shell: the URL comes from whatever the reader shared.
-async function ytDlp(args: string[], timeoutMs: number): Promise<string> {
-  const { stdout } = await run(YTDLP, ['--no-warnings', '--no-playlist', ...args], {
+async function ytDlp(args: string[], timeoutMs: number, cookies: string | null): Promise<string> {
+  const jar = cookies ? ['--cookies', cookies] : []
+  const { stdout } = await run(YTDLP, ['--no-warnings', '--no-playlist', ...jar, ...args], {
     timeout: timeoutMs,
     maxBuffer: 32 * 1024 * 1024,
   })
   return stdout
 }
 
-async function probe(url: string): Promise<Probe> {
-  const raw = await ytDlp(['--skip-download', '-J', url], 60_000)
+async function probe(url: string, cookies: string | null): Promise<Probe> {
+  const raw = await ytDlp(['--skip-download', '-J', url], 60_000, cookies)
   const meta = JSON.parse(raw) as {
     duration?: number
     title?: string
@@ -108,7 +134,12 @@ export function vttToText(vtt: string): string {
   return out.join(' ').replace(/\s+/g, ' ').trim()
 }
 
-async function fetchSubtitles(url: string, track: { lang: string; auto: boolean }, dir: string): Promise<string | null> {
+async function fetchSubtitles(
+  url: string,
+  track: { lang: string; auto: boolean },
+  dir: string,
+  cookies: string | null,
+): Promise<string | null> {
   await ytDlp(
     [
       '--skip-download',
@@ -122,6 +153,7 @@ async function fetchSubtitles(url: string, track: { lang: string; auto: boolean 
       url,
     ],
     120_000,
+    cookies,
   )
   const file = (await readdir(dir)).find((f) => f.endsWith('.vtt'))
   if (!file) return null
@@ -133,8 +165,8 @@ async function fetchSubtitles(url: string, track: { lang: string; auto: boolean 
 /// take a source_url, but YouTube and TikTok block its fetcher -- measured at
 /// one success in eight, and the success was a 2005 clip. yt-dlp gets the audio
 /// that ElevenLabs cannot.
-async function transcribeAudio(url: string, dir: string): Promise<string> {
-  await ytDlp(['-f', 'bestaudio/best', '-o', join(dir, 'audio.%(ext)s'), url], 600_000)
+async function transcribeAudio(url: string, dir: string, cookies: string | null): Promise<string> {
+  await ytDlp(['-f', 'bestaudio/best', '-o', join(dir, 'audio.%(ext)s'), url], 600_000, cookies)
   const file = (await readdir(dir)).find((f) => f.startsWith('audio.'))
   if (!file) throw new Error('yt-dlp produced no audio file')
   const path = join(dir, file)
@@ -161,11 +193,17 @@ async function transcribeAudio(url: string, dir: string): Promise<string> {
 export async function extractVideo(url: string): Promise<ExtractResult> {
   const dir = await mkdtemp(join(tmpdir(), 'podcapp-video-'))
   try {
+    const cookies = await cookieJar(dir)
+
     let meta: Probe
     try {
-      meta = await probe(url)
+      meta = await probe(url, cookies)
     } catch (err) {
-      return { ok: false, status: 'extraction_failed', error: `could not read the video: ${message(err)}` }
+      return {
+        ok: false,
+        status: 'extraction_failed',
+        error: `could not read the video: ${accessHint(message(err), cookies !== null)}`,
+      }
     }
 
     let text: string | null = null
@@ -174,7 +212,7 @@ export async function extractVideo(url: string): Promise<ExtractResult> {
     const track = pickTrack(meta)
     if (track) {
       try {
-        text = await fetchSubtitles(url, track, dir)
+        text = await fetchSubtitles(url, track, dir, cookies)
       } catch (err) {
         // A missing track is not a failure of the source: fall through and pay.
         logger.warn({ url, track, err: message(err) }, 'subtitles unavailable, falling back')
@@ -192,10 +230,14 @@ export async function extractVideo(url: string): Promise<ExtractResult> {
         }
       }
       try {
-        text = await transcribeAudio(url, dir)
+        text = await transcribeAudio(url, dir, cookies)
         rung = 'scribe'
       } catch (err) {
-        return { ok: false, status: 'extraction_failed', error: `transcription failed: ${message(err)}` }
+        return {
+          ok: false,
+          status: 'extraction_failed',
+          error: `transcription failed: ${accessHint(message(err), cookies !== null)}`,
+        }
       }
     }
 
@@ -223,9 +265,44 @@ export async function extractVideo(url: string): Promise<ExtractResult> {
   }
 }
 
-function message(err: unknown): string {
+/// yt-dlp's own words, plus whose problem this is. The distinction is the point
+/// of the status line: "Private video" is the reader's, "the jar expired" is
+/// ours, and a source row that says only "Sign in to confirm you're not a bot"
+/// sends whoever reads it looking in the wrong place -- which is exactly the
+/// afternoon this cost.
+export function accessHint(text: string, hadCookies: boolean): string {
+  // "not a bot" and nothing else. "Sign in to confirm" also opens YouTube's age
+  // gate, and the word "cookies" appears in our own --cookies argument: either
+  // one would blame the jar for a video the reader simply cannot share.
+  if (!/not a bot/i.test(text)) return text
+  return hadCookies
+    ? `${text} — the YOUTUBE_COOKIES jar was sent and refused: export it again`
+    : `${text} — no YOUTUBE_COOKIES set, so this went out unauthenticated from a datacenter address`
+}
+
+export function message(err: unknown): string {
   const text = err instanceof Error ? err.message : String(err)
+  const lines = text
+    .split('\n')
+    .filter(
+      (l) =>
+        l.trim() &&
+        // execFile prefixes the failure with the whole argv, which carries
+        // --cookies and the jar's path.
+        !l.startsWith('Command failed:') &&
+        // yt-dlp echoes a rejected jar entry -- cookie NAME AND VALUE -- and
+        // writes it straight to stderr, where --no-warnings cannot reach it.
+        // A jar pasted through a web field with its tabs turned to spaces
+        // produces one such line per cookie. This string is persisted to
+        // sources.error and handed to the app by GET /sources, so a live
+        // session cookie would be displayed in the Sources screen.
+        !/skipping cookie file entry/i.test(l),
+    )
+  // Something must always be said: a killed or timed-out child leaves empty
+  // stderr, and the argv we just dropped was the only text in the message.
+  if (!lines.length) return 'yt-dlp produced no output (it was killed, or it timed out)'
   // yt-dlp puts the useful line on stderr; keep it, it names the real reason
-  // (private video, region lock, "please update yt-dlp").
-  return text.split('\n').slice(-3).join(' ').slice(0, 300)
+  // (private video, region lock, "please update yt-dlp"). The jar's path can
+  // still appear inside that line -- yt-dlp quotes the file it failed to read.
+  return lines.slice(-3).join(' ').replace(/\S*podcapp-video-\S+/g, '<jar>').slice(0, 300)
 }

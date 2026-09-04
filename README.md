@@ -113,6 +113,35 @@ Trigger.dev : `DATABASE_URL`, `R2_*`, `ELEVENLABS_API_KEY`, `DEEPSEEK_API_KEY`,
 `ANTHROPIC_API_KEY`, `JINA_API_KEY`, `TRIGGER_SECRET_KEY`,
 `POSTMARK_INBOUND_TOKEN`.
 
+`YOUTUBE_COOKIES` est le seul secret optionnel, et il ne vit que sur
+Trigger.dev. Sans lui les vidéos YouTube échouent proprement ; avec lui elles
+se transcrivent. Pourquoi il existe : mesuré le 2026-09-03, le même appel
+yt-dlp qui lit une vidéo depuis le portable se fait répondre « Sign in to
+confirm you're not a bot » depuis le worker, parce que YouTube ferme la porte
+aux adresses de centre de données. Le repli par l'URL (ElevenLabs va chercher
+la vidéo lui-même) prend le même mur : une réussite sur quatre à la mesure.
+
+**Le compte doit être jetable.** YouTube bannit les comptes dont les cookies
+servent à télécharger depuis un datacenter, et c'est le compte Google entier
+qui saute, pas la session.
+
+Comment fabriquer le pot, une fois :
+
+1. fenêtre de navigation privée, connexion au compte jetable, aller sur
+   youtube.com ;
+2. exporter les cookies au format Netscape (extension « Get cookies.txt
+   LOCALLY », ou `yt-dlp --cookies-from-browser <navigateur> --cookies
+   jar.txt --skip-download <une URL YouTube>`) ;
+3. **fermer la fenêtre privée sans se déconnecter** — se déconnecter fait
+   tourner la session et périme le pot sur-le-champ ;
+4. coller le contenu du fichier dans la variable `YOUTUBE_COOKIES` de
+   l'environnement `prod` sur cloud.trigger.dev.
+
+Le pot périme tout seul au bout de quelques semaines. Quand ça arrive, la
+ligne `sources.error` le dit en toutes lettres (« the YOUTUBE_COOKIES jar was
+sent and refused: export it again ») au lieu de laisser croire à une panne :
+il n'y a qu'à refaire les quatre étapes.
+
 ### Débogage
 
 Chaque run d'épisode persiste TOUS ses artefacts intermédiaires (sélection,
