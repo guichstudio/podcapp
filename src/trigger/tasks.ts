@@ -284,8 +284,13 @@ export const deleteAccountTask = schemaTask({
 
 // A throwaway probe: what does the worker actually see? Added while the video
 // ladder was failing in the cloud with an error no local run reproduces, since
-// the alternative is guessing at a machine we cannot open a shell on. Delete it
-// once the video path is proven -- it exists to answer one question.
+// the alternative is guessing at a machine we cannot open a shell on.
+//
+// It goes through cookieJar, the SAME path the pipeline uses -- an earlier
+// version wrote the raw env var instead and so tested itself rather than the
+// product. It reports COUNTS only: a first draft printed a "domains" list that,
+// on a single-line jar, was the whole jar, and a live session ended up in a
+// transcript. Never print anything derived from the jar's bytes.
 export const diagnoseVideoTask = schemaTask({
   id: 'diagnose-video',
   schema: z.object({ url: z.string() }),
@@ -293,45 +298,43 @@ export const diagnoseVideoTask = schemaTask({
   run: async ({ url }) => {
     const { execFile } = await import('node:child_process')
     const { promisify } = await import('node:util')
-    const { mkdtemp, writeFile } = await import('node:fs/promises')
+    const { mkdtemp } = await import('node:fs/promises')
     const { tmpdir } = await import('node:os')
     const { join } = await import('node:path')
+    const { cookieJar } = await import('../extract/video.js')
     const run = promisify(execFile)
 
-    const say = async (file: string, args: string[]) => {
+    const say = async (cmd: string) => {
       try {
-        const { stdout, stderr } = await run(file, args, { timeout: 120_000, maxBuffer: 16 * 1024 * 1024 })
-        return (stdout + stderr).slice(0, 4000)
+        const { stdout, stderr } = await run('/bin/sh', ['-c', cmd], { timeout: 180_000, maxBuffer: 16 * 1024 * 1024 })
+        return (stdout + stderr).slice(0, 3000)
       } catch (err) {
-        return `FAILED: ${(err as Error).message.slice(0, 4000)}`
+        return `FAILED: ${(err as Error).message.slice(0, 1500)}`
       }
     }
 
-    const raw = process.env.YOUTUBE_COOKIES ?? ''
     const dir = await mkdtemp(join(tmpdir(), 'diag-'))
-    const jar = join(dir, 'c.txt')
-    if (raw.trim()) await writeFile(jar, raw.endsWith('\n') ? raw : `${raw}\n`, { mode: 0o600 })
-
-    // Shape of the jar WITHOUT its values: tabs are what a web textarea eats,
-    // and a jar whose tabs became spaces loads zero cookies while looking fine.
-    const lines = raw.split('\n').filter((l) => l.trim() && !l.startsWith('#'))
-    const shape = {
-      bytes: raw.length,
-      entries: lines.length,
-      tabSeparated: lines.filter((l) => l.split('\t').length === 7).length,
-      spaceSeparated: lines.filter((l) => !l.includes('\t') && l.split(/\s+/).length === 7).length,
-      domains: [...new Set(lines.map((l) => l.split(/\t|\s+/)[0]))].slice(0, 8),
+    let jar: string | null = null
+    let jarError = ''
+    try {
+      jar = await cookieJar(dir)
+    } catch (err) {
+      jarError = (err as Error).message
     }
 
+    // Counts, never content.
+    const probe = jar
+      ? await say(`awk -F'\t' '!/^#/ && NF>=7 {print $1}' ${jar} | sort | uniq -c | sort -rn | head -5`)
+      : 'no jar'
+
     return {
-      jar: shape,
-      whichDeno: await say('/bin/sh', ['-c', 'command -v deno || echo ABSENT; ls -l /usr/local/bin/deno 2>&1 || true']),
-      denoVersion: await say('/bin/sh', ['-c', 'deno --version 2>&1 | head -2 || true']),
-      path: process.env.PATH ?? '',
-      ytdlpDebug: await say('/bin/sh', [
-        '-c',
-        `yt-dlp -v --no-playlist ${raw.trim() ? `--cookies ${jar}` : ''} --skip-download "${url}" 2>&1 | grep -iE "JS runtimes|Challenge Providers|ERROR|player response|reloaded|cookie" | head -20`,
-      ]),
+      jarDecoded: jar !== null,
+      jarError,
+      cookiesByDomain: probe,
+      ytdlp: await say(
+        `yt-dlp -v --no-playlist ${jar ? `--cookies ${jar}` : ''} --skip-download "${url}" 2>&1 ` +
+          `| grep -iE "JS runtimes|Challenge Providers|ERROR|HTTP Error|player response|reloaded|Downloading" | head -20`,
+      ),
     }
   },
 })
