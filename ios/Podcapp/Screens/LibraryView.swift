@@ -672,8 +672,21 @@ struct LibraryView: View {
                     SourceStatusChip(label: String(localized: "SET ASIDE"), kind: .neutral, pulses: false)
                         .padding(.top, 2)
                 } else {
-                    SourceStatusChip(label: state.chip, kind: state.kind, pulses: state.pulses)
-                        .padding(.top, 2)
+                    VStack(alignment: .trailing, spacing: 4) {
+                        SourceStatusChip(label: state.chip, kind: state.kind, pulses: state.pulses)
+                        // An OPINION on how the page read, never a verdict on the
+                        // source. The extractor stopped refusing on this number
+                        // because prose density is a poor judge of what someone
+                        // meant to save -- a transcript, a liveblog, a thread and
+                        // a page of figures all score badly while carrying exactly
+                        // what was wanted. So the link is kept and the doubt is
+                        // shown, here and to the editor, instead of the link being
+                        // dropped and the doubt hidden.
+                        if LibraryStatus.readPoorly(source) {
+                            SourceStatusChip(label: String(localized: "WEAK READ"), kind: .neutral, pulses: false)
+                        }
+                    }
+                    .padding(.top, 2)
                 }
             }
             .opacity(source.setAside ? 0.55 : 1)
@@ -943,6 +956,16 @@ private struct LibraryStatus {
                 isReady: false, isProblem: false
             )
         }
+    }
+
+    /// True when the page read badly enough to be worth flagging. Same 0.35 the
+    /// server used to refuse on: it now advises on both sides of the wire, and
+    /// the number stays in the meta line for anyone who wants it exactly.
+    /// Failed rows already carry their own chip, so this stays out of their way.
+    static func readPoorly(_ source: SavedSource) -> Bool {
+        guard let quality = source.extractionQuality else { return false }
+        guard source.status != "extraction_failed", source.status != "low_quality", source.status != "unsupported" else { return false }
+        return quality < 0.35
     }
 
     private static func glyph(_ source: SavedSource) -> String {
