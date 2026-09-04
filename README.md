@@ -114,7 +114,28 @@ Trigger.dev : `DATABASE_URL`, `R2_*`, `ELEVENLABS_API_KEY`, `DEEPSEEK_API_KEY`,
 `POSTMARK_INBOUND_TOKEN`.
 
 `YOUTUBE_COOKIES` est le seul secret optionnel, et il ne vit que sur
-Trigger.dev. Sans lui les vidéos YouTube échouent proprement ; avec lui elles
+Trigger.dev. **EN L'ÉTAT IL NE SERT À RIEN** — le mécanisme est complet et
+vérifié, mais YouTube refuse les adresses de Trigger.dev quelle que soit la
+session présentée. Mesuré le 2026-09-04, les six combinaisons :
+
+| d'où | cookies | résultat |
+|---|---|---|
+| portable (IP résidentielle) | aucun | lit la vidéo |
+| portable | le pot | lit la vidéo |
+| Trigger `us-east-1` | le pot | HTTP 429 puis 403 |
+| Trigger `eu-central-1` | aucun | mur anti-bot |
+| Trigger `eu-central-1` | le pot | mur anti-bot, **identique à sans cookies** |
+| Trigger `us-west-2` | aucun | mur anti-bot |
+
+L'avant-dernière ligne est la conclusion : le pot est ignoré, pas rejeté. Google
+ne refuse pas une session inconnue, il refuse une session présentée depuis un
+centre de données. Changer de région déplace le symptôme (429 devient mur
+anti-bot) sans rien résoudre. Ce qui reste : un proxy résidentiel (`--proxy`,
+non testé faute d'abonnement), drainer les vidéos depuis le portable, ou les
+laisser échouer en étant nommées à l'antenne — c'est le comportement actuel.
+
+Le mécanisme reste en place parce qu'il redevient utile le jour où l'adresse
+change : la ligne `--proxy` est la seule chose qui manquerait alors. Sans lui les vidéos YouTube échouent proprement ; avec lui elles
 se transcrivent. Pourquoi il existe : mesuré le 2026-09-03, le même appel
 yt-dlp qui lit une vidéo depuis le portable se fait répondre « Sign in to
 confirm you're not a bot » depuis le worker, parce que YouTube ferme la porte

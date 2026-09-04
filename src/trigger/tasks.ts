@@ -293,9 +293,9 @@ export const deleteAccountTask = schemaTask({
 // transcript. Never print anything derived from the jar's bytes.
 export const diagnoseVideoTask = schemaTask({
   id: 'diagnose-video',
-  schema: z.object({ url: z.string() }),
+  schema: z.object({ url: z.string(), useCookies: z.boolean().default(true) }),
   maxDuration: 300,
-  run: async ({ url }) => {
+  run: async ({ url, useCookies }) => {
     const { execFile } = await import('node:child_process')
     const { promisify } = await import('node:util')
     const { mkdtemp } = await import('node:fs/promises')
@@ -317,7 +317,7 @@ export const diagnoseVideoTask = schemaTask({
     let jar: string | null = null
     let jarError = ''
     try {
-      jar = await cookieJar(dir)
+      jar = useCookies ? await cookieJar(dir) : null
     } catch (err) {
       jarError = (err as Error).message
     }
