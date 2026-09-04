@@ -15,7 +15,7 @@ options:
 settings:
   base:
     MARKETING_VERSION: "1.0"
-    CURRENT_PROJECT_VERSION: "29"
+    CURRENT_PROJECT_VERSION: "30"
     SWIFT_VERSION: "5.9"
     # Louis's personal team. Kept here rather than only in the generated project,
     # which XcodeGen overwrites every time the spec is regenerated.
@@ -127,9 +127,18 @@ targets:
           NSExtensionPointIdentifier: com.apple.share-services
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
           NSExtensionAttributes:
-            NSExtensionActivationRule:
-              NSExtensionActivationSupportsWebURLWithMaxCount: 1
-              NSExtensionActivationSupportsText: true
+            # A predicate, not the dictionary form. The dictionary means "these
+            # attachment types and no others": iOS hides the extension as soon
+            # as a share carries something undeclared -- a preview image beside
+            # the link, which is exactly what Threads attaches. Not a single
+            # Threads link ever reached the server, because the share sheet
+            # never offered Podcapp at all.
+            #
+            # This activates whenever ANY attachment is a URL or text and
+            # ignores whatever else rides along. Strictly more permissive than
+            # what it replaces: it can only make the extension appear in more
+            # places, never fewer.
+            NSExtensionActivationRule: 'SUBQUERY(extensionItems, $item, SUBQUERY($item.attachments, $att, ANY $att.registeredTypeIdentifiers UTI-CONFORMS-TO "public.url" || ANY $att.registeredTypeIdentifiers UTI-CONFORMS-TO "public.plain-text").@count >= 1).@count == 1'
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.louisguichard.podcapp.share
