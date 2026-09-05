@@ -54,7 +54,7 @@ import { verifyIdentityToken } from '../src/auth/verify.js'
 
 export const config = { runtime: 'edge' }
 
-const { episodes, events, sources, stories, users } = schema
+const { episodes, events, pushTokens, sources, stories, users } = schema
 
 type Conn = ReturnType<typeof db>
 // sessionId is null when the caller authenticated with users.api_token (the
@@ -76,6 +76,13 @@ const IngestSchema = z.union([
   z.object({ text: z.string().min(1), title: z.string().trim().min(1).max(200).optional() }),
   z.object({ html: z.string().min(1), subject: z.string().optional() }),
 ])
+
+const PushTokenSchema = z.object({
+  // 64 hex characters today; bounded rather than pinned, since Apple has
+  // changed the length before and a rejected valid token is a silent loss.
+  token: z.string().trim().regex(/^[a-fA-F0-9]{32,200}$/),
+  environment: z.enum(['development', 'production']),
+})
 
 const EpisodeRequestSchema = z.object({
   target_min: z.number().int().min(1).max(MAX_TARGET_MINUTES).optional(),
@@ -489,6 +496,43 @@ authed.put('/me', async (c) => {
     .where(eq(users.id, userId))
   if (!user) return c.json({ error: 'not found' }, 404)
   return c.json(meView(user))
+})
+
+/// A device asking to be told when its briefing is ready.
+///
+/// Keyed on the token, not the device: APNs mints a new one on reinstall or on
+/// a restore to another phone, and the old one simply dies. Re-registering the
+/// same token is the ordinary case -- the app does it on every launch, because
+/// a token can be rotated without warning -- so it upserts rather than erroring.
+///
+/// `environment` rides along because a token minted by a development build is
+/// meaningless to the production APNs host and the reverse: the same phone
+/// carrying TestFlight and a sideloaded build has two tokens on two hosts.
+authed.post('/me/push-token', async (c) => {
+  const parsed = PushTokenSchema.safeParse(await c.req.json().catch(() => null))
+  if (!parsed.success) return c.json({ error: 'expected { token, environment: "development" | "production" }' }, 400)
+  const { token, environment } = parsed.data
+  await c
+    .get('conn')
+    .insert(pushTokens)
+    .values({ token, userId: c.get('userId'), environment })
+    .onConflictDoUpdate({
+      target: pushTokens.token,
+      // A phone handed to someone else keeps its token and changes owner: the
+      // row follows, or the wrong person gets told about someone's briefing.
+      set: { userId: c.get('userId'), environment },
+    })
+  return c.json({ ok: true })
+})
+
+/// Turning notifications off, from the app's own switch. The row goes rather
+/// than a flag flipping: a token nobody wants is a token nobody should keep.
+authed.delete('/me/push-token/:token', async (c) => {
+  await c
+    .get('conn')
+    .delete(pushTokens)
+    .where(and(eq(pushTokens.userId, c.get('userId')), eq(pushTokens.token, c.req.param('token'))))
+  return c.json({ ok: true })
 })
 
 authed.get('/me/sessions', async (c) => {

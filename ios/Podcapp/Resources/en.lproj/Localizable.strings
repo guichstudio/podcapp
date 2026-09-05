@@ -182,7 +182,9 @@
 "Nothing playing." = "Nothing playing.";
 "Nothing to listen to yet." = "Nothing to listen to yet.";
 "Nothing to save." = "Nothing to save.";
+"Notifications" = "Notifications";
 "On" = "On";
+"One notification, when the morning briefing is ready." = "One notification, when the morning briefing is ready.";
 "Open a briefing from the Today tab to listen to it here." = "Open a briefing from the Today tab to listen to it here.";
 "Other" = "Other";
 "Outline" = "Outline";
@@ -215,6 +217,7 @@
 "Ready to generate · target %lld min." = "Ready to generate · target %lld min.";
 "Really, anything." = "Really, anything.";
 "Received" = "Received";
+"Refused in iOS Settings. Turn them back on there, in Notifications." = "Refused in iOS Settings. Turn them back on there, in Notifications.";
 "Replay the intro" = "Replay the intro";
 "Revoke" = "Revoke";
 "SET ASIDE" = "SET ASIDE";

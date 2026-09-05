@@ -117,6 +117,12 @@ struct GenerationSheet: View {
         .background(ScreenBackground())
         .presentationDragIndicator(.visible)
         .task { await follow() }
+        // The one moment the answer is obviously yes: a briefing has just been
+        // queued and the wait has started. Asked here rather than at first
+        // launch because iOS asks once and a refusal is permanent -- a prompt
+        // shown before anyone knows what the app does is the one people decline.
+        // Silent when it is declined: the sheet already shows the progress.
+        .task { await Push.askAndRegister() }
     }
 
     private var subtitle: String {

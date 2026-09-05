@@ -253,6 +253,24 @@ actor API {
         ).episode_id
     }
 
+    /// Registers this device for "your briefing is ready". Called on every
+    /// launch once permission exists, because iOS can rotate a token without
+    /// telling anyone; the server upserts rather than erroring on a repeat.
+    func registerPushToken(_ token: String, environment: String) async throws {
+        struct Body: Encodable { let token: String; let environment: String }
+        struct Ack: Decodable { let ok: Bool }
+        _ = try await post("/me/push-token", body: Body(token: token, environment: environment), as: Ack.self)
+    }
+
+    /// Hands the token back when the switch goes off. The row is deleted rather
+    /// than flagged: a token nobody wants is a token nobody should keep.
+    func deletePushToken(_ token: String) async throws {
+        struct Ack: Decodable { let ok: Bool }
+        var request = try makeRequest(for: "/me/push-token/" + token)
+        request.httpMethod = "DELETE"
+        _ = try await perform(request, as: Ack.self)
+    }
+
     /// Tells the server which language to write and speak the next episodes in.
     /// Only fires when it changed, because nothing else about this is worth a
     /// round trip on every launch — and a failure is silent by design: an

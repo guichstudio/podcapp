@@ -26,6 +26,11 @@ struct SettingsView: View {
     // through on change.
     @State private var haptics = Config.hapticsEnabled
     @State private var sounds = Config.soundEnabled
+    @State private var notifications = Push.enabled
+    /// True once iOS has been asked and refused. The switch then explains that
+    /// the answer lives in the system settings, rather than pretending a toggle
+    /// here could change it -- iOS never asks twice.
+    @State private var notificationsDenied = false
     // The account as the server sees it: voice, language, feed link. Loaded
     // once per visit, same shape as `devicesState` below so a failed load
     // reads as an error rather than as an account with nothing in it.
@@ -121,6 +126,25 @@ struct SettingsView: View {
         .onChange(of: sounds) { _, on in
             Config.soundEnabled = on
             if on { Feedback.saved() }
+        }
+        .onChange(of: notifications) { _, on in
+            Push.enabled = on
+            Task {
+                // Switching on has to go through iOS, which may refuse; the row
+                // then says where the real answer lives instead of showing a
+                // switch that does nothing.
+                if on {
+                    let granted = await Push.askAndRegister()
+                    let status = await Push.authorization()
+                    notificationsDenied = !granted && status == .denied
+                    if !granted { notifications = false; Push.enabled = false }
+                } else {
+                    await Push.revoke()
+                }
+            }
+        }
+        .task {
+            notificationsDenied = (await Push.authorization()) == .denied
         }
     }
 
@@ -353,6 +377,16 @@ struct SettingsView: View {
                     sub: String(localized: "Four short sounds: saved, refused, generation queued, next chapter."),
                     isOn: $sounds
                 )
+                hairline()
+                feedbackRow(
+                    title: String(localized: "Notifications"),
+                    sub: notificationsDenied
+                        ? String(localized: "Refused in iOS Settings. Turn them back on there, in Notifications.")
+                        : String(localized: "One notification, when the morning briefing is ready."),
+                    isOn: $notifications
+                )
+                .disabled(notificationsDenied)
+                .opacity(notificationsDenied ? 0.55 : 1)
             }
         }
     }

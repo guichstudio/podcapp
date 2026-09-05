@@ -3,6 +3,7 @@ import {
   bigserial,
   boolean,
   customType,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -193,3 +194,28 @@ export const events = pgTable('events', {
   payload: jsonb('payload'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+/// One row per device that agreed to be told when its briefing is ready.
+///
+/// Keyed on the token rather than on the device: APNs hands a new token when
+/// the app is reinstalled or restored onto another phone, and the old one goes
+/// dead. A dead token is not an error to chase -- APNs answers 410 Gone and the
+/// row is deleted then, which is the only reliable moment to know.
+///
+/// `environment` travels with it because a token minted by a development build
+/// is meaningless to the production APNs host and the other way round: the
+/// same phone carrying a TestFlight build and a build sideloaded from this Mac
+/// has two different tokens, on two different hosts.
+export const pushTokens = pgTable(
+  'push_tokens',
+  {
+    token: text('token').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    environment: text('environment').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  },
+  (t) => [index('push_tokens_user_idx').on(t.userId)],
+)

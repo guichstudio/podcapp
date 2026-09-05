@@ -9,6 +9,7 @@ import { countAvailableSources, hasEnoughSources } from '../jobs/material.js'
 import { generateEpisode } from '../jobs/generateEpisode.js'
 import { processSource } from '../jobs/processSource.js'
 import { publishEpisode } from '../jobs/publishEpisode.js'
+import { notifyReady } from '../push/notify.js'
 import { publishConsole, publishFeed } from '../rss/feed-data.js'
 import { createStorage, type Storage } from '../storage/index.js'
 
@@ -138,8 +139,23 @@ export const generateEpisodeTask = schemaTask({
     const published = await publishEpisode(db, storage, payload.episodeId)
 
     // Past this point the row says 'ready' and the audio is served from R2: the
-    // episode is published, and a feed or console failure must not walk it back
-    // to failed. Log and rethrow so the run shows the error.
+    // episode is published. Everything below is delivery, and none of it may
+    // walk the episode back to failed.
+    //
+    // The notification comes FIRST and swallows its own errors, deliberately.
+    // It is the only part a listener feels immediately -- the feed and the
+    // console can be republished on the next run, a "your briefing is ready"
+    // that arrives an hour late is worse than none -- and it must never be the
+    // reason a published episode reports failure.
+    await notifyReady(db, payload.userId, payload.episodeId).catch((err) => {
+      logger.warn('notification failed; the episode is published either way', {
+        episodeId: payload.episodeId,
+        error: String(err),
+      })
+    })
+
+    // A feed or console failure must not walk the episode back to failed
+    // either. Log and rethrow so the run shows the error.
     try {
       const feed = await publishFeed(db, storage, payload.userId)
       const consolePage = await publishConsole(db, storage, payload.userId)

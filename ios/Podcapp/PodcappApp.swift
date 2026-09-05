@@ -1,7 +1,12 @@
 import SwiftUI
+import UserNotifications
 
 @main
 struct PodcappApp: App {
+    // The device token arrives through UIApplicationDelegate and nowhere else;
+    // this is the only reason the app has a delegate at all.
+    @UIApplicationDelegateAdaptor(PushDelegate.self) private var pushDelegate
+
     init() {
         // UIAppFonts in Info.plist already loads the three faces. This call is
         // idempotent and is what settles Typo.interAvailable, which decides
@@ -10,6 +15,7 @@ struct PodcappApp: App {
         // Four files, 15 KB: loading them now means the first feedback sound is
         // on time rather than a beat late.
         Feedback.warmUp()
+        UNUserNotificationCenter.current().delegate = PushDelegate.shared
     }
 
     var body: some Scene {
