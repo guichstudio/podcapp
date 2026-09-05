@@ -66,6 +66,21 @@ struct TodayView: View {
         .onChange(of: isActive) { _, now in
             if now { Task { await refresh() } }
         }
+        // While a briefing is being made, the screen keeps up on its own: the
+        // loader has to be able to end, and nothing else here would notice.
+        // Keyed on the episode's id so it starts when one appears, stops when
+        // it lands, and is not one timer running for the life of the app.
+        .task(id: inFlightId) {
+            guard inFlightId != nil else { return }
+            while !Task.isCancelled {
+                // Ten seconds: fast enough that "ready" never feels stale, slow
+                // enough that a five-minute generation is thirty calls, not
+                // three hundred.
+                try? await Task.sleep(for: .seconds(10))
+                if Task.isCancelled { return }
+                await refresh()
+            }
+        }
         .sheet(item: $backstage) { TodayBackstageSheet(detail: $0) }
     }
 
@@ -190,7 +205,8 @@ struct TodayView: View {
             TodayGenerateCard(
                 readySourceCount: data.available ?? data.readyCount,
                 minimum: data.minimum ?? 4,
-                targetMinutes: $targetMinutes
+                targetMinutes: $targetMinutes,
+                inFlight: data.inFlight
             )
             .padding(.horizontal, 20)
             // What the prototype's strip leaves under the cards once its 66pt
@@ -268,6 +284,13 @@ struct TodayView: View {
     /// into anything visible here, and it stops a flick through the tabs from
     /// costing four requests.
     @MainActor
+    /// The id of a briefing being made, or nil. Drives the polling above and
+    /// nothing else: the card reads the episode itself.
+    private var inFlightId: String? {
+        guard case let .loaded(data) = phase else { return nil }
+        return data.inFlight?.id
+    }
+
     private func refresh() async {
         if let loadedAt, Date().timeIntervalSince(loadedAt) < 30 { return }
         await load(reset: false)
@@ -325,7 +348,11 @@ struct TodayView: View {
                     readyCount: focus.filter { $0.status == "ready" }.count,
                     available: batch.available,
                     minimum: batch.minimum,
-                    newTodayCount: focus.filter { Calendar.current.isDateInToday($0.capturedAt) }.count
+                    newTodayCount: focus.filter { Calendar.current.isDateInToday($0.capturedAt) }.count,
+                    // The server is the one that knows: these are the statuses
+                    // a generation moves through, and ACTIVE_EPISODE_STATUSES in
+                    // api/index.ts is the list this mirrors.
+                    inFlight: episodes.first { Self.inFlightStatuses.contains($0.status) }
                 )
             )
         } catch {
@@ -341,6 +368,12 @@ struct TodayView: View {
         case loaded(TodayData)
     }
 
+    /// Kept in step with ACTIVE_EPISODE_STATUSES in api/index.ts: every status a
+    /// generation passes through before landing on ready or failed.
+    static let inFlightStatuses: Set<String> = [
+        "queued", "selecting", "outlining", "writing", "grounding", "editing", "tts", "assembling",
+    ]
+
     private struct TodayData {
         struct Featured {
             let episode: EpisodeSummary
@@ -355,6 +388,10 @@ struct TodayView: View {
         let available: Int?
         let minimum: Int?
         let newTodayCount: Int
+        /// A briefing being made right now, wherever it was started from. The
+        /// Library can queue one from picked links and then the reader walks
+        /// back here, where nothing used to say anything was happening.
+        let inFlight: EpisodeSummary?
     }
 }
 
@@ -670,6 +707,12 @@ private struct TodayGenerateCard: View {
     let readySourceCount: Int
     let minimum: Int
     @Binding var targetMinutes: Int
+    /// A briefing already being made, started from anywhere: this card, the
+    /// Library's picked-links button, or the 06:00 cron. The card then stops
+    /// offering to start another and shows that one -- the server refuses a
+    /// second with a 409 anyway, and a live button that can only be refused is
+    /// worse than no button.
+    let inFlight: EpisodeSummary?
 
     private var rule: MinimumSourcesRule { MinimumSourcesRule(count: readySourceCount, minimum: minimum) }
     @State private var generation: GenerationTarget?
@@ -728,6 +771,32 @@ private struct TodayGenerateCard: View {
                 .padding(.top, 2)
                 .padding(.bottom, 4)
 
+                if let running = inFlight {
+                    Button {
+                        Feedback.tap()
+                        generation = GenerationTarget(id: running.id)
+                    } label: {
+                        HStack(spacing: 9) {
+                            ProgressView()
+                                .tint(Palette.onDark)
+                                .scaleEffect(0.8)
+                            Text("Making your briefing…")
+                                .typo(Typo.buttonLarge)
+                                .foregroundStyle(Palette.onDark)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Palette.accentGradient, in: Capsule())
+                        .overlay { Capsule().strokeBorder(Palette.accentEdge, lineWidth: 1) }
+                        .dropShadow(Palette.ctaShadow)
+                    }
+                    .buttonStyle(.plain)
+
+                    Text("Tap to follow it step by step.")
+                        .typo(TodayType.note)
+                        .foregroundStyle(Palette.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
                 Button { Task { await generate() } } label: {
                     Text(isGenerating ? String(localized: "Sending…") : String(localized: "Generate now"))
                         .typo(Typo.buttonLarge)
@@ -748,6 +817,7 @@ private struct TodayGenerateCard: View {
                 // what `disabled` already does, and to about the prototype's
                 // `opacity:.5`; dimming the label as well only halved it twice.
                 .disabled(isGenerating || !rule.met)
+                }
 
                 switch outcome {
                 case .queued:
