@@ -19,6 +19,20 @@ enum Push {
         UserDefaults.standard.string(forKey: tokenKey)
     }
 
+    /// The last thing that went wrong, kept so Settings can show it.
+    ///
+    /// Both failure paths were silent in the first version, and when no
+    /// notification arrived there was no way to tell whether iOS had refused
+    /// to register, or the upload to the server had failed, or the prompt had
+    /// never been shown at all. A feature being brought up for the first time
+    /// has to be able to say which step it died on.
+    private(set) static var lastError: String? {
+        get { UserDefaults.standard.string(forKey: "pushLastError") }
+        set { UserDefaults.standard.set(newValue, forKey: "pushLastError") }
+    }
+
+    static func note(_ message: String?) { lastError = message }
+
     /// The user's own switch, in Settings. Separate from the system permission:
     /// iOS answers that question once, this one is ours and can be changed.
     static var enabled: Bool {
@@ -41,9 +55,18 @@ enum Push {
         let status = await authorization()
         if status == .denied { return false }
         if status == .notDetermined {
-            let granted = (try? await center.requestAuthorization(options: [.alert, .sound])) ?? false
-            if !granted { return false }
+            do {
+                let granted = try await center.requestAuthorization(options: [.alert, .sound])
+                if !granted {
+                    note(String(localized: "Notifications refused."))
+                    return false
+                }
+            } catch {
+                note(error.localizedDescription)
+                return false
+            }
         }
+        note(String(localized: "Waiting for the device token…"))
         UIApplication.shared.registerForRemoteNotifications()
         return true
     }
@@ -56,7 +79,14 @@ enum Push {
         Task {
             // A token can be rotated by iOS without warning, so this runs on
             // every launch; the server upserts rather than erroring.
-            try? await API.shared.registerPushToken(hex, environment: environment)
+            do {
+                try await API.shared.registerPushToken(hex, environment: environment)
+                note(nil)
+            } catch {
+                // Kept rather than swallowed: a token iOS granted but the server
+                // never received looks exactly like a token that was refused.
+                note(error.localizedDescription)
+            }
         }
     }
 
@@ -99,9 +129,11 @@ final class PushDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCen
         _ application: UIApplication,
         didFailToRegisterForRemoteNotificationsWithError error: Error
     ) {
-        // Silent on purpose: a simulator has no APNs, and a real failure here
-        // is not something the reader can act on. The absence of notifications
-        // is its own message.
+        // A simulator has no APNs and fails here every time, which is why this
+        // was silent at first. But on a real phone it is the one place that
+        // says the entitlement or the provisioning profile is wrong, and
+        // swallowing it left "no notification arrived" with no explanation.
+        Task { @MainActor in Push.note(error.localizedDescription) }
     }
 
     /// Shown even when the app is open: someone watching the generation sheet

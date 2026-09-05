@@ -31,6 +31,7 @@
 "5 min max" = "5 min max";
 "A tap under your finger on tabs, playback and chapters." = "A tap under your finger on tabs, playback and chapters.";
 "ANALYSED" = "ANALYSED";
+"Active on this device." = "Active on this device.";
 "Add" = "Add";
 "Add your token in Settings to load your briefings." = "Add your token in Settings to load your briefings.";
 "Airtime budget fixed before writing" = "Airtime budget fixed before writing";
@@ -184,6 +185,7 @@
 "Nothing to listen to yet." = "Nothing to listen to yet.";
 "Nothing to save." = "Nothing to save.";
 "Notifications" = "Notifications";
+"Notifications refused." = "Notifications refused.";
 "On" = "On";
 "One notification, when the morning briefing is ready." = "One notification, when the morning briefing is ready.";
 "Open a briefing from the Today tab to listen to it here." = "Open a briefing from the Today tab to listen to it here.";
@@ -309,6 +311,7 @@
 "Video" = "Video";
 "Videos transcribed automatically · newsletters by forward" = "Videos transcribed automatically · newsletters by forward";
 "WEAK READ" = "WEAK READ";
+"Waiting for the device token…" = "Waiting for the device token…";
 "Welcome to Podcapp" = "Welcome to Podcapp";
 "Where it comes from" = "Where it comes from";
 "Writing" = "Writing";

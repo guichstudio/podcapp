@@ -380,15 +380,31 @@ struct SettingsView: View {
                 hairline()
                 feedbackRow(
                     title: String(localized: "Notifications"),
-                    sub: notificationsDenied
-                        ? String(localized: "Refused in iOS Settings. Turn them back on there, in Notifications.")
-                        : String(localized: "One notification, when the morning briefing is ready."),
+                    sub: notificationsDetail,
                     isOn: $notifications
                 )
                 .disabled(notificationsDenied)
                 .opacity(notificationsDenied ? 0.55 : 1)
             }
         }
+    }
+
+    /// What this device's notifications are actually doing, not what they are
+    /// supposed to do. A switch that says "on" while nothing arrives is the
+    /// worst of both, and the first version of this row could not tell the
+    /// difference between refused, not yet registered, and registered but never
+    /// delivered to the server.
+    private var notificationsDetail: String {
+        if notificationsDenied {
+            return String(localized: "Refused in iOS Settings. Turn them back on there, in Notifications.")
+        }
+        if let error = Push.lastError {
+            return error
+        }
+        if Push.registeredToken != nil {
+            return String(localized: "Active on this device.")
+        }
+        return String(localized: "One notification, when the morning briefing is ready.")
     }
 
     private func feedbackRow(title: String, sub: String, isOn: Binding<Bool>) -> some View {
