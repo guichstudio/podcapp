@@ -72,6 +72,7 @@
 "Checking" = "Checking";
 "Close" = "Close";
 "Close the player" = "Close the player";
+"Continue with Google" = "Continue with Google";
 "Copied" = "Copied";
 "Copy" = "Copy";
 "Copy link" = "Copy link";
@@ -100,6 +101,7 @@
 "Editorial: intro/outro, no external facts" = "Editorial: intro/outro, no external facts";
 "ElevenLabs · previewed on the next generation" = "ElevenLabs · previewed on the next generation";
 "Email" = "Email";
+"Episode" = "Episode";
 "Episode in the works · the feed and this screen update as soon as it is ready." = "Episode in the works · the feed and this screen update as soon as it is ready.";
 "Episode ready · open it" = "Episode ready · open it";
 "Error %lld. %@" = "Error %lld. %@";
@@ -123,6 +125,7 @@
 "Generation" = "Generation";
 "Generation failed before the script was written." = "Generation failed before the script was written.";
 "Generation stopped. Start it again with the Generate button below." = "Generation stopped. Start it again with the Generate button below.";
+"Google sign-in is not available in this build." = "Google sign-in is not available in this build.";
 "HOW TO SHARE" = "HOW TO SHARE";
 "Haptics" = "Haptics";
 "History" = "History";
@@ -237,6 +240,8 @@
 "Share a link from Safari, then pick Podcapp" = "Share a link from Safari, then pick Podcapp";
 "Share extension" = "Share extension";
 "Share it." = "Share it.";
+"Shared PDF" = "Shared PDF";
+"Shared email" = "Shared email";
 "Sign in" = "Sign in";
 "Sign in to the Podcapp app before sharing." = "Sign in to the Podcapp app before sharing.";
 "Sign in with email instead" = "Sign in with email instead";
@@ -277,6 +282,7 @@
 "The run stopped before publishing. Try again from Today." = "The run stopped before publishing. Try again from Today.";
 "The script is still being written. Come back in a few minutes." = "The script is still being written. Come back in a few minutes.";
 "They leave your library for good. An episode that already cited one keeps the citation, flagged as no longer available." = "They leave your library for good. An episode that already cited one keeps the citation, flagged as no longer available.";
+"This PDF has no text to read: it is probably a scan." = "This PDF has no text to read: it is probably a scan.";
 "This briefing has no text yet." = "This briefing has no text yet.";
 "This device" = "This device";
 "This episode has no chapters yet." = "This episode has no chapters yet.";
@@ -297,6 +303,7 @@
 "Verified" = "Verified";
 "Video" = "Video";
 "Videos transcribed automatically · newsletters by forward" = "Videos transcribed automatically · newsletters by forward";
+"WEAK READ" = "WEAK READ";
 "Welcome to Podcapp" = "Welcome to Podcapp";
 "Where it comes from" = "Where it comes from";
 "Writing" = "Writing";

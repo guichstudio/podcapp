@@ -1,3 +1,4 @@
+import PDFKit
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
@@ -103,9 +104,40 @@ class ShareViewController: UIViewController {
         // at save time: extraction runs in the cloud, minutes later.
         let offered = (item.attributedContentText?.string).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
         do {
+            // Before the URL branch: a shared file also advertises a file:// URL,
+            // and while `firstURL` rejects those, a PDF's value is its text and
+            // nothing else here would find it.
+            if let pdf = try await pdfText(in: providers) {
+                let receipt = try await Ingest.save(url: nil, text: pdf.text, title: pdf.name)
+                model.state = .saved(ShareModel.Saved(
+                    title: pdf.name,
+                    host: String(localized: "Shared PDF"),
+                    kind: .note,
+                    at: Date(),
+                    available: receipt.available,
+                    minimum: receipt.minimum
+                ))
+                return
+            }
             if let url = try await firstURL(in: providers) {
                 let receipt = try await Ingest.save(url: url, text: nil)
                 model.state = .saved(saved(url: url, title: offered, receipt: receipt))
+                return
+            }
+            // A mail, after the URL branch on purpose: a web page shared from
+            // Safari offers BOTH a link and its markup, and the link is worth
+            // more -- the pipeline refetches it whole. What reaches here is
+            // markup with no link behind it, which is what a shared message is.
+            if let mail = try await firstHTML(in: providers) {
+                let receipt = try await Ingest.save(url: nil, text: nil, title: offered, html: mail)
+                model.state = .saved(ShareModel.Saved(
+                    title: offered ?? String(localized: "Shared email"),
+                    host: String(localized: "Shared email"),
+                    kind: .note,
+                    at: Date(),
+                    available: receipt.available,
+                    minimum: receipt.minimum
+                ))
                 return
             }
             guard let text = try await firstText(in: providers) else {
@@ -168,6 +200,82 @@ class ShareViewController: UIViewController {
     /// file URL in front of the web address, and the pipeline can only fetch a
     /// page over http. A non-web URL is skipped rather than saved, so the text
     /// path below still gets its turn.
+    /// A shared PDF's text, read on the device.
+    ///
+    /// PDFKit rather than shipping the file up: /ingest takes a link or text,
+    /// and a PDF is worth its prose here, never its layout. Extracting on the
+    /// phone keeps the transport as it is -- no binary body, no bucket, no new
+    /// schema -- and the file name travels as the title, which is the one thing
+    /// the cloud could never recover once the bytes are gone.
+    ///
+    /// A scanned PDF carries no text layer and yields nothing. That has to be
+    /// said out loud: saving an empty note would put a source in the library
+    /// that the briefing can only name as unreadable, hours later.
+    private func pdfText(in providers: [NSItemProvider]) async throws -> (text: String, name: String)? {
+        for provider in providers where provider.hasItemConformingToTypeIdentifier(UTType.pdf.identifier) {
+            let item = try? await provider.loadItem(forTypeIdentifier: UTType.pdf.identifier)
+            var document: PDFDocument?
+            var name = String(localized: "Shared PDF")
+            if let url = item as? URL {
+                document = PDFDocument(url: url)
+                let stem = url.deletingPathExtension().lastPathComponent
+                if !stem.isEmpty { name = stem }
+            } else if let data = item as? Data {
+                document = PDFDocument(data: data)
+            }
+            guard let document else { continue }
+
+            var out = ""
+            for index in 0..<document.pageCount {
+                guard let page = document.page(at: index), let text = page.string else { continue }
+                out += text
+                out += "\n"
+                // A long report would otherwise send a book: the analyser reads
+                // the head of a source anyway, and the request has to stay a
+                // request.
+                if out.count >= 200_000 { break }
+            }
+            let trimmed = out.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty {
+                throw IngestError.http(0, String(localized: "This PDF has no text to read: it is probably a scan."))
+            }
+            return (trimmed, name)
+        }
+        return nil
+    }
+
+    /// The markup of a shared message.
+    ///
+    /// Mail hands a message over as HTML or as rich text rather than as a link,
+    /// and the server has taken { html, subject } since forwarded newsletters
+    /// existed -- the same shape, so nothing new is needed downstream. RTF is
+    /// converted here because only the phone has the attributed string; the
+    /// markup itself is left alone, since the paragraphs live in the tags and
+    /// flattening them on the device would lose them before the server ever
+    /// sees them.
+    private func firstHTML(in providers: [NSItemProvider]) async throws -> String? {
+        for provider in providers where provider.hasItemConformingToTypeIdentifier(UTType.html.identifier) {
+            let item = try? await provider.loadItem(forTypeIdentifier: UTType.html.identifier)
+            if let html = item as? String, !html.isEmpty { return html }
+            if let data = item as? Data, let html = String(data: data, encoding: .utf8), !html.isEmpty { return html }
+        }
+        for provider in providers where provider.hasItemConformingToTypeIdentifier(UTType.rtf.identifier) {
+            let item = try? await provider.loadItem(forTypeIdentifier: UTType.rtf.identifier)
+            guard let data = item as? Data,
+                  let attributed = try? NSAttributedString(
+                      data: data,
+                      options: [.documentType: NSAttributedString.DocumentType.rtf],
+                      documentAttributes: nil
+                  )
+            else { continue }
+            let plain = attributed.string.trimmingCharacters(in: .whitespacesAndNewlines)
+            // Wrapped so the server's own { html } path handles it: it is the
+            // one place that already knows how to turn a message into prose.
+            if !plain.isEmpty { return "<p>" + plain.replacingOccurrences(of: "\n", with: "</p><p>") + "</p>" }
+        }
+        return nil
+    }
+
     private func firstURL(in providers: [NSItemProvider]) async throws -> URL? {
         for provider in providers where provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
             guard let url = try await provider.loadItem(forTypeIdentifier: UTType.url.identifier) as? URL,

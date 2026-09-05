@@ -138,7 +138,7 @@ targets:
             # ignores whatever else rides along. Strictly more permissive than
             # what it replaces: it can only make the extension appear in more
             # places, never fewer.
-            NSExtensionActivationRule: 'SUBQUERY(extensionItems, $item, SUBQUERY($item.attachments, $att, ANY $att.registeredTypeIdentifiers UTI-CONFORMS-TO "public.url" || ANY $att.registeredTypeIdentifiers UTI-CONFORMS-TO "public.plain-text").@count >= 1).@count == 1'
+            NSExtensionActivationRule: 'SUBQUERY(extensionItems, $item, SUBQUERY($item.attachments, $att, ANY $att.registeredTypeIdentifiers UTI-CONFORMS-TO "public.url" || ANY $att.registeredTypeIdentifiers UTI-CONFORMS-TO "public.plain-text" || ANY $att.registeredTypeIdentifiers UTI-CONFORMS-TO "com.adobe.pdf" || ANY $att.registeredTypeIdentifiers UTI-CONFORMS-TO "public.html" || ANY $att.registeredTypeIdentifiers UTI-CONFORMS-TO "public.rtf" || ANY $att.registeredTypeIdentifiers UTI-CONFORMS-TO "com.apple.mail.email").@count >= 1).@count == 1'
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.louisguichard.podcapp.share

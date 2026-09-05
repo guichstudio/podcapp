@@ -69,7 +69,11 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 const IngestSchema = z.union([
   z.object({ url: z.string().url() }),
-  z.object({ text: z.string().min(1) }),
+  // `title` rides with text because a PDF has one and nothing downstream can
+  // recover it: the file name is gone by the time the cloud reads the prose,
+  // and a library row called "Untitled" is a worse answer than the name the
+  // reader saw in Files.
+  z.object({ text: z.string().min(1), title: z.string().trim().min(1).max(200).optional() }),
   z.object({ html: z.string().min(1), subject: z.string().optional() }),
 ])
 
@@ -360,11 +364,12 @@ authed.use('*', async (c, next) => {
 authed.post('/ingest', async (c) => {
   const parsed = IngestSchema.safeParse(await c.req.json().catch(() => null))
   if (!parsed.success) {
-    return c.json({ error: 'expected { url } | { text } | { html, subject }' }, 400)
+    return c.json({ error: 'expected { url } | { text, title? } | { html, subject }' }, 400)
   }
 
   const body = parsed.data
   const type = 'url' in body ? 'web' : 'html' in body ? 'email' : 'text'
+  const givenTitle = 'text' in body ? body.title ?? null : null
   const [row] = await c
     .get('conn')
     .insert(sources)
@@ -372,6 +377,7 @@ authed.post('/ingest', async (c) => {
       userId: c.get('userId'),
       type,
       url: 'url' in body ? body.url : null,
+      title: givenTitle,
       raw: 'url' in body ? null : body,
       // The real hash is computed from the extracted text; until then this only
       // has to be unique, since (user_id, source_hash) is a unique index.

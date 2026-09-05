@@ -154,15 +154,28 @@ struct Ingest {
         let minimum: Int?
     }
 
-    // The payload mirrors the endpoint: { url } for a link, { text } otherwise.
+    // The payload mirrors the endpoint: { url } for a link, { text, title? }
+    // otherwise. `title` only travels with text, and only when the sharer knew
+    // one the pipeline could not recover on its own -- a PDF's file name.
     @discardableResult
-    static func save(url: URL?, text: String?) async throws -> Receipt {
+    /// `html` takes the { html, subject } branch the server already had for
+    /// forwarded newsletters: a shared mail is the same shape, and its markup
+    /// is worth keeping until the server strips it -- the paragraphs are in the
+    /// tags, and a body flattened on the phone loses them for good.
+    static func save(url: URL?, text: String?, title: String? = nil, html: String? = nil) async throws -> Receipt {
         guard Config.isConfigured else { throw IngestError.notConfigured }
         guard let endpoint = URL(string: Config.baseURL + "/ingest") else { throw IngestError.badURL }
 
         var body: [String: String] = [:]
-        if let url { body["url"] = url.absoluteString }
-        else if let text, !text.isEmpty { body["text"] = text }
+        if let html, !html.isEmpty {
+            body["html"] = html
+            if let title, !title.isEmpty { body["subject"] = String(title.prefix(200)) }
+        }
+        else if let url { body["url"] = url.absoluteString }
+        else if let text, !text.isEmpty {
+            body["text"] = text
+            if let title, !title.isEmpty { body["title"] = String(title.prefix(200)) }
+        }
         else { throw IngestError.badURL }
 
         var request = URLRequest(url: endpoint)
