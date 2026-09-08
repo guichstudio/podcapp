@@ -1,82 +1,210 @@
-# Podcapp — passation (2026-09-01, soir)
+# Podcapp — passation (2026-09-05, fin de journée)
 
 Point d'entrée pour une nouvelle session. Le détail vit dans
 [README.md](README.md) (produit, opérations) et [CLAUDE.md](CLAUDE.md)
-(mémoire de travail, journal des décisions). Ce fichier dit où on en est,
-ce qui vient ensuite, et ce qui piège.
+(mémoire de travail, journal des décisions). Ce fichier dit où on en est, ce
+qui vient ensuite, et ce qui piège.
 
-## Ce qui tourne
+---
 
-| Brique | État |
+## En une phrase
+
+Tout tourne — capture depuis le téléphone, vidéos comprises, traitement et
+génération dans le cloud, flux RSS, **b34 sur TestFlight en public** — sauf
+**les notifications push, dont l'enregistrement de l'appareil n'a jamais eu
+lieu** ; c'est le seul point ouvert et il est instrumenté pour se diagnostiquer
+tout seul.
+
+---
+
+## État vérifié
+
+| | |
 |---|---|
-| API | https://podcapp.vercel.app (Vercel Edge, Hono). Déployée depuis `main`, pnpm épinglé (`packageManager`). |
-| Tâches cloud | Trigger.dev **v20260901.8**, 4 tâches : `process-source`, `generate-episode`, `daily-briefings` (06:00 Paris), `delete-account`. |
-| Base | Neon, migration **0004** appliquée (colonnes `category` sur `sources` et `stories`). |
-| App iOS | **b26 sur l'iPhone de Louis**. Xcode 26.6, SDK iOS 26.5, macOS 26.6.2. Signature Apple Developer Program, équipe `V7BMDJS5C7` (l'adhésion a gardé l'id de l'équipe personnelle, prouvé par un export App Store). |
-| Politique de confidentialité | `GET /privacy`, anglais par défaut, français si le navigateur le demande. |
+| API | Vercel, `podcapp.vercel.app` — `/health` 200, `/privacy` 200, `/episodes` sans jeton 401 |
+| Worker | Trigger.dev `20260905.3` |
+| iOS | **b34** distribuée aux groupes *Interne* et *Beta publique*, revue beta APPROVED |
+| Lien public | `https://testflight.apple.com/join/MXSY1gGy` |
+| Tests | **152 / 152** |
+| Dépôt | `main`, **6 commits non poussés** — voir Prochaine action |
 
-## Livré aujourd'hui (tout est commité et déployé)
+---
 
-1. **TestFlight, côté code** : `PrivacyInfo.xcprivacy` (2 cibles), `ITSAppUsesNonExemptEncryption`, versions pilotées par le build, iPhone seul, `ios/testflight.sh`, textes App Store Connect dans `docs/testflight.md`.
-2. **Retours haptiques + 4 sons** (`ios/Podcapp/Feedback.swift`, sons régénérables par `ios/design/make-sounds.sh`), deux interrupteurs dans Réglages.
-3. **Bilingue EN/FR, suit le téléphone** — interface (343 chaînes, `ios/design/make-strings.py` ← `fr-strings.json`) ET épisodes (`PUT /me/language` → `users.output_language`).
-4. **Voix par langue** : Eric en anglais (choix provisoire de Louis sur test d'écoute), `writer.v2` avec débit en paramètre (fr 150 demandé/140 mesuré, en 165/162).
-5. **Règles produit** : ≥ 4 liens (sources distinctes derrière les stories ouvertes, `src/jobs/material.ts`, appliqué à l'API, au cron, au pipeline, à l'app) et ≤ 5 min.
-6. **App Review** : audio en arrière-plan, écran verrouillé + écouteurs, UI factice retirée, **suppression de compte in-app** (`DELETE /me` → tâche durable, déclenche PUIS révoque).
-7. **Design v3** : bandeau héros paginé, anneau N/4, feuille de génération en direct, sélecteur de voix, aide « partager en 3 étapes », copie du lien RSS, « Revoir l'intro », onglet Bibliothèque avec étagères et « Générer un épisode <étagère> » ; `analyzer.v2` (+ champ `category`), `GET/PUT /me`.
-8. **Eval après le prompt v2** : 53/54, 0 fusion fautive, 0 % de doublons — identique à la ligne de base.
+## Ce que la journée a produit
 
-## État du compte de Louis (le seul utilisateur)
+### Les vidéos marchent, et la leçon n'était pas celle attendue
 
-- Téléphone en anglais → `output_language = en` → prochain épisode **en anglais, voix Eric**.
-- `voice_id` NULL (défaut de langue), cible 5 min.
-- 24 sources, **0 disponible** : les 4 `received` du 31 août restent en l'état (décision Louis, ne plus proposer de les traiter). Les étagères sont vides tant que de nouvelles sources n'arrivent pas.
+YouTube refuse **toute adresse de centre de données**, et un pot de cookies
+valide n'y change **rien** : la comparaison avec et sans cookies dans la même
+région donne le refus identique au caractère près. Ce n'était pas l'identité,
+c'était l'adresse.
 
-## Prochaines actions, dans l'ordre
+Ce qui a résolu : **`YOUTUBE_PROXY`**, un proxy résidentiel IPRoyal. Les six
+combinaisons mesurées sont dans README.md. Facebook suit sur les formes dont le
+chemin dit vidéo (`/share/r/`, `/share/v/`, `/watch`, `/reel/`, `/videos/`,
+`fb.watch`) — deux liens sur trois testés ; le troisième est un trou dans
+l'extracteur Facebook de yt-dlp, dernière version, avec et sans proxy.
 
-1. **TestFlight** : **le build 27 est en ligne** (téléversé le 2026-09-02,
-   état `VALID`). Les testeurs internes l'ont ; les externes attendent la
-   Beta App Review, non soumise. Reste à coller les identifiants de démo dans
-   TestFlight → Test Information → « Connexion requise » (utilisateur
-   `beta-review@podcapp.fr`, mot de passe = le jeton d'API du compte), puis à
-   soumettre pour revue quand tu veux des testeurs externes.
-   **Supprimer la clé API Admin `4M524UGZT6`** si ce n'est pas déjà fait.
-2. **Beta App Review** : le compte de démonstration existe et est peuplé
-   (`beta-review@podcapp.fr`, anglais, voix Eric, 5 min, 6 sources, épisode
-   `a5978667-…` publié à 4 min 50). Rien à refaire.
-3. **Postmark** (Louis, 5 min, voir README) puis `INGEST_ADDRESS=<adresse>` dans l'env Vercel : la ligne « Adresse d'ingestion » apparaît alors seule dans Réglages.
-4. **Premier épisode anglais** : il existe — celui du compte de démo,
-   `a5978667-545b-40c0-88e2-392b1bda8867`, 4 min 50, voix Eric. La porte
-   qualité (4/5) n'a jamais été passée en anglais : à écouter comme le
-   français l'a été, avec `eval/rubric.md`.
-5. **Voix française** : toujours la voix Phase 0 via l'env Trigger ; remplacer sur test d'écoute (même méthode que pour Eric).
-6. Optionnel : reclasser les anciennes sources (`category` NULL) si les étagères doivent se remplir sans attendre.
+Coût dérisoire : les sous-titres d'une vidéo de 18 min pèsent **168 Ko** contre
+17,9 Mo pour son audio. Un gigaoctet non expirant vaut des milliers de vidéos.
 
-## Pièges connus (les coûteux)
+`YOUTUBE_COOKIES` a été **supprimé** de la production. Le mécanisme reste dans
+le code, inutilisé, il ne coûte rien.
 
-- `ios/project.yml` **génère** les deux `Info.plist` : une édition à la main disparaît à la régénération. Tout va dans le yaml.
-- XcodeGen n'est pas installé durablement : `curl` de la release GitHub dans `/tmp/xcodegen/` (vidé au redémarrage). N'importe quelle version depuis Xcode 26.
-- Vercel construit **depuis GitHub** : commit + push AVANT `pnpm exec vercel deploy --prod --yes`, sinon on redéploie l'ancien code.
-- Tâches : `pnpm dlx trigger.dev@4.5.15 deploy` après tout changement dans `src/jobs`, `src/trigger`, `src/prompts`, `src/config.ts`.
-- SwiftUI ne traduit que `Text("…")` ; un `String` passé à un helper (`label:`, `fieldLabel("…")`) doit être enveloppé dans `String(localized:)`. Après tout ajout : compléter `ios/design/fr-strings.json` puis `python3 ios/design/make-strings.py`.
-- Lancer le simulateur avec le **vrai** jeton fait remonter SA langue au serveur et bascule le compte. Utiliser un jeton factice, ou remettre la langue après (`PUT /me/language`).
-- Le prototype Claude Design v3 ne se rend pas fidèlement hors de son hôte ; sa logique est extraite dans le scratchpad de la session (`design-v3/logic.js`) — repartir des textes, pas des captures.
-- Une page bloquée par un anti-bot peut passer la porte d'extraction : AP News
-  a marqué 0,37 pour `MIN_EXTRACTION_QUALITY = 0,35`, est entrée dans le
-  matériau sous le titre « Page unavailable », et l'outro a affirmé qu'aucune
-  source n'avait échoué. Rien d'infondé n'est parti à l'antenne (le rédacteur ne
-  l'a pas retenue) mais l'affirmation de l'outro est fausse. Le score seul ne
-  sépare pas un article maigre d'une page de blocage : il faut un signal de
-  forme. Non corrigé.
-- Un prompt est un actif versionné : jamais d'édition en place, copier en vN+1, basculer dans `config.ts`, puis `pnpm eval:run`.
+### Le rédacteur ne peut plus déguiser une contrainte en jugement
 
-## Commandes utiles
+Un épisode a diffusé 2 des 4 liens partagés. La cause était **arithmétique** :
+`editorial.v1` imposait 60 s plancher par section, un épisode de 3 min a 120 s
+de budget, donc deux sections — et le rédacteur, tenu d'inscrire chaque story
+quelque part, a **inventé des motifs de qualité** pour ce qu'il ne pouvait pas
+caser. Un énoncé faux dans un artefact qui sert de preuve.
 
-```
-pnpm test · pnpm exec tsc --noEmit · pnpm eval:run
-pnpm exec vercel deploy --prod --yes · pnpm dlx trigger.dev@4.5.15 deploy
-cd ios && xcodegen generate --spec project.yml
-xcodebuild -project Podcapp.xcodeproj -scheme Podcapp -sdk iphoneos -configuration Debug -destination 'generic/platform=iOS' -allowProvisioningUpdates DEVELOPMENT_TEAM=V7BMDJS5C7 build
-xcrun devicectl device install app --device FEE86561-3A03-5119-BCB2-A8C6C300D13F <chemin .app>
-```
-Incrémenter `CURRENT_PROJECT_VERSION` dans `project.yml` à chaque installation (le `b<N>` s'affiche dans l'onboarding).
+`editorial.v2` : plancher 25 s, couvrir prime sur approfondir, et un manque de
+place doit **le dire** (`over budget: N seconds for M stories`).
+`MIN_SOURCES_PER_EPISODE` **4 → 3**.
+
+Vérifié sur un vrai épisode : 4 liens choisis → **4 chapitres, 0 écarté**.
+
+### Le score de qualité conseille au lieu de refuser
+
+Il lit la densité de prose, mauvais juge de ce qu'on a voulu sauver :
+transcription, live, thread, page de chiffres. Le plancher de **caractères**
+reste — c'est l'outil net contre une page anti-bot. Le score part au rédacteur
+(`weakest_source_quality`) et s'affiche en pastille **LECTURE FAIBLE**.
+
+L'eval a donné raison à ce changement : `missed_merges` 1 → **0**,
+`dup_story_rate` 0,091 → **0**. Une source que le seuil jetait était la moitié
+manquante d'une paire. Le même filtre bloquait aussi dans `extractEmail`, il y a
+été retiré aussi.
+
+### Authentification, partage, interface
+
+- **Sign in with Google** sans le SDK — `ASWebAuthenticationSession` + PKCE,
+  zéro dépendance. Vérifié de bout en bout par Louis.
+- **L'extension de partage était masquée** dès qu'un lien s'accompagnait d'une
+  image d'aperçu — Threads notamment. Règle d'activation passée en prédicat
+  SUBQUERY, six types acceptés.
+- **PDF** : le texte est lu sur le téléphone (PDFKit) et envoyé en
+  `{ text, title }`. Un scan sans couche texte le dit.
+- **Mail** : partagé depuis l'app Mail en `{ html, subject }`, la forme que le
+  serveur accepte depuis les newsletters transférées.
+- **Swipe latéral** entre onglets, sans casser le rail de catégories ni le
+  balayage des lignes.
+- **Épisode à partir de liens choisis**, qui ignore volontairement le statut des
+  stories : « refaire avec ces liens » est une demande de réutiliser.
+- **Loader sur l'accueil** tant qu'un briefing se fabrique, quelle que soit son
+  origine, avec relance toutes les 10 s attachée à l'identifiant de l'épisode.
+
+### Deux bugs trouvés en vérifiant autre chose
+
+- **Repartager un article plantait le job** et laissait la source bloquée en
+  `extracting` pour toujours : la branche doublon écrivait le vrai hash, que
+  l'index unique interdit. Strandait des lignes depuis le 3 septembre.
+- **Le jeton de partage `is=` de l'app YouTube** n'était pas retiré par
+  `canonicalizeUrl`, donc la même vidéo partagée deux fois ne dédoublonnait
+  jamais.
+
+---
+
+## Le seul point ouvert : le push
+
+**Ce qui est certain :**
+
+- le serveur fonctionne — `POST /me/push-token` appelé à la main répond `ok` et
+  la ligne apparaît en base
+- l'app n'a **jamais** appelé — zéro jeton, alors que l'épisode était `ready`
+- donc ça casse entre la demande d'autorisation iOS et l'envoi
+
+**Ce qui a été mal fait :** les deux chemins d'échec étaient **silencieux**
+(erreur d'enregistrement APNs avalée, envoi au serveur en `try?`). Impossible de
+dire lequel a lâché. C'est le même silence qui avait coûté un après-midi sur
+l'extension de partage.
+
+**Réparé en b34** : les deux erreurs sont conservées et la ligne **Réglages →
+Notifications** affiche l'état réel — *Actives sur cet appareil*, *Refusées dans
+les Réglages iOS*, *En attente du jeton de l'appareil…*, ou l'erreur elle-même.
+
+**Prochaine étape :** ouvrir Réglages sur la b34 et lire cette ligne. Elle
+désigne l'étape fautive. La question qui coupe l'arbre en deux : *est-ce qu'iOS
+a montré une fenêtre d'autorisation ?*
+
+Tout le reste du push est en place et vérifié : clé APNs `BRT2X5BBBA` posée sur
+Trigger (`APNS_KEY` en base64, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_TOPIC`),
+signature ES256 validée contre la vraie clé (64 octets `r|s`, `prime256v1`),
+table `push_tokens` migrée sur Neon, envoi après publication qui avale ses
+propres erreurs pour ne jamais faire échouer un épisode publié.
+
+---
+
+## Les pièges payés aujourd'hui — à ne pas repayer
+
+**Un champ de formulaire web transforme les sauts de ligne en ESPACES.** Un pot
+de cookies de 44 lignes est arrivé sur une ligne du même nombre d'octets ;
+yt-dlp l'a lu comme un commentaire et a chargé zéro cookie, sans que rien n'ait
+l'air faux. D'où le base64 pour `YOUTUBE_COOKIES` **et** pour `APNS_KEY`, et un
+refus bruyant plutôt qu'un repli silencieux.
+
+**`execFile` recopie tout l'argv dans l'erreur**, et yt-dlp écrit sur stderr la
+ligne rejetée d'un pot mal formé — nom **et valeur** du cookie — que
+`--no-warnings` n'atteint pas. Les deux finissaient dans `sources.error`, que
+`GET /sources` affiche dans l'app. `message()` filtre les deux formes et masque
+toute URL à identifiants (le proxy en porte un).
+
+**Une sonde de diagnostic qui imprime un champ dérivé d'un secret le recrache en
+entier** quand ce secret tient sur une ligne. C'est arrivé.
+
+**`pnpm eval:run` avec `.env` chargé écrit dans NEON** (production) et meurt sur
+`users_email_unique`. Il faut charger les clés et `unset DATABASE_URL`.
+
+**Activer une capacité invalide les profils de provisioning.** Push a fait
+passer « Podcapp Dev » en `INVALID` et a aussi périmé le profil App Store en
+cache d'Xcode (`~/Library/Developer/Xcode/UserData/Provisioning Profiles/`),
+d'où un `EXPORT FAILED`. Méthode qui marche : régénérer par l'API ASC, supprimer
+le profil en cache, et **lancer une build de contrôle avant d'écrire la moindre
+ligne de code** pour séparer un problème de signature d'un problème de code.
+
+**`PlistBuddy` supprime les guillemets** autour de `"public.url"`, et un littéral
+non quoté devient un chemin de clé — la règle d'activation n'aurait jamais
+matché. Écrire le plist avec `plistlib` et **relire** pour vérifier.
+
+**XcodeGen n'est pas installé** : `project.yml` et le `pbxproj` doivent porter
+la même modification, sinon la prochaine régénération annule en silence.
+
+**`GET builds/{id}/betaGroups` renvoie une liste vide** alors que l'assignation
+a réussi — vérifier dans l'autre sens, `GET betaGroups/{id}/builds`.
+
+**En SwiftUI, une vue transparente posée derrière un `ScrollView` ne reçoit pas
+le tap** : le défilement gagne le test de collision. Pour fermer un clavier, il
+faut `simultaneousGesture` — mesuré, pas supposé.
+
+---
+
+## Prochaines actions
+
+1. **Lire Réglages → Notifications** sur la b34 et me dire ce qu'affiche la
+   ligne. C'est la seule chose qui bloque le push.
+2. **Pousser les 6 commits** en attente : `git push origin main`. Vercel
+   construit depuis GitHub, donc un futur déploiement repartirait sinon d'un
+   dépôt en retard.
+3. **Ménage local** : compte Google jetable dans Brave à déconnecter,
+   `yt-cookies.txt` et `yt-cookies-clean.txt` à supprimer du Bureau. Ils ne
+   servent plus depuis le proxy.
+4. **Révoquer la clé API Admin `4M524UGZT6`** quand les uploads seront finis ;
+   les `.p8` traînent dans `~/Downloads`.
+5. **Tester sur le téléphone** ce qui n'a jamais été vérifié en conditions
+   réelles : partage d'un lien **Threads**, d'un **PDF**, d'un **mail**.
+6. Optionnel, et meilleur que le proxy s'il aboutit : **ticket au support
+   ElevenLabs**. Leur doc promet `source_url` sur YouTube, leur produit le fait,
+   leur API répond 400 sur neuf vidéos alors que le même appel avale un mp3 de
+   342 s depuis notre bucket.
+
+---
+
+## Comptes multiples, à savoir
+
+Louis a plusieurs comptes : deux Apple (un avec adresse, un en relais privé),
+un Google (`laphotodepapa@gmail.com`), plus `design-check@podcapp.test` pour les
+tests. Ce sont des bibliothèques séparées, c'est voulu, et le relais privé ne
+pourra **jamais** fusionner automatiquement faute d'adresse vérifiable. Un lien
+partagé se range dans le compte où l'app est connectée — c'est ce qui explique
+un épisode qui « oublie » des liens.
