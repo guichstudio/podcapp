@@ -37,6 +37,23 @@
 			</array>
 		</dict>
 		<dict>
+			<!-- The APNs device token. Push.swift registers it against the
+			     account (POST /me/push-token) so the server can say "your
+			     briefing is ready", so it is an identifier tied to a person and
+			     it is declared as one. Not used to track: it never leaves this
+			     server and is revoked with the session. -->
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeDeviceID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
 			<!-- The address Sign in with Apple returns at sign-in, sent once to
 			     podcapp.vercel.app to resolve the account. A private-relay
 			     address is still an email address, so it is still declared. -->

@@ -15,7 +15,7 @@ options:
 settings:
   base:
     MARKETING_VERSION: "1.0"
-    CURRENT_PROJECT_VERSION: "34"
+    CURRENT_PROJECT_VERSION: "35"
     SWIFT_VERSION: "5.9"
     # Louis's personal team. Kept here rather than only in the generated project,
     # which XcodeGen overwrites every time the spec is regenerated.
@@ -106,6 +106,14 @@ targets:
           - group.com.louisguichard.podcapp
         com.apple.developer.applesignin:
           - Default
+        # Push. Kept at `development` on purpose: the value in this file is what
+        # a Debug build signs with, and `xcodebuild -exportArchive` with method
+        # app-store-connect rewrites it to `production` from the distribution
+        # profile. It was missing here while living in the generated
+        # Podcapp.entitlements, so the next `xcodegen generate` would have
+        # deleted push without a word -- the same drift ios/README.md warns
+        # about for the version strings.
+        aps-environment: development
     dependencies:
       - target: ShareExtension
         embed: true
