@@ -188,35 +188,78 @@ SDK tiers détenant l'état de paiement contredit `NSPrivacyTracking: false`,
 tracking » dans la description de l'App Store — la posture est un argument de
 vente).
 
+### 6.0 L'ancre de confiance est TLS, pas une chaîne x5c vérifiée localement
+
+**Corrigé le 2026-09-09, pendant la planification.** La première version de cette
+section demandait de vérifier la chaîne `x5c` du JWS jusqu'à la racine *Apple Root
+CA - G3* épinglée. **Ce n'est pas implémentable ici** : `api/index.ts` déclare
+`export const config = { runtime: 'edge' }` (ligne 55), et le runtime edge n'a pas
+`node:crypto` — donc pas de `X509Certificate`, pas de `checkIssued`. Il faudrait
+un parseur DER écrit à la main pour extraire chaque `tbsCertificate` et vérifier
+sa signature par Web Crypto. C'est faisable et c'est une mauvaise idée : de la
+cryptographie maison sur le chemin du paiement, pour rien.
+
+Rien, parce que **le JWS n'a pas besoin d'être l'autorité**. L'autorité, c'est
+l'App Store Server API interrogée en TLS avec notre propre clé — exactement
+l'ancre de confiance que `src/auth/verify.ts` utilise déjà aujourd'hui en allant
+chercher le JWKS d'Apple en HTTPS.
+
+**Règle qui en découle, tenue partout : tout JWS venu du réseau — celui de l'app
+comme celui du webhook — est un PING NON VÉRIFIÉ.** On n'en lit qu'une chose,
+l'`originalTransactionId`, et jamais l'état. L'état vient toujours d'un appel
+frais et authentifié à
+`GET /inApps/v1/subscriptions/{originalTransactionId}`.
+
+Un ping falsifié ne peut donc rien faire d'autre que provoquer un appel HTTP.
+
 ### 6.1 `POST /me/subscription`
 
-L'app envoie le JWS signé de la transaction (`Transaction.currentEntitlements`
-ou le résultat de l'achat). Le serveur :
+1. lire `originalTransactionId` dans le JWS **sans le vérifier** (décodage base64
+   du payload, rien de plus) ;
+2. appeler l'App Store Server API pour cet identifiant, sur l'hôte de production
+   puis, sur `4040010` (*transaction id not found*), sur l'hôte sandbox — c'est la
+   procédure d'Apple, et c'est aussi ce qui renseigne `plan_environment` ;
+3. **contrôler que `appAccountToken` de la transaction est égal à l'`id` de
+   l'utilisateur authentifié** ;
+4. contrôler `bundleId == com.louisguichard.podcapp` et `productId` parmi les deux
+   connus ;
+5. écrire `plan`, `plan_expires_at`, `plan_original_txn_id`, `plan_environment`.
 
-1. décode l'en-tête, lit la chaîne `x5c` ;
-2. vérifie la chaîne jusqu'à la racine **Apple Root CA - G3** (épinglée dans le
-   dépôt, pas téléchargée), contrôle les dates de validité ;
-3. vérifie la signature ES256 de la feuille sur le payload ;
-4. contrôle `bundleId == com.louisguichard.podcapp` et que `productId` est l'un
-   des deux identifiants connus ;
-5. écrit `plan`, `plan_expires_at`, `plan_original_txn_id`, `plan_environment`.
+**L'étape 3 est celle qui ferme le trou** que la vérification de chaîne ne
+fermait pas de toute façon : sans elle, quiconque connaît l'`originalTransactionId`
+d'un tiers pourrait rattacher l'abonnement de ce tiers à son propre compte, et un
+JWS parfaitement signé par Apple ne dit rien de *qui* le présente. `appAccountToken`
+est le mécanisme prévu par Apple pour lier un achat à un compte applicatif :
+l'app le pose à l'achat (`Product.PurchaseOption.appAccountToken(UUID)`), il
+revient dans la transaction, et c'est un UUID — donc `users.id` y entre tel quel,
+sans conversion.
 
-Le muscle existe : `cae8471` vérifie déjà les jetons d'identité Apple et Google
-**avec un test par forme de contrefaçon**, et APNs signe déjà en ES256 avec un
-découpage DER → `r|s` maison. Le même standard de test s'applique ici.
+Une transaction sans `appAccountToken`, ou avec un `appAccountToken` qui ne
+correspond pas, est **refusée en 403**.
+
+Signature de notre jeton d'API : `jose` (`importPKCS8` + `SignJWT`), pas
+`node:crypto`. `src/push/apns.ts` signe déjà en ES256 pour Apple mais avec
+`createSign`, et il tourne sur Trigger.dev en Node — **ne pas le réutiliser tel
+quel sur l'edge**, il ne s'y importe pas.
 
 ### 6.2 `POST /apple/notifications`
 
-Le webhook des notifications serveur V2, lui aussi un JWS signé vérifié par la
-même fonction. Traite `DID_RENEW`, `EXPIRED`, `DID_CHANGE_RENEWAL_STATUS`,
-`REFUND`, `REVOKE`, `GRACE_PERIOD_EXPIRED` — rapprochement par
-`originalTransactionId`. C'est ce qui garde l'état juste quand l'app n'est jamais
-ouverte, ce qui est précisément le cas d'un abonné qui écoute son flux RSS dans
-Overcast.
+Le webhook des notifications serveur V2. Sa charge utile est un ping au sens de
+§6.0 : on en extrait `originalTransactionId`, on ignore tout le reste, et on
+**relit** l'abonnement via l'App Store Server API. `DID_RENEW`, `EXPIRED`,
+`DID_CHANGE_RENEWAL_STATUS`, `REFUND`, `REVOKE`, `GRACE_PERIOD_EXPIRED` prennent
+donc tous le même chemin, et il n'y a pas de machine à états à écrire par type de
+notification. C'est ce qui garde l'état juste quand l'app n'est jamais ouverte —
+précisément le cas d'un abonné qui écoute son flux RSS dans Overcast.
 
 Une notification pour un `originalTransactionId` inconnu répond **200** et
 atterrit dans `events` — même règle que `email_inbound_rejected` : jamais de
 5xx à un webhook tiers, jamais d'échec silencieux non plus.
+
+L'URL du webhook porte un secret en paramètre (`APPLE_NOTIFICATIONS_TOKEN`),
+comme `POST /ingest/email` le fait déjà pour Postmark. Ce n'est pas de
+l'authentification — c'est ce qui empêche un tiers de nous faire marteler l'API
+d'Apple depuis une URL devinée.
 
 ### 6.3 Le filet
 
@@ -332,9 +375,11 @@ chaque ligne ajoutée est une surface de rejet en plus sous la 3.1.
 Au standard du dépôt (152 tests aujourd'hui), et au standard de rigueur déjà posé
 par les tests d'identité Apple/Google :
 
-- **Vérification du JWS : un test par forme de contrefaçon** — signature valide
-  mais chaîne non enracinée sur Apple, certificat expiré, `bundleId` étranger,
-  `productId` inconnu, algorithme `none`, payload modifié après signature.
+- **Rattachement d'abonnement : un test par forme d'abus** — `appAccountToken`
+  absent, `appAccountToken` d'un autre utilisateur (le vol d'abonnement, §6.1),
+  `bundleId` étranger, `productId` inconnu, `originalTransactionId` déjà rattaché
+  à un autre compte. L'App Store Server API est simulée par injection, comme
+  `createVerifier(keyFor)` accepte déjà son résolveur de clés.
 - **Quota :** frontières de mois en UTC, un échec ne consomme rien, un run en vol
   compte, chacun des trois paliers à sa limite exacte et un cran au-dessus.
 - **Bornage :** `targetMinutesFor` et `voiceFor` sur les trois paliers, y compris
