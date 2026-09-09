@@ -553,8 +553,9 @@ propager dans `meView` (`grep -n "function meView" -A 12 api/index.ts`) :
     .select({ id: users.id, outputLanguage: users.outputLanguage, voiceId: users.voiceId, targetMinutes: users.targetMinutes, rssToken: users.rssToken })
 ```
 
-`meView` renvoie `id: user.id`. Faire la même chose dans `src/api/index.ts` s'il
-y sert `/me`.
+`meView` existe dans **les deux** entrypoints — `api/index.ts:443` et
+`src/api/index.ts:472` — et les deux routes `/me` l'utilisent. Les deux doivent
+gagner `id`, sinon l'app se comporte différemment selon l'entrypoint.
 
 - [ ] **Step 5: Le pipeline refuse avant de payer**
 
@@ -1010,9 +1011,14 @@ authed.post('/me/subscription', async (c) => {
   const sub = await createAppStoreClient().lookup(id)
   if (!sub) return c.json({ error: 'unknown transaction' }, 404)
 
-  const result = await linkSubscription(c.get('conn'), c.get('userId'), sub)
+  const conn = c.get('conn')
+  const result = await linkSubscription(conn, c.get('userId'), sub)
   if (!result.ok) {
-    await recordEvent(c.get('conn'), c.get('userId'), 'subscription_rejected', { reason: result.reason, id })
+    await conn.insert(events).values({
+      userId: c.get('userId'),
+      name: 'subscription_rejected',
+      payload: { reason: result.reason, originalTransactionId: id },
+    })
     // 403 et pas 400 : la requete est bien formee, c'est le droit qui manque.
     return c.json({ error: result.reason }, 403)
   }
@@ -1020,9 +1026,11 @@ authed.post('/me/subscription', async (c) => {
 })
 ```
 
-Adapter `recordEvent` au helper d'écriture dans `events` déjà utilisé par
-`POST /ingest/email` (`grep -n "events" api/index.ts` pour en retrouver la forme
-exacte, et l'appeler de la même façon).
+**Il n'existe AUCUN helper `recordEvent` dans ce dépôt** — vérifié le
+2026-09-09. `POST /ingest/email` écrit ses rejets par un `conn.insert(events)`
+en ligne, dans une closure locale (`api/index.ts:262`). L'insert ci-dessus suit
+cette forme exacte. `events` est déjà déstructuré depuis `schema` en tête de
+fichier (`api/index.ts:58`), donc rien à importer.
 
 - [ ] **Step 6: Vérifier**
 
@@ -1210,15 +1218,31 @@ app.post('/apple/notifications', async (c) => {
   const inner = readSignedTransactionFromNotification(payload)
   const id = inner ? readOriginalTransactionId(inner) : null
   if (!id) {
-    await recordEvent(conn, null, 'apple_notification_unreadable', {})
+    await conn.insert(events).values({ userId: null, name: 'apple_notification_unreadable', payload: {} })
     return c.json({ ok: true })
   }
 
   const outcome = await refreshByTransaction(conn, createAppStoreClient(), id)
-  if (outcome === 'unknown') await recordEvent(conn, null, 'apple_notification_unknown_txn', { id })
+  if (outcome === 'unknown') {
+    await conn.insert(events).values({
+      userId: null,
+      name: 'apple_notification_unknown_txn',
+      payload: { originalTransactionId: id },
+    })
+  }
   return c.json({ ok: true })
 })
 ```
+
+Comme en Task 5 : **pas de helper `recordEvent`** dans ce dépôt, l'insert se
+fait en ligne sur le modèle d'`api/index.ts:262`. `events` est déjà déstructuré
+ligne 58.
+
+**Attention à `c.get('conn')` sur une route PUBLIQUE.** `POST /ingest/email`,
+qui est aussi publique, appelle `db()` directement (`api/index.ts:259`) et non
+`c.get('conn')`, lequel est posé par le middleware d'authentification. Vérifier
+lequel des deux est disponible ici avant d'écrire — se tromper donne un
+`undefined` au premier appel réel, pas à la compilation.
 
 et, dans `src/apple/appstore.ts`, la fonction d'extraction imbriquée (la
 notification porte `data.signedTransactionInfo` **dans** son propre payload) :
