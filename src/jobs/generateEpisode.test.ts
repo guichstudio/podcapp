@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict'
+import { randomBytes, randomUUID } from 'node:crypto'
 import { test } from 'node:test'
 import type { Db } from '../db/client.js'
+import { createTestDb } from '../db/testDb.js'
+import { episodes, stories, users } from '../db/schema.js'
 import type { Storage } from '../storage/index.js'
 import {
   countUnsupportedShipped,
@@ -244,4 +247,43 @@ test('a run that throws still persists the artifacts it produced', async () => {
   )
   const metrics = JSON.parse(written.get(runArtifactKey('ep1', 'metrics')) ?? '{}') as { error?: string }
   assert.match(metrics.error ?? '', /db down/)
+})
+
+test('the pipeline refuses to spend on a run that reached it with no quota left', async () => {
+  // The fourth enforcement point: it must fire even when the links rule alone
+  // would let the run through (three distinct sources, well above the
+  // MIN_SOURCES_PER_EPISODE floor), because it is the only guard standing
+  // between a run triggered some other way (a retry, a manual dashboard
+  // trigger) and paying the writer and TTS for an episode nobody is owed.
+  const { db, cleanup } = await createTestDb()
+  try {
+    const [u] = await db
+      .insert(users)
+      .values({
+        email: `${randomBytes(6).toString('hex')}@example.com`,
+        apiToken: randomBytes(16).toString('hex'),
+        rssToken: randomBytes(16).toString('hex'),
+        plan: 'free',
+      })
+      .returning({ id: users.id })
+    const userId = u!.id
+
+    // Free's entire monthly ration (PLAN_EPISODE_LIMIT.free = 1) is already spent.
+    await db.insert(episodes).values({ userId, targetSec: 180, status: 'ready' })
+
+    // Plenty of material: an open story with three distinct sources clears the
+    // links rule on its own, so a refusal here can only come from the quota.
+    await db.insert(stories).values({
+      userId,
+      headline: 'Test story',
+      sourceIds: [randomUUID(), randomUUID(), randomUUID()],
+      firstSeenAt: new Date(),
+      lastSeenAt: new Date(),
+      status: 'open',
+    })
+
+    await assert.rejects(generateEpisode(db, { userId, targetSec: 180 }), /monthly quota spent for plan free/)
+  } finally {
+    await cleanup()
+  }
 })

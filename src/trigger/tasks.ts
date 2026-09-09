@@ -7,6 +7,7 @@ import { MAX_TARGET_MINUTES } from '../config.js'
 import { deleteAccount } from '../jobs/deleteAccount.js'
 import { countAvailableSources, hasEnoughSources } from '../jobs/material.js'
 import { generateEpisode } from '../jobs/generateEpisode.js'
+import { countEpisodesThisMonth, hasQuotaLeft, PLAN_EPISODE_LIMIT, planOf } from '../jobs/quota.js'
 import { processSource } from '../jobs/processSource.js'
 import { publishEpisode } from '../jobs/publishEpisode.js'
 import { notifyReady } from '../push/notify.js'
@@ -197,12 +198,22 @@ type BriefingOutcome = { userId: string; episodeId?: string; skipped?: string }
 // that died without reaching their catch, then queue a run.
 async function queueBriefing(
   db: Db,
-  user: { id: string; targetMinutes: number; outputLanguage: string },
+  user: { id: string; targetMinutes: number; outputLanguage: string; plan: string; planExpiresAt: Date | null },
 ): Promise<BriefingOutcome> {
   // Same rule as POST /episodes: a morning with three links gets no episode,
   // and the reason is readable in the run.
   const available = await countAvailableSources(db, user.id)
   if (!hasEnoughSources(available)) return { userId: user.id, skipped: `only ${available} source(s) in open stories` }
+
+  // Same second rendezvous as POST /episodes, after the links rule: a plan
+  // that has spent its month gets no briefing either, silently to the user
+  // (no app is open at 06:00) but readable in the run's outcome.
+  const plan = planOf(user)
+  const used = await countEpisodesThisMonth(db, user.id)
+  if (!hasQuotaLeft(used, plan)) {
+    logger.log('skipped: monthly quota spent', { userId: user.id, plan, used, limit: PLAN_EPISODE_LIMIT[plan] })
+    return { userId: user.id, skipped: `monthly quota spent (${used}/${PLAN_EPISODE_LIMIT[plan]} on ${plan})` }
+  }
 
   const staleBefore = new Date(Date.now() - 30 * 60 * 1000)
   const actives = await db
@@ -266,7 +277,13 @@ export const dailyBriefingsTask = schedules.task({
     requireCloudEnv()
     const db = await createDb()
     const allUsers = await db
-      .select({ id: users.id, targetMinutes: users.targetMinutes, outputLanguage: users.outputLanguage })
+      .select({
+        id: users.id,
+        targetMinutes: users.targetMinutes,
+        outputLanguage: users.outputLanguage,
+        plan: users.plan,
+        planExpiresAt: users.planExpiresAt,
+      })
       .from(users)
 
     // Per-user isolation: one user's failure must not cost the others their
