@@ -31,6 +31,7 @@
 "5 min max" = "5 min max";
 "A tap under your finger on tabs, playback and chapters." = "Un retour sous le doigt sur les onglets, la lecture et les chapitres.";
 "ANALYSED" = "ANALYSÉ";
+"Active on this device." = "Actives sur cet appareil.";
 "Add" = "Ajouter";
 "Add your token in Settings to load your briefings." = "Ajoutez votre jeton dans les réglages pour charger vos briefings.";
 "Airtime budget fixed before writing" = "Budget d’antenne fixé avant l’écriture";
@@ -156,6 +157,7 @@
 "Loading your sources…" = "Chargement des sources…";
 "Low quality" = "Qualité faible";
 "Make a %@ episode" = "Générer un épisode %@";
+"Making your briefing…" = "Fabrication de votre briefing…";
 "Minimum reached" = "Minimum atteint";
 "NEEDS A LOOK" = "À TRAITER";
 "Narration" = "Narration";
@@ -182,7 +184,10 @@
 "Nothing playing." = "Aucun épisode en lecture.";
 "Nothing to listen to yet." = "Rien à écouter pour l’instant.";
 "Nothing to save." = "Rien à sauvegarder.";
+"Notifications" = "Notifications";
+"Notifications refused." = "Notifications refusées.";
 "On" = "Activé";
+"One notification, when the morning briefing is ready." = "Une notification, quand le briefing du matin est prêt.";
 "Open a briefing from the Today tab to listen to it here." = "Ouvrez un briefing depuis l’onglet Aujourd’hui pour l’écouter ici.";
 "Other" = "Autres";
 "Outline" = "Plan";
@@ -215,6 +220,7 @@
 "Ready to generate · target %lld min." = "Prêt à générer · cible %lld min.";
 "Really, anything." = "Vraiment tout.";
 "Received" = "Reçu";
+"Refused in iOS Settings. Turn them back on there, in Notifications." = "Refusées dans les Réglages iOS. Réactivez-les là-bas, dans Notifications.";
 "Replay the intro" = "Revoir l’intro";
 "Revoke" = "Révoquer";
 "SET ASIDE" = "DE CÔTÉ";
@@ -266,6 +272,7 @@
 "TODAY" = "AUJOURD’HUI";
 "TRUE" = "VRAI";
 "Tap Share" = "Touchez Partager";
+"Tap to follow it step by step." = "Touchez pour suivre étape par étape.";
 "Target length" = "Durée cible";
 "Target set before writing" = "Cible fixée avant l’écriture";
 "Technology" = "Technologie";
@@ -304,6 +311,7 @@
 "Video" = "Vidéo";
 "Videos transcribed automatically · newsletters by forward" = "Vidéos transcrites automatiquement · newsletters par transfert";
 "WEAK READ" = "LECTURE FAIBLE";
+"Waiting for the device token…" = "En attente du jeton de l’appareil…";
 "Welcome to Podcapp" = "Bienvenue sur Podcapp";
 "Where it comes from" = "D’où ça vient";
 "Writing" = "Écriture";
