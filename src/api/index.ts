@@ -360,9 +360,14 @@ authed.post('/episodes', async (c) => {
     return c.json({ error: shortageMessage(user.outputLanguage, available), available, minimum: MIN_SOURCES_PER_EPISODE }, 422)
   }
 
-  // Le quota, deuxieme rendez-vous apres la regle des liens. Code DISTINCT du
-  // 422 : l'app doit pouvoir distinguer "pas assez de liens" de "plus de
-  // quota", les deux ecrans ne sont pas les memes.
+  // Le quota, apres la regle des liens. Code DISTINCT du 422 : l'app doit
+  // pouvoir distinguer "pas assez de liens" de "plus de quota", les deux ecrans
+  // ne sont pas les memes. Sur l'edge le quota passe APRES la faucheuse de runs
+  // perimes (une ligne morte consomme une place) ; cet entrypoint-ci n'a ni
+  // garde de run actif ni faucheuse -- il tourne dans un process durable ou le
+  // catch de la generation s'execute toujours -- donc il n'y a rien a ordonner
+  // ici. Si une faucheuse arrive un jour dans ce fichier, elle passe AVANT ce
+  // bloc, comme dans api/index.ts.
   const plan = planOf(user)
   const used = await countEpisodesThisMonth(db, userId)
   if (!hasQuotaLeft(used, plan)) {

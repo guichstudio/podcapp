@@ -58,6 +58,43 @@ test('le quota compte les episodes prets et ceux en vol, jamais les echoues', as
   }
 })
 
+test("l'episode exclu ne se compte pas lui-meme, et sans exclusion rien ne change", async () => {
+  // La difference entre les deux moments ou la regle est lue. La porte d'entree
+  // (POST /episodes, le cron) compte AVANT d'inserer : "reste-t-il une place ?".
+  // Le pipeline compte APRES, depuis un run qui possede deja sa ligne 'queued' :
+  // sans s'exclure il verrait sa propre place comme prise et le gratuit
+  // (limite 1) echouerait a tous les coups.
+  const { db, cleanup } = await createTestDb()
+  try {
+    const userId = await seedUser(db)
+    const now = new Date('2026-09-15T12:00:00Z')
+    const [mine] = await db
+      .insert(episodes)
+      .values({ userId, targetSec: 180, status: 'queued', createdAt: now })
+      .returning({ id: episodes.id })
+
+    // Sans exclusion : la porte d'entree voit bien la ligne en vol.
+    assert.equal(await countEpisodesThisMonth(db, userId, now), 1)
+    // Option donnee mais vide : meme reponse que sans option du tout.
+    assert.equal(await countEpisodesThisMonth(db, userId, now, {}), 1)
+    assert.equal(await countEpisodesThisMonth(db, userId, now, { exceptEpisodeId: null }), 1)
+    // Avec exclusion : le run ne se compte pas lui-meme, il reste une place.
+    assert.equal(await countEpisodesThisMonth(db, userId, now, { exceptEpisodeId: mine!.id }), 0)
+
+    // L'exclusion ne porte QUE sur cette ligne : un autre episode du mois compte
+    // toujours, sinon elle deviendrait une porte derobee sur tout le quota.
+    const [other] = await db
+      .insert(episodes)
+      .values({ userId, targetSec: 180, status: 'ready', createdAt: new Date('2026-09-02T00:00:00Z') })
+      .returning({ id: episodes.id })
+    assert.equal(await countEpisodesThisMonth(db, userId, now, { exceptEpisodeId: mine!.id }), 1)
+    assert.equal(await countEpisodesThisMonth(db, userId, now, { exceptEpisodeId: other!.id }), 1)
+    assert.equal(await countEpisodesThisMonth(db, userId, now), 2)
+  } finally {
+    await cleanup()
+  }
+})
+
 test('le mois est calendaire UTC : le mois precedent ne compte pas', async () => {
   const { db, cleanup } = await createTestDb()
   try {

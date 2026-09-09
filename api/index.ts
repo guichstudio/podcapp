@@ -679,27 +679,18 @@ authed.post('/episodes', async (c) => {
     }
   }
 
-  // Le quota, deuxieme rendez-vous apres la regle des liens. Code DISTINCT du
-  // 422 : l'app doit pouvoir distinguer "pas assez de liens" de "plus de
-  // quota", les deux ecrans ne sont pas les memes.
-  const plan = planOf(user)
-  const used = await countEpisodesThisMonth(conn, userId)
-  if (!hasQuotaLeft(used, plan)) {
-    return c.json(
-      {
-        error: quotaMessage(user.outputLanguage, plan),
-        plan,
-        used,
-        limit: PLAN_EPISODE_LIMIT[plan],
-        resets_at: monthResetsAt().toISOString(),
-      },
-      402,
-    )
-  }
-
   // An active row only blocks while its run can still be alive: maxDuration is
   // 900s, so anything older than 30 minutes died without reaching its catch
   // (worker crash, misconfigured env). Left alone it would 409 forever.
+  //
+  // CET ORDRE COMPTE, et il passe AVANT le quota. Une ligne non-'failed'
+  // consomme une place : la faucheuse est le seul endroit du code qui rend sa
+  // place a un run mort sans avoir atteint son catch. La mettre apres le 402,
+  // c'est enfermer un utilisateur gratuit jusqu'au 1er du mois suivant a cause
+  // de NOTRE plantage, sans aucun chemin de retour. Et pour un run REELLEMENT
+  // vivant, le 409 doit gagner sur le 402 : "un episode est deja en
+  // preparation" est vrai et actionnable, "vous avez utilise votre episode" est
+  // trompeur pendant que l'episode se fabrique.
   const staleBefore = new Date(Date.now() - 30 * 60 * 1000)
   const actives = await conn
     .select({ id: episodes.id, status: episodes.status, createdAt: episodes.createdAt })
@@ -717,6 +708,25 @@ authed.post('/episodes', async (c) => {
       .update(episodes)
       .set({ status: 'failed', failedStage: stale.status, error: 'Génération interrompue sans se terminer (délai de 30 minutes dépassé).' })
       .where(and(eq(episodes.id, stale.id), inArray(episodes.status, ACTIVE_EPISODE_STATUSES)))
+  }
+
+  // Le quota, apres la regle des liens et apres la faucheuse : `used` n'est
+  // juste qu'une fois les runs morts rendus a 'failed'. Code DISTINCT du 422 :
+  // l'app doit pouvoir distinguer "pas assez de liens" de "plus de quota", les
+  // deux ecrans ne sont pas les memes.
+  const plan = planOf(user)
+  const used = await countEpisodesThisMonth(conn, userId)
+  if (!hasQuotaLeft(used, plan)) {
+    return c.json(
+      {
+        error: quotaMessage(user.outputLanguage, plan),
+        plan,
+        used,
+        limit: PLAN_EPISODE_LIMIT[plan],
+        resets_at: monthResetsAt().toISOString(),
+      },
+      402,
+    )
   }
 
   // users.target_minutes is written outside this route, so it gets the same

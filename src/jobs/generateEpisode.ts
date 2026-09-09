@@ -381,7 +381,13 @@ async function runEpisode(
     .from(users)
     .where(eq(users.id, opts.userId))
   const plan = planOf(userPlanRow ?? { plan: 'free', planExpiresAt: null })
-  if (!hasQuotaLeft(await countEpisodesThisMonth(db, opts.userId), plan)) {
+  // Ce run possede deja sa ligne 'queued' (les trois appelants l'inserent avant
+  // de declencher), et cette ligne n'est pas 'failed' : sans l'exclure, le run
+  // se compterait lui-meme comme une place prise et le gratuit echouerait a tous
+  // les coups. La question ici est "cette ligne-ci avait-elle droit d'exister",
+  // pas "reste-t-il une place de plus".
+  const used = await countEpisodesThisMonth(db, opts.userId, new Date(), { exceptEpisodeId: opts.episodeId ?? null })
+  if (!hasQuotaLeft(used, plan)) {
     throw new Error(`monthly quota spent for plan ${plan}`)
   }
 

@@ -39,11 +39,31 @@ export function monthResetsAt(now: Date = new Date()): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1))
 }
 
+/// `exceptEpisodeId` : l'episode qu'on est en train de generer ne se compte pas
+/// lui-meme. CE N'EST PAS UNE FAILLE, c'est la difference entre les deux
+/// moments ou la regle est lue. POST /episodes et le cron lisent le compteur
+/// AVANT d'inserer la ligne : "reste-t-il une place pour un episode de plus ?".
+/// Le pipeline le lit APRES, depuis un run qui possede deja sa ligne 'queued' :
+/// sans exclusion il compte sa propre place comme prise, et le gratuit (limite
+/// 1) echoue a TOUS les coups -- la porte laisse entrer, le pipeline refuse.
+/// La question du pipeline est "cette ligne-ci avait-elle droit d'exister ?",
+/// donc elle s'exclut du compte et personne d'autre.
+export type CountEpisodesOptions = {
+  /// L'episode dont le run pose la question. Omis (eval, appel manuel), rien
+  /// n'est exclu et le compte reste celui de la porte d'entree.
+  exceptEpisodeId?: string | null
+}
+
 /// Ce qui consomme le quota : les episodes du mois calendaire UTC qui ne sont
 /// PAS 'failed'. Un episode echoue ne consomme rien -- c'est notre panne, pas
 /// celle de l'utilisateur. Un run en vol occupe donc une place et la libere s'il
 /// echoue : le compte est dynamique, et l'app le relit au lieu de le memoriser.
-export async function countEpisodesThisMonth(db: AnyDb, userId: string, now: Date = new Date()): Promise<number> {
+export async function countEpisodesThisMonth(
+  db: AnyDb,
+  userId: string,
+  now: Date = new Date(),
+  opts: CountEpisodesOptions = {},
+): Promise<number> {
   const [row] = await db
     .select({ n: count() })
     .from(episodes)
@@ -53,6 +73,7 @@ export async function countEpisodesThisMonth(db: AnyDb, userId: string, now: Dat
         ne(episodes.status, 'failed'),
         gte(episodes.createdAt, monthStart(now)),
         lt(episodes.createdAt, monthResetsAt(now)),
+        ...(opts.exceptEpisodeId ? [ne(episodes.id, opts.exceptEpisodeId)] : []),
       ),
     )
   return row?.n ?? 0
