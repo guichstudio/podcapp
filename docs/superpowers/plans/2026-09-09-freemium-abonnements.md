@@ -48,7 +48,8 @@ node-postgres, Trigger.dev, `jose`, SwiftUI + StoreKit 2.
 | `src/apple/appstore.test.ts` (créer) | rattachement, vol d'abonnement, sandbox/prod |
 | `api/index.ts` (modif) | 402 sur `/episodes`, `/sources` enrichi, `/me/subscription`, `/apple/notifications` |
 | `src/api/index.ts` (modif) | même 402 sur `/episodes` |
-| `src/trigger/tasks.ts` (modif) | skip lisible du cron, refus dans `generateEpisode` |
+| `src/trigger/tasks.ts` (modif) | skip lisible du cron `daily-briefings` (ligne 262) |
+| `src/jobs/generateEpisode.ts` (modif) | refus dans le pipeline, avant rédacteur et TTS |
 | `ios/Podcapp/Store.swift` (créer) | StoreKit 2 : produits, achat, restore, `Transaction.updates` |
 | `ios/Podcapp/Screens/PaywallSheet.swift` (créer) | la feuille d'abonnement, un seul endroit |
 | `ios/Podcapp.storekit` (créer) | achats en simulateur sans App Store Connect |
@@ -435,9 +436,10 @@ git commit -m "paliers: la duree et la voix se bornent a la lecture"
 ## Task 3 : Les quatre points d'application, et `GET /sources`
 
 **Files:**
-- Modify: `api/index.ts` (`POST /episodes` vers la ligne 621 ; `GET /sources` vers 1135)
+- Modify: `api/index.ts` (`POST /episodes` vers la ligne 621 ; `GET /sources` vers 1135 ; `GET /me` ligne 464)
 - Modify: `src/api/index.ts` (`POST /episodes`)
-- Modify: `src/trigger/tasks.ts` (cron `daily-briefings`, et `generateEpisode`)
+- Modify: `src/trigger/tasks.ts` (cron `daily-briefings`, ligne 262)
+- Modify: `src/jobs/generateEpisode.ts` (refus dans le pipeline)
 
 **Interfaces:**
 - Consumes: `planOf`, `countEpisodesThisMonth`, `hasQuotaLeft`, `quotaMessage`, `monthResetsAt`, `PLAN_EPISODE_LIMIT` de `src/jobs/quota.ts` ; `targetMinutesFor` de `src/config.ts`.
@@ -538,10 +540,27 @@ compte les sources, ajouter avant la mise en file :
 
 Le `select` des utilisateurs doit désormais rapporter `plan` et `planExpiresAt`.
 
+- [ ] **Step 4b: `GET /me` doit renvoyer l'`id` du compte**
+
+Vérifié le 2026-09-09 : il ne le renvoie pas. Or `appAccountToken` (Task 5, 7)
+exige que l'app connaisse l'UUID de son compte — sans lui, **tout achat sera
+refusé en 403**. C'est une dépendance dure, pas une finition.
+
+Dans `api/index.ts` ligne 464, ajouter `id: users.id` au `select`, et le
+propager dans `meView` (`grep -n "function meView" -A 12 api/index.ts`) :
+
+```ts
+    .select({ id: users.id, outputLanguage: users.outputLanguage, voiceId: users.voiceId, targetMinutes: users.targetMinutes, rssToken: users.rssToken })
+```
+
+`meView` renvoie `id: user.id`. Faire la même chose dans `src/api/index.ts` s'il
+y sert `/me`.
+
 - [ ] **Step 5: Le pipeline refuse avant de payer**
 
-Dans `generateEpisode`, au même endroit que le refus existant sur les sources —
-**avant** l'appel au rédacteur et au TTS :
+Dans **`src/jobs/generateEpisode.ts`** (et non `src/trigger/tasks.ts`, qui ne
+fait que l'appeler ligne 124), au même endroit que le refus existant sur les
+sources — **avant** l'appel au rédacteur et au TTS :
 
 ```ts
   const plan = planOf(user)
@@ -1399,10 +1418,15 @@ final class Store: ObservableObject {
 }
 ```
 
-**Prérequis :** `Config.userID` doit exister et rendre l'`id` du compte. Vérifier
-avec `grep -n "userID\|user_id" ios/Podcapp/Shared.swift ios/Podcapp/API.swift`.
-S'il n'existe pas, l'ajouter : `GET /me` doit renvoyer `id`, et `Config` le
-stocker au même endroit que le jeton de session.
+**Prérequis, vérifié le 2026-09-09 : `Config.userID` N'EXISTE PAS.** Il faut
+l'ajouter dans cette tâche, sinon `purchase()` jette `noAccount` et aucun achat
+n'aboutit. Côté serveur, `GET /me` renvoie déjà `id` depuis la Task 3 step 4b.
+Côté app :
+
+- ajouter `id` à la structure qui décode `/me` dans `API.swift` ;
+- dans `Shared.swift`, une propriété `Config.userID` (`String?`) stockée au même
+  endroit que le jeton de session, écrite à chaque `GET /me` réussi ;
+- l'effacer dans le même chemin que la déconnexion efface le jeton (`grep -n "signOut\|clearToken" ios/Podcapp/*.swift`).
 
 - [ ] **Step 3: Ajouter `postSubscription` dans `API.swift`**
 
