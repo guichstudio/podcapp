@@ -13,6 +13,7 @@ import { chapterKey, episodeAudioKey, publishEpisode } from '../jobs/publishEpis
 import { RUN_ARTIFACTS, runArtifactKey } from '../jobs/runArtifacts.js'
 import { CATEGORIES, MAX_TARGET_MINUTES, MIN_SOURCES_PER_EPISODE, VOICE_OPTIONS, voiceFor } from '../config.js'
 import { countAvailableSources, hasEnoughSources, shortageMessage } from '../jobs/material.js'
+import { planOf } from '../jobs/quota.js'
 import { privacyHtml } from '../legal/privacy.js'
 import { logger } from '../log.js'
 import { buildFeed, COVER_KEYS, feedKey, type FeedEpisode } from '../rss/feed.js'
@@ -468,14 +469,21 @@ const MeUpdateSchema = z.object({
   target_minutes: z.number().int().min(1).max(MAX_TARGET_MINUTES).optional(),
 })
 
-function meView(user: { outputLanguage: string; voiceId: string | null; targetMinutes: number; rssToken: string }) {
+function meView(user: {
+  outputLanguage: string
+  voiceId: string | null
+  targetMinutes: number
+  rssToken: string
+  plan: string
+  planExpiresAt: Date | null
+}) {
   const language = user.outputLanguage.trim().toLowerCase().slice(0, 2)
   const base = (process.env.R2_PUBLIC_BASE_URL ?? '').replace(/\/+$/, '')
   return {
     language,
     voice_id: user.voiceId,
     // The narrator the next episode will actually use, override or default.
-    voice: voiceFor(language, user.voiceId) ?? null,
+    voice: voiceFor(language, user.voiceId, planOf(user)) ?? null,
     voices: VOICE_OPTIONS,
     target_minutes: Math.min(MAX_TARGET_MINUTES, Math.max(1, user.targetMinutes)),
     max_minutes: MAX_TARGET_MINUTES,
@@ -492,7 +500,7 @@ function meView(user: { outputLanguage: string; voiceId: string | null; targetMi
 
 authed.get('/me', async (c) => {
   const [user] = await db
-    .select({ outputLanguage: users.outputLanguage, voiceId: users.voiceId, targetMinutes: users.targetMinutes, rssToken: users.rssToken })
+    .select({ outputLanguage: users.outputLanguage, voiceId: users.voiceId, targetMinutes: users.targetMinutes, rssToken: users.rssToken, plan: users.plan, planExpiresAt: users.planExpiresAt })
     .from(users)
     .where(eq(users.id, c.get('userId')))
   if (!user) return c.json({ error: 'not found' }, 404)
@@ -518,7 +526,7 @@ authed.put('/me', async (c) => {
     const userId = c.get('userId')
   if (Object.keys(patch).length > 0) await db.update(users).set(patch).where(eq(users.id, userId))
   const [user] = await db
-    .select({ outputLanguage: users.outputLanguage, voiceId: users.voiceId, targetMinutes: users.targetMinutes, rssToken: users.rssToken })
+    .select({ outputLanguage: users.outputLanguage, voiceId: users.voiceId, targetMinutes: users.targetMinutes, rssToken: users.rssToken, plan: users.plan, planExpiresAt: users.planExpiresAt })
     .from(users)
     .where(eq(users.id, userId))
   if (!user) return c.json({ error: 'not found' }, 404)

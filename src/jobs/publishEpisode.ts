@@ -5,6 +5,7 @@ import { entityTokens } from '../core/sentences.js'
 import { ScriptSchema } from '../core/types.js'
 import type { Db } from '../db/client.js'
 import { episodes, explainedConcepts, stories, users } from '../db/schema.js'
+import { planOf } from './quota.js'
 import { logger } from '../log.js'
 import { DEFAULT_TTS_MODEL, elevenlabs } from '../speech/elevenlabs.js'
 import type { Storage } from '../storage/index.js'
@@ -111,12 +112,13 @@ export async function publishEpisode(
 
     stage = 'tts'
     const [user] = await db
-      .select({ voiceId: users.voiceId, outputLanguage: users.outputLanguage })
+      .select({ voiceId: users.voiceId, outputLanguage: users.outputLanguage, plan: users.plan, planExpiresAt: users.planExpiresAt })
       .from(users)
       .where(eq(users.id, episode.userId))
     // The narrator follows the language the script was written in. A French
     // voice reading English gets there — with an accent nobody asked for.
-    const voiceId = voiceFor(user?.outputLanguage ?? 'fr', user?.voiceId)
+    const plan = user ? planOf(user) : 'free'
+    const voiceId = voiceFor(user?.outputLanguage ?? 'fr', user?.voiceId, plan)
     if (!voiceId) {
       throw new Error(`no voice for episode ${episodeId}: set users.voice_id, DEFAULT_VOICES or ELEVENLABS_VOICE_ID`)
     }
