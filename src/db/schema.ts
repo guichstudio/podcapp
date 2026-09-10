@@ -134,6 +134,16 @@ export const stories = pgTable('stories', {
   embedding: vector('embedding'),
   firstSeenAt: timestamp('first_seen_at', { withTimezone: true }).notNull(),
   lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull(),
+  // 'open' | 'aired' | 'discarded'. Plain text on purpose (no enum, no check
+  // constraint), so a new value needs no migration.
+  //   open      — waiting for an episode; this is what countAvailableSources
+  //               counts and what the daily briefing builds from.
+  //   aired     — broadcast, set by publishEpisode once the audio exists.
+  //   discarded — the editor read this material and judged NONE of it usable
+  //               (see generateEpisode: it is written only when the outline
+  //               selected zero sections). It stops counting towards the link
+  //               rule, so the same run cannot fail on it every morning.
+  //               Nothing is deleted: the sources stay in the user's library.
   status: text('status').notNull().default('open'),
 })
 

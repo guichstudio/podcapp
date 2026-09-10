@@ -13,6 +13,7 @@ import { GROUNDING_V1_SYSTEM, groundingV1User } from '../prompts/grounding.v1.js
 import { INTRO_OUTRO_V1_SYSTEM, introOutroV1User } from '../prompts/writer.v1.js'
 import { writerV2System, writerV2User } from '../prompts/writer.v2.js'
 import type { Storage } from '../storage/index.js'
+import { unusableMaterialMessage } from './material.js'
 import { persistRunArtifacts } from './runArtifacts.js'
 
 const TextSchema = z.object({ text: z.string().min(1) })
@@ -430,17 +431,36 @@ async function runEpisode(
   const byId = new Map(open.map((s) => [s.id, s]))
   const sections = outline.sections.filter((s) => byId.has(s.story_id))
   if (sections.length === 0) {
+    // ZERO sections is unambiguous, and that is what makes marking safe:
+    // running out of airtime cannot produce zero sections (being crowded out
+    // presupposes that something else fitted). Zero means the editor read all
+    // of this material and judged none of it usable — a judgement we used to
+    // throw away, which is why the same run failed again every morning: the
+    // stories stayed 'open', so they kept satisfying the link rule.
+    // We persist the judgement instead. `discarded` stops countAvailableSources
+    // counting them (it filters on 'open'), so the app's counter and Generate
+    // button go quiet on their own, and nothing is deleted.
+    // Only stories that are still 'open' are touched: a hand-picked run selects
+    // by source id whatever the status, and an 'aired' story must stay aired.
+    // NEVER extend this to sections.length > 0 — a story dropped alongside
+    // others may only have been crowded out, and must stay open for the next
+    // episode (the rule editorial.v2 was rewritten to respect, 2026-09-04).
+    const toDiscard = open.filter((s) => s.status === 'open').map((s) => s.id)
+    if (toDiscard.length > 0) {
+      await db.update(stories).set({ status: 'discarded' }).where(inArray(stories.id, toDiscard))
+    }
     logger.error(
       {
         returnedSections: outline.sections.map((s) => ({ id: s.story_id, title: s.title })),
         discarded: outline.discarded.length,
         knownIds: open.slice(0, 3).map((s) => s.id),
+        storiesMarkedDiscarded: toDiscard.length,
       },
-      'outline selected no known story',
+      'outline selected no known story: material marked discarded',
     )
-    throw new Error(
-      `outline selected no known story (${outline.sections.length} sections returned, ${outline.discarded.length} discarded)`,
-    )
+    // The technical detail stays in the log above; episodes.error is shown to
+    // the user verbatim, so it gets the sentence written for them.
+    throw new Error(unusableMaterialMessage(language))
   }
   logger.info({ sections: sections.length, discarded: outline.discarded.length }, 'outline ready')
 

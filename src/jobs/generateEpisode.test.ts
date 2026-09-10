@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict'
+import { randomUUID } from 'node:crypto'
 import { test } from 'node:test'
+import { eq } from 'drizzle-orm'
+import { MIN_SOURCES_PER_EPISODE } from '../config.js'
 import type { Db } from '../db/client.js'
+import { sources, stories, users } from '../db/schema.js'
+import { createTestDb } from '../db/testDb.js'
 import type { Storage } from '../storage/index.js'
+import { countAvailableSources, hasEnoughSources, unusableMaterialMessage } from './material.js'
 import {
   countUnsupportedShipped,
   editDrift,
@@ -244,4 +250,167 @@ test('a run that throws still persists the artifacts it produced', async () => {
   )
   const metrics = JSON.parse(written.get(runArtifactKey('ep1', 'metrics')) ?? '{}') as { error?: string }
   assert.match(metrics.error ?? '', /db down/)
+})
+
+// --- The morning that repeated itself ---------------------------------------
+// A real account failed six times in one morning on one open story whose three
+// links were Facebook share wrappers: no article behind them, so the editor
+// selected nothing, the run threw, the story stayed `open`, it still satisfied
+// the link rule, and 06:00 replayed it the next day. These two tests fence the
+// fix in from both sides: zero sections must close the loop, and one section
+// must leave everything alone.
+
+interface StubbedCall {
+  url: string
+  body: string
+}
+
+// The pipeline's only seam is fetch: the providers call it directly. Stubbing
+// it here runs the REAL runEpisode against a real (PGlite) database, which is
+// the only way a test can prove what the story rows look like afterwards.
+function stubLlm(handler: (call: StubbedCall) => unknown | Error): () => void {
+  const real = globalThis.fetch
+  const keys = { DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY, ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY }
+  process.env.DEEPSEEK_API_KEY = 'test-key'
+  process.env.ANTHROPIC_API_KEY = 'test-key'
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+    const answer = handler({ url, body: String(init?.body ?? '') })
+    if (answer instanceof Error) throw answer
+    return new Response(JSON.stringify(answer), { status: 200, headers: { 'content-type': 'application/json' } })
+  }) as typeof fetch
+  return () => {
+    globalThis.fetch = real
+    for (const [k, v] of Object.entries(keys)) {
+      if (v === undefined) delete process.env[k]
+      else process.env[k] = v
+    }
+  }
+}
+
+// DeepSeek is OpenAI-shaped; the outline is whatever JSON we hand back here.
+const asDeepseek = (payload: unknown): unknown => ({
+  choices: [{ message: { content: JSON.stringify(payload) } }],
+  usage: { prompt_tokens: 10, completion_tokens: 10 },
+})
+
+const outlineWith = (sections: unknown[], discarded: { story_id: string; reason: string }[]): unknown => ({
+  intro: 'Bonjour.',
+  sections,
+  discarded,
+  outro: 'À demain.',
+})
+
+const outlineSection = (storyId: string): unknown => ({
+  story_id: storyId,
+  title: 'Un sujet',
+  airtime_sec: 120,
+  angle: 'angle',
+  why_it_matters: 'pourquoi',
+  new_information: ['du neuf'],
+  transition_hint: 'ensuite',
+})
+
+// A user whose only open story is backed by enough links to pass the link rule
+// — which is exactly what made the incident possible: the count was green.
+async function seedOpenStory(db: Db): Promise<{ userId: string; storyId: string }> {
+  const [user] = await db
+    .insert(users)
+    .values({ email: `t-${randomUUID()}@podcapp.test`, apiToken: randomUUID(), rssToken: randomUUID() })
+    .returning()
+  if (!user) throw new Error('seed: no user')
+  const rows = await db
+    .insert(sources)
+    .values(
+      Array.from({ length: MIN_SOURCES_PER_EPISODE }, (_, i) => ({
+        userId: user.id,
+        type: 'web',
+        url: `https://facebook.com/share/r/${i}/`,
+        sourceHash: randomUUID(),
+        title: 'Facebook',
+        cleanText: 'Facebook',
+        extractionQuality: 0.2,
+        status: 'ready',
+      })),
+    )
+    .returning({ id: sources.id })
+  const [story] = await db
+    .insert(stories)
+    .values({
+      userId: user.id,
+      headline: 'Facebook',
+      topic: 'other',
+      sourceIds: rows.map((r) => r.id),
+      claims: [{ text: 'Une page de partage Facebook.', type: 'fact', evidence_quote: 'Facebook', confidence: 0.2 }],
+      firstSeenAt: new Date(),
+      lastSeenAt: new Date(),
+      status: 'open',
+    })
+    .returning({ id: stories.id })
+  if (!story) throw new Error('seed: no story')
+  return { userId: user.id, storyId: story.id }
+}
+
+test('an outline that keeps nothing discards the material, so the next morning cannot replay it', async () => {
+  const { db, cleanup } = await createTestDb()
+  const { userId, storyId } = await seedOpenStory(db)
+  // The editor read the share wrappers and kept none of them.
+  const restore = stubLlm(() => asDeepseek(outlineWith([], [{ story_id: storyId, reason: 'no article behind the link' }])))
+  try {
+    assert.equal(await countAvailableSources(db, userId), MIN_SOURCES_PER_EPISODE)
+
+    // 1. The refusal is the sentence written for the user, not the internal
+    //    one: episodes.error is displayed verbatim by the app.
+    await assert.rejects(generateEpisode(db, { userId, targetSec: 300, language: 'en' }), (err: Error) => {
+      assert.equal(err.message, unusableMaterialMessage('en'))
+      assert.doesNotMatch(err.message, /no known story|story_id|outline/)
+      return true
+    })
+
+    // 2. The editor's judgement is now persisted instead of thrown away.
+    const [after] = await db.select({ status: stories.status }).from(stories).where(eq(stories.id, storyId))
+    assert.equal(after?.status, 'discarded')
+
+    // 3. Which is what closes the loop: the shared definition of "enough
+    //    material" filters on 'open', so the count drops on its own and the
+    //    app's Generate button greys out with no change to the counter.
+    assert.equal(await countAvailableSources(db, userId), 0)
+    assert.equal(hasEnoughSources(await countAvailableSources(db, userId)), false)
+
+    // 4. Tomorrow's 06:00 run refuses on thin material instead of replaying
+    //    the same failure forever.
+    await assert.rejects(generateEpisode(db, { userId, targetSec: 300, language: 'en' }), (err: Error) => {
+      assert.doesNotMatch(err.message, /no known story/)
+      assert.match(err.message, /no open stories/)
+      return true
+    })
+  } finally {
+    restore()
+    await cleanup()
+  }
+})
+
+test('a story dropped while others are kept stays open: crowded out is not unusable', async () => {
+  // The guard-rail on the fix. editorial.v2 exists because v1 invented quality
+  // reasons for stories it merely had no room for (2026-09-04); marking those
+  // discarded would destroy material permanently. Only ZERO sections means the
+  // editor judged the material itself, so only zero sections may mark.
+  const { db, cleanup } = await createTestDb()
+  const { userId, storyId } = await seedOpenStory(db)
+  const restore = stubLlm((call) =>
+    call.url.includes('deepseek')
+      ? asDeepseek(outlineWith([outlineSection(storyId)], [{ story_id: randomUUID(), reason: 'no airtime left' }]))
+      : // The run is stopped at the writer: what matters is that it got PAST
+        // the zero-section branch with a section in hand.
+        new Error('stub: the writer is not part of this test'),
+  )
+  try {
+    await assert.rejects(generateEpisode(db, { userId, targetSec: 300, language: 'en' }), /stub: the writer/)
+    const [after] = await db.select({ status: stories.status }).from(stories).where(eq(stories.id, storyId))
+    assert.equal(after?.status, 'open')
+    assert.equal(await countAvailableSources(db, userId), MIN_SOURCES_PER_EPISODE)
+  } finally {
+    restore()
+    await cleanup()
+  }
 })

@@ -31,3 +31,14 @@ export function shortageMessage(language: string, count: number): string {
     ? `Il faut au moins ${MIN_SOURCES_PER_EPISODE} liens pour fabriquer un épisode : ${count} pour l’instant. Partagez-en encore ${missing}.`
     : `An episode needs at least ${MIN_SOURCES_PER_EPISODE} saved links: ${count} so far. Share ${missing} more.`
 }
+
+/// The other refusal the app shows verbatim: the link count was met, but the
+/// editor found nothing worth an episode in ANY of it (three share-wrapper
+/// pages with no article behind them is the case that produced it). Those
+/// stories are marked 'discarded' before this is thrown, so it says the failure
+/// will not repeat — and it must be true.
+export function unusableMaterialMessage(language: string): string {
+  return language.trim().toLowerCase().startsWith('fr')
+    ? 'Aucun de vos liens ne pouvait donner un épisode : le rédacteur n’y a trouvé aucun article exploitable (pages vides, redirections, contenu inaccessible). Ils ont été écartés, donc l’échec ne se répétera pas. Partagez de nouveaux liens et le prochain briefing partira de ceux-là.'
+    : 'None of your saved links could become an episode: the editor found no usable article in them (empty pages, redirects, content it could not reach). They have been set aside, so this will not repeat. Share a few new links and the next briefing will use those.'
+}
