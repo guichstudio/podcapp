@@ -18,14 +18,44 @@ const HOSTS = {
 
 export type AppleEnvironment = keyof typeof HOSTS
 
+/// Les valeurs de lastTransactions[].status, telles que documentees par Apple
+/// ("status | App Store Server API", consulte le 2026-09-09). Nommees ici pour
+/// que les appelants ecrivent `=== APPLE_SUBSCRIPTION_STATUS.revoked` et non
+/// `=== 5` : `revoked` veut dire rembourse ou retire du partage familial, et
+/// c'est le cas ou expiresDate ment (elle reste dans le futur).
+export const APPLE_SUBSCRIPTION_STATUS = {
+  active: 1,
+  expired: 2,
+  billingRetry: 3,
+  gracePeriod: 4,
+  revoked: 5,
+} as const
+
+const KNOWN_STATUSES: readonly number[] = Object.values(APPLE_SUBSCRIPTION_STATUS)
+
 export interface AppleSubscription {
   originalTransactionId: string
   productId: string
   bundleId: string
   expiresDate: Date
   appAccountToken: string | null
+  /// null quand Apple n'envoie rien, ou une valeur hors des cinq documentees :
+  /// on n'invente pas un etat sur le chemin du paiement.
+  status: number | null
   environment: AppleEnvironment
 }
+
+/// 4040010 = TransactionIdNotFoundError, le SEUL des cinq 404 documentes de
+/// cet endpoint qui veuille dire "cette transaction n'est pas dans cet
+/// environnement". Les quatre autres (4040001/4040002 compte introuvable,
+/// 4040003/4040004 app introuvable) sont des pannes ou des erreurs de
+/// configuration : les lire comme "pas d'abonnement" degraderait en silence
+/// tous les abonnes payants le jour ou APPLE_IAP_ISSUER_ID est faux.
+const TRANSACTION_NOT_FOUND = 4040010
+
+/// Le format d'un originalTransactionId chez Apple, et la seule forme qu'on
+/// laisse entrer dans un chemin d'URL.
+const TRANSACTION_ID = /^[0-9]{1,32}$/
 
 const decodeSegment = (segment: string): Record<string, unknown> | null => {
   try {
@@ -47,7 +77,23 @@ export function readOriginalTransactionId(jws: string): string | null {
   if (parts.length !== 3) return null
   const payload = decodeSegment(parts[1]!)
   const id = payload?.originalTransactionId
-  if (typeof id !== 'string' || !/^[0-9]{1,32}$/.test(id)) return null
+  if (typeof id !== 'string' || !TRANSACTION_ID.test(id)) return null
+  return id
+}
+
+/// Le filtre vit ICI, dans la fonction qui construit l'URL, et non seulement
+/// dans readOriginalTransactionId : lookup() sera bientot appelee avec une
+/// valeur relue de la base ou d'un corps de requete, pas fraichement passee par
+/// le lecteur de JWS. Sans ce garde, `../../../v1/notifications/test?x=` sort
+/// de /inApps/v1/subscriptions/ et atteint un AUTRE endpoint d'Apple avec notre
+/// jeton de fournisseur attache.
+///
+/// La valeur refusee n'est jamais recopiee dans le message : elle vient du
+/// reseau, et ce message peut finir dans un log ou en base.
+function requireTransactionId(id: string): string {
+  if (!TRANSACTION_ID.test(id)) {
+    throw new Error('app store server api: originalTransactionId must be 1 to 32 digits')
+  }
   return id
 }
 
@@ -91,19 +137,44 @@ async function providerToken(): Promise<string> {
     .sign(key)
 }
 
+/// Le errorCode du corps d'erreur d'Apple, ou null si le corps n'est pas
+/// lisible (page HTML d'un proxy, corps vide...). Ne leve jamais : c'est
+/// l'appelant qui decide quoi faire d'un code absent, et il choisit de lever.
+async function errorCode(res: Response): Promise<number | null> {
+  try {
+    const body = (await res.json()) as { errorCode?: unknown }
+    return typeof body?.errorCode === 'number' ? body.errorCode : null
+  } catch {
+    return null
+  }
+}
+
 export function createAppStoreClient(fetchImpl: typeof fetch = fetch) {
   async function on(environment: AppleEnvironment, id: string, token: string): Promise<AppleSubscription | null> {
-    const res = await fetchImpl(`${HOSTS[environment]}/inApps/v1/subscriptions/${id}`, {
+    const res = await fetchImpl(`${HOSTS[environment]}/inApps/v1/subscriptions/${requireTransactionId(id)}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-    // 4040010 = transaction id not found. C'est la reponse normale quand on
-    // interroge le mauvais environnement, et la procedure d'Apple est
-    // d'essayer la production d'abord, puis le sandbox.
-    if (res.status === 404) return null
+    // Un 404 ne dit pas a lui seul "pas d'abonnement" : Apple en renvoie un
+    // pour cinq codes distincts. Seul 4040010 est un "pas ici", et c'est celui
+    // qui fait passer de la production au sandbox. Tous les autres levent en
+    // nommant le code, parce qu'un abonne paye.
+    if (res.status === 404) {
+      const code = await errorCode(res)
+      if (code === TRANSACTION_NOT_FOUND) return null
+      throw new Error(`app store server api 404 errorCode=${code ?? 'unreadable'} (${environment})`)
+    }
     if (!res.ok) throw new Error(`app store server api ${res.status}`)
 
-    const body = (await res.json()) as { data?: { lastTransactions?: { signedTransactionInfo?: string }[] }[] }
-    const signed = body.data?.[0]?.lastTransactions?.[0]?.signedTransactionInfo
+    const body = (await res.json()) as {
+      data?: { lastTransactions?: { originalTransactionId?: string; status?: number; signedTransactionInfo?: string }[] }[]
+    }
+    // data[] est la liste des GROUPES d'abonnement du client, et un groupe peut
+    // porter plusieurs lignes. Prendre data[0].lastTransactions[0] revenait a
+    // rendre l'etat d'une transaction voisine sous l'identifiant demande.
+    const row = (body.data ?? [])
+      .flatMap((group) => group?.lastTransactions ?? [])
+      .find((entry) => entry?.originalTransactionId === id)
+    const signed = row?.signedTransactionInfo
     if (!signed) return null
     // Cette charge utile arrive PAR TLS depuis Apple, pas par le reseau public :
     // c'est la seule qu'on lit en entier.
@@ -118,6 +189,7 @@ export function createAppStoreClient(fetchImpl: typeof fetch = fetch) {
       bundleId: String(info.bundleId ?? ''),
       expiresDate: new Date(typeof expires === 'number' ? expires : 0),
       appAccountToken: typeof token_ === 'string' ? token_ : null,
+      status: typeof row.status === 'number' && KNOWN_STATUSES.includes(row.status) ? row.status : null,
       environment,
     }
   }
@@ -126,6 +198,9 @@ export function createAppStoreClient(fetchImpl: typeof fetch = fetch) {
     /// Production d'abord, sandbox ensuite : c'est aussi ce qui renseigne
     /// plan_environment, et les deux espaces d'identifiants sont disjoints.
     async lookup(originalTransactionId: string): Promise<AppleSubscription | null> {
+      // Avant de signer quoi que ce soit : un identifiant malforme ne merite
+      // pas un jeton de fournisseur.
+      requireTransactionId(originalTransactionId)
       const token = await providerToken()
       return (
         (await on('Production', originalTransactionId, token)) ??
