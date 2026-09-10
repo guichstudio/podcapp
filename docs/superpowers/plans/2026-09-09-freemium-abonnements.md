@@ -797,8 +797,54 @@ git commit -m "apple: client App Store Server API, signe par jose pour l'edge"
 - Modify: `api/index.ts` (route `authed.post('/me/subscription')`)
 
 **Interfaces:**
-- Consumes: `AppleSubscription`, `createAppStoreClient` de `src/apple/appstore.ts` ; `Plan` de `src/jobs/quota.ts`.
-- Produces: `PRODUCT_PLANS: Record<string, Plan>` ; `linkSubscription(db, userId, sub, now?): Promise<{ ok: true; plan: Plan } | { ok: false; reason: 'wrong_bundle' | 'unknown_product' | 'not_my_purchase' | 'expired' }>`.
+- Consumes: `AppleSubscription`, `createAppStoreClient`, `APPLE_SUBSCRIPTION_STATUS` de `src/apple/appstore.ts` ; `Plan` de `src/jobs/quota.ts`.
+- Produces: `isEntitled(sub): boolean` dans `src/apple/appstore.ts` (voir Step 0) ; `PRODUCT_PLANS: Record<string, Plan>` ; `linkSubscription(db, userId, sub, now?): Promise<{ ok: true; plan: Plan } | { ok: false; reason: 'wrong_bundle' | 'unknown_product' | 'not_my_purchase' | 'not_entitled' }>`.
+
+- [ ] **Step 0 : `isEntitled`, AVANT tout le reste — sinon on coupe des abonnés qui paient**
+
+Trouvé par la revue de la Task 4, et c'est un piège à deux détentes.
+
+**Pendant une période de grâce, `expiresDate` est DANS LE PASSÉ.** Apple laisse
+l'abonné avoir droit au service pendant qu'il règle son incident de paiement
+(statut 4, et le statut 3 peut le précéder). Donc les deux tests qu'on écrit
+spontanément sont faux tous les deux :
+
+- `status === 1` coupe les abonnés en grâce et en nouvelle tentative ;
+- `expiresDate > now` les coupe aussi, puisque leur échéance est passée.
+
+Et `status: null` — Apple n'a rien envoyé, ou a envoyé une valeur inconnue —
+échoue également à `=== 1`, alors qu'il veut dire « on ne sait pas », jamais
+« tout va bien ».
+
+La règle s'écrit **une fois**, dans `src/apple/appstore.ts`, à côté de
+`APPLE_SUBSCRIPTION_STATUS` — pas re-dérivée dans cette tâche puis dans la
+Task 6 :
+
+```ts
+/// A-t-on le droit de servir cet abonnement ?
+///
+/// PAS `status === 1`, et PAS `expiresDate > now` : pendant une periode de
+/// grace (4), et pendant une nouvelle tentative de paiement (3), Apple
+/// considere l'abonne comme AYANT DROIT alors que son expiresDate est deja
+/// DANS LE PASSE. Ecrire l'une ou l'autre de ces conditions coupe le service a
+/// quelqu'un qui paie et dont le paiement vient d'echouer -- exactement la
+/// personne qu'il ne faut pas braquer.
+///
+/// `null` veut dire "Apple n'a rien dit, ou a dit quelque chose qu'on ne
+/// connait pas". Ce n'est pas un droit.
+export function isEntitled(sub: AppleSubscription): boolean {
+  return sub.status === APPLE_SUBSCRIPTION_STATUS.active
+    || sub.status === APPLE_SUBSCRIPTION_STATUS.billingRetry
+    || sub.status === APPLE_SUBSCRIPTION_STATUS.gracePeriod
+}
+```
+
+Tests à ajouter dans `src/apple/appstore.test.ts` : les cinq statuts documentés,
+`null`, et **le cas qui compte — statut 4 avec un `expiresDate` passé rend
+`true`**.
+
+Le champ `expiresDate` reste écrit en base pour l'affichage et pour le filet de
+la Task 6 ; il ne décide plus, à lui seul, du droit.
 
 - [ ] **Step 1: Écrire les tests, qui doivent échouer**
 
@@ -833,6 +879,7 @@ const sub = (over: Partial<AppleSubscription> = {}): AppleSubscription => ({
   expiresDate: new Date('2027-01-01T00:00:00Z'),
   appAccountToken: null,
   environment: 'Production',
+  status: 1,
   ...over,
 })
 
@@ -902,10 +949,40 @@ test('un abonnement expire ne donne aucun palier', async () => {
     const res = await linkSubscription(
       db,
       userId,
-      sub({ appAccountToken: userId, expiresDate: new Date('2026-01-01T00:00:00Z') }),
+      sub({ appAccountToken: userId, status: 2, expiresDate: new Date('2026-01-01T00:00:00Z') }),
       new Date('2026-09-09T00:00:00Z'),
     )
-    assert.deepEqual(res, { ok: false, reason: 'expired' })
+    assert.deepEqual(res, { ok: false, reason: 'not_entitled' })
+  } finally {
+    await cleanup()
+  }
+})
+
+test('UN ABONNE EN PERIODE DE GRACE GARDE SON PALIER, echeance passee comprise', async () => {
+  const { db, cleanup } = await createTestDb()
+  try {
+    const userId = await seedUser(db)
+    // Statut 4 : Apple le considere comme ayant droit pendant qu'il regle son
+    // incident de paiement, et son expiresDate est DEJA passe. Une comparaison
+    // de dates lui couperait le service.
+    const res = await linkSubscription(
+      db,
+      userId,
+      sub({ appAccountToken: userId, status: 4, expiresDate: new Date('2026-09-01T00:00:00Z') }),
+      new Date('2026-09-09T00:00:00Z'),
+    )
+    assert.deepEqual(res, { ok: true, plan: 'pro' })
+  } finally {
+    await cleanup()
+  }
+})
+
+test('un abonnement rembourse ne donne aucun palier, meme avec une echeance future', async () => {
+  const { db, cleanup } = await createTestDb()
+  try {
+    const userId = await seedUser(db)
+    const res = await linkSubscription(db, userId, sub({ appAccountToken: userId, status: 5 }))
+    assert.deepEqual(res, { ok: false, reason: 'not_entitled' })
   } finally {
     await cleanup()
   }
@@ -974,7 +1051,9 @@ export async function linkSubscription(
   if (!sub.appAccountToken || sub.appAccountToken.toLowerCase() !== userId.toLowerCase()) {
     return { ok: false, reason: 'not_my_purchase' }
   }
-  if (sub.expiresDate.getTime() <= now.getTime()) return { ok: false, reason: 'expired' }
+  // isEntitled, PAS une comparaison de dates : pendant une periode de grace
+  // l'abonne a droit au service alors que son expiresDate est deja passe.
+  if (!isEntitled(sub)) return { ok: false, reason: 'not_entitled' }
 
   await db
     .update(users)
@@ -1093,6 +1172,7 @@ const sub = (over: Partial<AppleSubscription> = {}): AppleSubscription => ({
   expiresDate: new Date('2027-01-01T00:00:00Z'),
   appAccountToken: null,
   environment: 'Production',
+  status: 1,
   ...over,
 })
 
