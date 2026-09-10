@@ -431,36 +431,69 @@ async function runEpisode(
   const byId = new Map(open.map((s) => [s.id, s]))
   const sections = outline.sections.filter((s) => byId.has(s.story_id))
   if (sections.length === 0) {
-    // ZERO sections is unambiguous, and that is what makes marking safe:
-    // running out of airtime cannot produce zero sections (being crowded out
-    // presupposes that something else fitted). Zero means the editor read all
-    // of this material and judged none of it usable — a judgement we used to
-    // throw away, which is why the same run failed again every morning: the
-    // stories stayed 'open', so they kept satisfying the link rule.
-    // We persist the judgement instead. `discarded` stops countAvailableSources
-    // counting them (it filters on 'open'), so the app's counter and Generate
-    // button go quiet on their own, and nothing is deleted.
-    // Only stories that are still 'open' are touched: a hand-picked run selects
-    // by source id whatever the status, and an 'aired' story must stay aired.
-    // NEVER extend this to sections.length > 0 — a story dropped alongside
-    // others may only have been crowded out, and must stay open for the next
-    // episode (the rule editorial.v2 was rewritten to respect, 2026-09-04).
-    const toDiscard = open.filter((s) => s.status === 'open').map((s) => s.id)
-    if (toDiscard.length > 0) {
-      await db.update(stories).set({ status: 'discarded' }).where(inArray(stories.id, toDiscard))
+    // `sections` is the FILTERED list, so it reaches zero two different ways,
+    // and only one of them says anything about the user's material. Marking is
+    // irreversible and there is no undo in the app, so the decision is taken on
+    // the UNFILTERED count.
+    //
+    // (a) The editor genuinely kept nothing: it read all of this and judged
+    //     none of it an article. That judgement used to be computed, paid for
+    //     and thrown away, which is why the same run failed again every
+    //     morning — the stories stayed 'open' and kept satisfying the link
+    //     rule. We persist it: 'discarded' stops countAvailableSources counting
+    //     them (it filters on 'open'), so the app's counter and Generate button
+    //     go quiet on their own, and nothing is deleted.
+    // (b) The editor selected sections under story_ids we do not recognise
+    //     (OutlineSchema types story_id as a bare z.string(): nothing checks
+    //     membership). That is OUR bug, not a verdict — and it self-heals, a
+    //     fresh sample tomorrow probably returns real ids. Marking there would
+    //     destroy stories the editor explicitly wanted to air. It stays a loud
+    //     technical failure, and the loop it may cause is the cheaper loss.
+    const editorKeptNothing = outline.sections.length === 0
+    // editorial.v2 is told to write "over budget: N seconds for M stories" when
+    // it drops a story for lack of airtime, and to keep the most useful rather
+    // than empty the outline — but v2 exists because v1 mishandled exactly this
+    // case, and a prompt is not a guarantee. Crowded out is never unusable.
+    const blamedTheBudget = outline.discarded.some((d) => /over budget/i.test(d.reason))
+    if (editorKeptNothing && !blamedTheBudget) {
+      // Only rows still 'open' are touched: a hand-picked run selects by source
+      // id whatever the status, and an 'aired' story must stay aired.
+      // NEVER extend this to sections.length > 0 — a story dropped alongside
+      // others may only have been crowded out, and must stay open for the next
+      // episode (the rule editorial.v2 was rewritten to respect, 2026-09-04).
+      const toDiscard = open.filter((s) => s.status === 'open').map((s) => s.id)
+      if (toDiscard.length > 0) {
+        await db.update(stories).set({ status: 'discarded' }).where(inArray(stories.id, toDiscard))
+      }
+      logger.error(
+        {
+          discarded: outline.discarded.length,
+          storiesMarkedDiscarded: toDiscard.length,
+        },
+        'outline kept nothing: material marked discarded',
+      )
+      // The technical detail stays in the log above; episodes.error is shown to
+      // the user verbatim, so it gets the sentence written for them.
+      throw new Error(unusableMaterialMessage(language))
     }
     logger.error(
       {
         returnedSections: outline.sections.map((s) => ({ id: s.story_id, title: s.title })),
-        discarded: outline.discarded.length,
+        discarded: outline.discarded.map((d) => ({ id: d.story_id, reason: d.reason })),
         knownIds: open.slice(0, 3).map((s) => s.id),
-        storiesMarkedDiscarded: toDiscard.length,
+        blamedTheBudget,
+        // Said out loud: the material is intact and the next run will retry it.
+        storiesMarkedDiscarded: 0,
       },
-      'outline selected no known story: material marked discarded',
+      blamedTheBudget
+        ? 'outline kept nothing and blamed the airtime budget: material LEFT OPEN, editorial prompt violated'
+        : 'outline selected no known story: material LEFT OPEN, the returned ids are not ours',
     )
-    // The technical detail stays in the log above; episodes.error is shown to
-    // the user verbatim, so it gets the sentence written for them.
-    throw new Error(unusableMaterialMessage(language))
+    throw new Error(
+      blamedTheBudget
+        ? `outline kept nothing but blamed the airtime budget (${outline.discarded.length} discarded): stories left open`
+        : `outline selected no known story (${outline.sections.length} sections returned, ${outline.discarded.length} discarded)`,
+    )
   }
   logger.info({ sections: sections.length, discarded: outline.discarded.length }, 'outline ready')
 

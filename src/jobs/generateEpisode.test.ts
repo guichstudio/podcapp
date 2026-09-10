@@ -313,7 +313,14 @@ const outlineSection = (storyId: string): unknown => ({
 
 // A user whose only open story is backed by enough links to pass the link rule
 // — which is exactly what made the incident possible: the count was green.
-async function seedOpenStory(db: Db): Promise<{ userId: string; storyId: string }> {
+async function seedOpenStory(
+  db: Db,
+  // A good story reads exactly the same to this code path as an unusable one:
+  // the tests below that seed quality material rely on that, because the whole
+  // question is what happens when the pipeline CANNOT tell them apart.
+  opts: { headline?: string; quality?: number; claim?: string } = {},
+): Promise<{ userId: string; storyId: string }> {
+  const headline = opts.headline ?? 'Facebook'
   const [user] = await db
     .insert(users)
     .values({ email: `t-${randomUUID()}@podcapp.test`, apiToken: randomUUID(), rssToken: randomUUID() })
@@ -327,9 +334,9 @@ async function seedOpenStory(db: Db): Promise<{ userId: string; storyId: string 
         type: 'web',
         url: `https://facebook.com/share/r/${i}/`,
         sourceHash: randomUUID(),
-        title: 'Facebook',
-        cleanText: 'Facebook',
-        extractionQuality: 0.2,
+        title: headline,
+        cleanText: headline,
+        extractionQuality: opts.quality ?? 0.2,
         status: 'ready',
       })),
     )
@@ -338,10 +345,17 @@ async function seedOpenStory(db: Db): Promise<{ userId: string; storyId: string 
     .insert(stories)
     .values({
       userId: user.id,
-      headline: 'Facebook',
+      headline,
       topic: 'other',
       sourceIds: rows.map((r) => r.id),
-      claims: [{ text: 'Une page de partage Facebook.', type: 'fact', evidence_quote: 'Facebook', confidence: 0.2 }],
+      claims: [
+        {
+          text: opts.claim ?? 'Une page de partage Facebook.',
+          type: 'fact',
+          evidence_quote: headline,
+          confidence: opts.quality ?? 0.2,
+        },
+      ],
       firstSeenAt: new Date(),
       lastSeenAt: new Date(),
       status: 'open',
@@ -409,6 +423,141 @@ test('a story dropped while others are kept stays open: crowded out is not unusa
     const [after] = await db.select({ status: stories.status }).from(stories).where(eq(stories.id, storyId))
     assert.equal(after?.status, 'open')
     assert.equal(await countAvailableSources(db, userId), MIN_SOURCES_PER_EPISODE)
+  } finally {
+    restore()
+    await cleanup()
+  }
+})
+
+// --- The other way to reach zero sections ------------------------------------
+// `sections` is the FILTERED list, so it also hits zero when the model answers
+// with story_ids that are not ours (OutlineSchema types story_id as a bare
+// string: nothing checks membership). That is our bug, not a verdict on the
+// user's material, and it is self-healing — the next sample probably returns
+// real ids. Marking there would destroy good stories permanently, with no
+// in-app undo, so the guard reads the UNFILTERED count.
+
+test('an outline that selects unknown ids leaves the material open: an id mismatch is our bug, not a verdict', async () => {
+  const { db, cleanup } = await createTestDb()
+  // Quality material the editor WANTED to air — it returned a section for it.
+  const { userId, storyId } = await seedOpenStory(db, {
+    headline: 'La BCE relève ses taux',
+    quality: 0.86,
+    claim: 'La BCE a relevé son taux directeur de 25 points de base.',
+  })
+  // Same story, hallucinated id: the section is real, the identifier is not.
+  const restore = stubLlm(() => asDeepseek(outlineWith([outlineSection(randomUUID())], [])))
+  try {
+    await assert.rejects(generateEpisode(db, { userId, targetSec: 300, language: 'en' }), (err: Error) => {
+      // Loud and technical: this must page us, not accuse the user's links.
+      assert.match(err.message, /no known story/)
+      assert.notEqual(err.message, unusableMaterialMessage('en'))
+      return true
+    })
+
+    // The story the editor picked is still there for tomorrow's run.
+    const [after] = await db.select({ status: stories.status }).from(stories).where(eq(stories.id, storyId))
+    assert.equal(after?.status, 'open')
+    assert.equal(await countAvailableSources(db, userId), MIN_SOURCES_PER_EPISODE)
+  } finally {
+    restore()
+    await cleanup()
+  }
+})
+
+test('an outline that puts everything over budget leaves the material open: no airtime is not unusable', async () => {
+  // editorial.v2 (rule: "keep the most useful") makes a zero-selection from
+  // arithmetic impossible in principle — but v2 exists BECAUSE v1 mishandled
+  // the budget case, and a model can violate a prompt. The reason string it is
+  // told to write is the signal, so we read it and refuse to mark.
+  const { db, cleanup } = await createTestDb()
+  const { userId, storyId } = await seedOpenStory(db, { headline: 'Un vrai sujet', quality: 0.8 })
+  const restore = stubLlm(() =>
+    asDeepseek(outlineWith([], [{ story_id: storyId, reason: 'over budget: 240 seconds for 5 stories' }])),
+  )
+  try {
+    await assert.rejects(generateEpisode(db, { userId, targetSec: 300, language: 'en' }), (err: Error) => {
+      assert.notEqual(err.message, unusableMaterialMessage('en'))
+      return true
+    })
+    const [after] = await db.select({ status: stories.status }).from(stories).where(eq(stories.id, storyId))
+    assert.equal(after?.status, 'open')
+    assert.equal(await countAvailableSources(db, userId), MIN_SOURCES_PER_EPISODE)
+  } finally {
+    restore()
+    await cleanup()
+  }
+})
+
+test('a hand-picked run never rewrites an aired story: only rows still open are marked', async () => {
+  // A hand-picked run selects by SOURCE id whatever the status, so `open` here
+  // holds aired stories too. Marking one 'discarded' would rewrite the record
+  // of what was broadcast. Deleting the status filter in generateEpisode makes
+  // this test — and only this test — fail.
+  const { db, cleanup } = await createTestDb()
+  const [user] = await db
+    .insert(users)
+    .values({ email: `t-${randomUUID()}@podcapp.test`, apiToken: randomUUID(), rssToken: randomUUID() })
+    .returning()
+  if (!user) throw new Error('seed: no user')
+  const insertSources = async (n: number): Promise<string[]> => {
+    const rows = await db
+      .insert(sources)
+      .values(
+        Array.from({ length: n }, () => ({
+          userId: user.id,
+          type: 'web',
+          url: `https://example.test/${randomUUID()}`,
+          sourceHash: randomUUID(),
+          title: 'Un article',
+          cleanText: 'Un article',
+          extractionQuality: 0.8,
+          status: 'ready',
+        })),
+      )
+      .returning({ id: sources.id })
+    return rows.map((r) => r.id)
+  }
+  const insertStory = async (sourceIds: string[], status: string): Promise<string> => {
+    const [story] = await db
+      .insert(stories)
+      .values({
+        userId: user.id,
+        headline: `Sujet ${status}`,
+        topic: 'other',
+        sourceIds,
+        claims: [{ text: 'Un fait.', type: 'fact', evidence_quote: 'Un article', confidence: 0.8 }],
+        firstSeenAt: new Date(),
+        lastSeenAt: new Date(),
+        status,
+      })
+      .returning({ id: stories.id })
+    if (!story) throw new Error('seed: no story')
+    return story.id
+  }
+  const airedSources = await insertSources(2)
+  const openSources = await insertSources(MIN_SOURCES_PER_EPISODE)
+  const airedId = await insertStory(airedSources, 'aired')
+  const openId = await insertStory(openSources, 'open')
+  // The editor kept nothing at all: the marking branch, on a mixed pile.
+  const restore = stubLlm(() => asDeepseek(outlineWith([], [{ story_id: openId, reason: 'no article behind the link' }])))
+  try {
+    await assert.rejects(
+      generateEpisode(db, {
+        userId: user.id,
+        targetSec: 300,
+        language: 'en',
+        sourceIds: [...airedSources, ...openSources],
+      }),
+      (err: Error) => {
+        assert.equal(err.message, unusableMaterialMessage('en'))
+        return true
+      },
+    )
+    const [aired] = await db.select({ status: stories.status }).from(stories).where(eq(stories.id, airedId))
+    assert.equal(aired?.status, 'aired')
+    const [openAfter] = await db.select({ status: stories.status }).from(stories).where(eq(stories.id, openId))
+    assert.equal(openAfter?.status, 'discarded')
   } finally {
     restore()
     await cleanup()
