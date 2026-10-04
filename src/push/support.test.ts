@@ -48,7 +48,7 @@ test('the admin is told who wrote, even without an address', () => {
 })
 
 test('a user is told in their own language', () => {
-  assert.equal(userAlert('fr', 'Merci !').title, 'Message de Podcapp')
-  assert.equal(userAlert('en', 'Thanks!').title, 'Message from Podcapp')
+  assert.equal(userAlert('fr', 'Merci !').title, 'Louis, fondateur de Podcapp, vous a envoyé un message')
+  assert.equal(userAlert('en', 'Thanks!').title, 'Louis, founder of Podcapp, sent you a message')
   assert.equal(userAlert('en', 'Thanks!').body, 'Thanks!')
 })

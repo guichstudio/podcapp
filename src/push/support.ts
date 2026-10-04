@@ -28,7 +28,12 @@ export function adminAlert(email: string | null, body: string): { title: string;
 /// To a tester, titled in their language; the body is the admin's own words.
 export function userAlert(language: string, body: string): { title: string; body: string } {
   const french = language.trim().toLowerCase().startsWith('fr')
-  return { title: french ? 'Message de Podcapp' : 'Message from Podcapp', body: excerpt(body) }
+  // Signed by a person, not a brand: a feedback request answered by the founder
+  // himself is the whole point of a hand-run beta (Louis's wording, 2026-10-04).
+  return {
+    title: french ? 'Louis, fondateur de Podcapp, vous a envoyé un message' : 'Louis, founder of Podcapp, sent you a message',
+    body: excerpt(body),
+  }
 }
 
 export type NotifySupportPayload =
