@@ -1,7 +1,18 @@
 import { eq } from 'drizzle-orm'
 import { ScriptSchema } from '../core/types.js'
 import type { Db } from '../db/client.js'
-import { episodes, events, explainedConcepts, identities, sessions, sources, stories, users } from '../db/schema.js'
+import {
+  episodes,
+  events,
+  explainedConcepts,
+  identities,
+  pushTokens,
+  sessions,
+  sources,
+  stories,
+  supportMessages,
+  users,
+} from '../db/schema.js'
 import { consoleToken } from '../rss/feed-data.js'
 import { feedKey } from '../rss/feed.js'
 import type { Storage } from '../storage/index.js'
@@ -56,6 +67,11 @@ export async function deleteAccount(
   await db.delete(sources).where(eq(sources.userId, userId))
   await db.delete(sessions).where(eq(sessions.userId, userId))
   await db.delete(identities).where(eq(identities.userId, userId))
+  // push_tokens has no cascade: forgetting it made this final delete fail for
+  // anyone who had allowed notifications. support_messages cascades, but is
+  // named here so the list stays the whole inventory of what an account owns.
+  await db.delete(pushTokens).where(eq(pushTokens.userId, userId))
+  await db.delete(supportMessages).where(eq(supportMessages.userId, userId))
   await db.delete(users).where(eq(users.id, userId))
   return { episodes: rows.length, objects: keys.length }
 }
