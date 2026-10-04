@@ -9,6 +9,8 @@ import { CATEGORIES, MAX_TARGET_MINUTES, MIN_SOURCES_PER_EPISODE, VOICE_OPTIONS,
 import { feedKey } from '../src/rss/feed.js'
 import { countAvailableSources, hasEnoughSources, shortageMessage } from '../src/jobs/material.js'
 import { countEpisodesThisMonth, hasQuotaLeft, monthResetsAt, PLAN_EPISODE_LIMIT, planOf, quotaMessage } from '../src/jobs/quota.js'
+import { createAppStoreClient, readOriginalTransactionId } from '../src/apple/appstore.js'
+import { linkSubscription } from '../src/apple/link.js'
 import { privacyHtml } from '../src/legal/privacy.js'
 import { termsHtml } from '../src/legal/terms.js'
 import * as schema from '../src/db/schema.js'
@@ -537,6 +539,39 @@ authed.put('/me', async (c) => {
 /// `environment` rides along because a token minted by a development build is
 /// meaningless to the production APNs host and the reverse: the same phone
 /// carrying TestFlight and a sideloaded build has two tokens on two hosts.
+// The app hands over the purchase it just made; the server decides what it is
+// worth. Only the originalTransactionId is read from the JWS the app sends --
+// the state comes from Apple over TLS, and appAccountToken ties it to THIS
+// account (see linkSubscription). Unreachable until StoreKit ships in the app,
+// and the freemium rule keeps the paywall off until the App Store release.
+authed.post('/me/subscription', async (c) => {
+  // Readable rather than a 500: the keys are not set before the subscriptions
+  // exist in App Store Connect, and a bare "internal error" names nothing.
+  if (!process.env.APPLE_IAP_KEY) return c.json({ error: 'subscriptions are not configured on this server' }, 503)
+  const body = await c.req.json().catch(() => null)
+  const jws = (body as { signed_transaction?: unknown } | null)?.signed_transaction
+  if (typeof jws !== 'string') return c.json({ error: 'expected { signed_transaction: string }' }, 400)
+
+  const id = readOriginalTransactionId(jws)
+  if (!id) return c.json({ error: 'unreadable transaction' }, 400)
+
+  const sub = await createAppStoreClient().lookup(id)
+  if (!sub) return c.json({ error: 'unknown transaction' }, 404)
+
+  const conn = c.get('conn')
+  const result = await linkSubscription(conn, c.get('userId'), sub)
+  if (!result.ok) {
+    await conn.insert(events).values({
+      userId: c.get('userId'),
+      name: 'subscription_rejected',
+      payload: { reason: result.reason, originalTransactionId: id },
+    })
+    // 403 and not 400: the request is well formed, the right is what is missing.
+    return c.json({ error: result.reason }, 403)
+  }
+  return c.json({ plan: result.plan, expires_at: sub.expiresDate.toISOString() })
+})
+
 authed.post('/me/push-token', async (c) => {
   const parsed = PushTokenSchema.safeParse(await c.req.json().catch(() => null))
   if (!parsed.success) return c.json({ error: 'expected { token, environment: "development" | "production" }' }, 400)
