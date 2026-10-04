@@ -7,7 +7,9 @@ import { MAX_TARGET_MINUTES, targetMinutesFor } from '../config.js'
 import { deleteAccount } from '../jobs/deleteAccount.js'
 import { countAvailableSources, hasEnoughSources } from '../jobs/material.js'
 import { generateEpisode } from '../jobs/generateEpisode.js'
-import { countEpisodesThisMonth, hasQuotaLeft, PLAN_EPISODE_LIMIT, planOf } from '../jobs/quota.js'
+import { createAppStoreClient } from '../apple/appstore.js'
+import { planWithSafetyNet } from '../apple/refresh.js'
+import { countEpisodesThisMonth, hasQuotaLeft, PLAN_EPISODE_LIMIT } from '../jobs/quota.js'
 import { processSource } from '../jobs/processSource.js'
 import { publishEpisode } from '../jobs/publishEpisode.js'
 import { notifyReady } from '../push/notify.js'
@@ -202,7 +204,14 @@ type BriefingOutcome = { userId: string; episodeId?: string; skipped?: string }
 // that died without reaching their catch, then queue a run.
 async function queueBriefing(
   db: Db,
-  user: { id: string; targetMinutes: number; outputLanguage: string; plan: string; planExpiresAt: Date | null },
+  user: {
+    id: string
+    targetMinutes: number
+    outputLanguage: string
+    plan: string
+    planExpiresAt: Date | null
+    planOriginalTxnId: string | null
+  },
 ): Promise<BriefingOutcome> {
   // Same rule as POST /episodes: a morning with three links gets no episode,
   // and the reason is readable in the run.
@@ -231,7 +240,9 @@ async function queueBriefing(
   // Same second rendezvous as POST /episodes, after the links rule and after
   // the reaper: a plan that has spent its month gets no briefing either,
   // silently to the user (no app is open at 06:00) but readable in the outcome.
-  const plan = planOf(user)
+  // Le filet, comme dans POST /episodes : un palier payant echu se relit chez
+  // Apple avant de priver quelqu'un de son briefing du matin.
+  const plan = await planWithSafetyNet(db, user, () => createAppStoreClient())
   const used = await countEpisodesThisMonth(db, user.id)
   if (!hasQuotaLeft(used, plan)) {
     logger.log('skipped: monthly quota spent', { userId: user.id, plan, used, limit: PLAN_EPISODE_LIMIT[plan] })
@@ -295,6 +306,7 @@ export const dailyBriefingsTask = schedules.task({
         outputLanguage: users.outputLanguage,
         plan: users.plan,
         planExpiresAt: users.planExpiresAt,
+        planOriginalTxnId: users.planOriginalTxnId,
       })
       .from(users)
 

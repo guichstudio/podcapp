@@ -9,7 +9,8 @@ import { CATEGORIES, MAX_TARGET_MINUTES, MIN_SOURCES_PER_EPISODE, VOICE_OPTIONS,
 import { feedKey } from '../src/rss/feed.js'
 import { countAvailableSources, hasEnoughSources, shortageMessage } from '../src/jobs/material.js'
 import { countEpisodesThisMonth, hasQuotaLeft, monthResetsAt, PLAN_EPISODE_LIMIT, planOf, quotaMessage } from '../src/jobs/quota.js'
-import { createAppStoreClient, readOriginalTransactionId } from '../src/apple/appstore.js'
+import { createAppStoreClient, readOriginalTransactionId, readSignedTransactionFromNotification } from '../src/apple/appstore.js'
+import { planWithSafetyNet, refreshByTransaction } from '../src/apple/refresh.js'
 import { linkSubscription } from '../src/apple/link.js'
 import { privacyHtml } from '../src/legal/privacy.js'
 import { termsHtml } from '../src/legal/terms.js'
@@ -263,6 +264,37 @@ function spfHardFail(headers: { Name: string; Value: string }[] | undefined): bo
 // every beta user; forwarding from the address on your users row is the auth.
 // Rejections answer 200 on purpose (a non-2xx would make Postmark retry a mail
 // that will never route) and land in events so no failure is silent.
+// App Store Server Notifications V2. The secret in the URL is not
+// authentication -- the payload is never believed anyway, only its transaction
+// id is read and the state comes from Apple over TLS -- it is what stops a
+// stranger from making us hammer Apple's API from a guessed URL. Same shape as
+// POST /ingest/email for Postmark. Public route, so db() and not c.get('conn'),
+// which only the authed middleware sets.
+//
+// An unreadable body answers 200 (a retry would read the same bytes); a failed
+// lookup at Apple is left to throw, so the 500 makes Apple retry -- a renewal
+// missed for good would otherwise rest on the safety net alone.
+app.post('/apple/notifications', async (c) => {
+  const expected = process.env.APPLE_NOTIFICATIONS_TOKEN
+  if (!expected || c.req.query('token') !== expected) return c.json({ error: 'not found' }, 404)
+
+  const body = await c.req.json().catch(() => null)
+  const payload = (body as { signedPayload?: unknown } | null)?.signedPayload
+  const conn = db()
+  const inner = typeof payload === 'string' ? readSignedTransactionFromNotification(payload) : null
+  const id = inner ? readOriginalTransactionId(inner) : null
+  if (!id) {
+    await conn.insert(events).values({ userId: null, name: 'apple_notification_unreadable', payload: {} })
+    return c.json({ ok: true })
+  }
+
+  const outcome = await refreshByTransaction(conn, createAppStoreClient(), id)
+  if (outcome === 'unknown') {
+    await conn.insert(events).values({ userId: null, name: 'apple_notification_unknown_txn', payload: { originalTransactionId: id } })
+  }
+  return c.json({ ok: true })
+})
+
 app.post('/ingest/email', async (c) => {
   const secret = process.env.POSTMARK_INBOUND_TOKEN
   if (!secret) return c.json({ error: 'server misconfigured: POSTMARK_INBOUND_TOKEN is not set' }, 500)
@@ -753,6 +785,7 @@ authed.post('/episodes', async (c) => {
       outputLanguage: users.outputLanguage,
       plan: users.plan,
       planExpiresAt: users.planExpiresAt,
+      planOriginalTxnId: users.planOriginalTxnId,
     })
     .from(users)
     .where(eq(users.id, userId))
@@ -818,7 +851,8 @@ authed.post('/episodes', async (c) => {
   // juste qu'une fois les runs morts rendus a 'failed'. Code DISTINCT du 422 :
   // l'app doit pouvoir distinguer "pas assez de liens" de "plus de quota", les
   // deux ecrans ne sont pas les memes.
-  const plan = planOf(user)
+  // Le filet : un palier payant echu se relit chez Apple avant d'etre refuse.
+  const plan = await planWithSafetyNet(conn, { id: userId, ...user }, () => createAppStoreClient())
   const used = await countEpisodesThisMonth(conn, userId)
   if (!hasQuotaLeft(used, plan)) {
     return c.json(
