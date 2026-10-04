@@ -127,13 +127,14 @@ test('les episodes d un autre compte ne comptent pas', async () => {
 })
 
 test('chaque palier refuse exactement a sa limite', () => {
+  // Le gratuit est illimite : seuls sa duree et sa voix sont bornees.
   assert.equal(hasQuotaLeft(0, 'free'), true)
-  assert.equal(hasQuotaLeft(1, 'free'), false)
+  assert.equal(hasQuotaLeft(31, 'free'), true)
   assert.equal(hasQuotaLeft(7, 'plus'), true)
   assert.equal(hasQuotaLeft(8, 'plus'), false)
   assert.equal(hasQuotaLeft(11, 'pro'), true)
   assert.equal(hasQuotaLeft(12, 'pro'), false)
-  assert.deepEqual(PLAN_EPISODE_LIMIT, { free: 1, plus: 8, pro: 12 })
+  assert.deepEqual(PLAN_EPISODE_LIMIT, { free: null, plus: 8, pro: 12 })
 })
 
 test('la remise a zero est le 1er du mois suivant, en UTC', () => {
@@ -142,7 +143,7 @@ test('la remise a zero est le 1er du mois suivant, en UTC', () => {
 })
 
 test('le refus est dans la langue de l utilisateur et nomme le palier', () => {
-  assert.match(quotaMessage('fr', 'free'), /1 épisode/)
+  assert.match(quotaMessage('fr', 'plus'), /8 épisodes/)
   assert.match(quotaMessage('en-US', 'plus'), /8 episodes/)
 })
 
@@ -154,9 +155,9 @@ test('eteint, le freemium ne plafonne personne : le gratuit garde tous ses episo
     assert.equal(hasQuotaLeft(100, 'plus'), true)
     // Seule la valeur exacte 'true' allume : une faute de frappe ne plafonne pas.
     process.env.FREEMIUM_ENFORCED = '1'
-    assert.equal(hasQuotaLeft(1, 'free'), true)
+    assert.equal(hasQuotaLeft(8, 'plus'), true)
   } finally {
     process.env.FREEMIUM_ENFORCED = 'true'
   }
-  assert.equal(hasQuotaLeft(1, 'free'), false)
+  assert.equal(hasQuotaLeft(8, 'plus'), false)
 })

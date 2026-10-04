@@ -5,7 +5,7 @@ import { Hono, type Context } from 'hono'
 import { handle } from 'hono/vercel'
 import { z } from 'zod'
 import { ScriptSchema, type Script, type StoredClaim } from '../src/core/types.js'
-import { CATEGORIES, MAX_TARGET_MINUTES, MIN_SOURCES_PER_EPISODE, VOICE_OPTIONS, voiceFor, targetMinutesFor } from '../src/config.js'
+import { CATEGORIES, choosesVoice, MAX_TARGET_MINUTES, maxMinutesFor, MIN_SOURCES_PER_EPISODE, targetMinutesFor, VOICE_OPTIONS, voiceFor } from '../src/config.js'
 import { feedKey } from '../src/rss/feed.js'
 import { countAvailableSources, hasEnoughSources, shortageMessage } from '../src/jobs/material.js'
 import { countEpisodesThisMonth, hasQuotaLeft, monthResetsAt, PLAN_EPISODE_LIMIT, planOf, quotaMessage } from '../src/jobs/quota.js'
@@ -509,8 +509,11 @@ function meView(
     // The narrator the next episode will actually use, override or default.
     voice: voiceFor(language, user.voiceId, planOf(user)) ?? null,
     voices: VOICE_OPTIONS,
-    target_minutes: Math.min(MAX_TARGET_MINUTES, Math.max(1, user.targetMinutes)),
-    max_minutes: MAX_TARGET_MINUTES,
+    // Bounded by the plan, exactly as the pipeline will bound it: the app shows
+    // these and never offers a length or a voice it could not get.
+    target_minutes: targetMinutesFor(planOf(user), null, user.targetMinutes),
+    max_minutes: maxMinutesFor(planOf(user)),
+    voice_choice: choosesVoice(planOf(user)),
     minimum_sources: MIN_SOURCES_PER_EPISODE,
     daily_at: '06:00',
     // Public by necessity (podcast apps fetch it anonymously); the token in it
@@ -1379,6 +1382,8 @@ authed.get('/sources', async (c) => {
     plan,
     used,
     limit: PLAN_EPISODE_LIMIT[plan],
+    max_minutes: maxMinutesFor(plan),
+    voice_choice: choosesVoice(plan),
     resets_at: monthResetsAt().toISOString(),
   })
 })

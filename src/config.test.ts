@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { targetMinutesFor, voiceFor } from './config.js'
+import { choosesVoice, maxMinutesFor, targetMinutesFor, voiceFor } from './config.js'
 
 // Ces tests exercent les regles des paliers ALLUMEES. En production elles sont
 // eteintes tant que FREEMIUM_ENFORCED n'est pas pose (voir freemiumEnforced) ;
@@ -42,4 +42,18 @@ test('eteint, le freemium laisse la duree et la voix comme avant la fusion', () 
     process.env.FREEMIUM_ENFORCED = 'true'
   }
   assert.equal(targetMinutesFor('free', null, 10), 3)
+})
+
+test('l app recoit les memes bornes que celles que le serveur applique', () => {
+  assert.equal(maxMinutesFor('free'), 3)
+  assert.equal(maxMinutesFor('pro'), 5)
+  assert.equal(choosesVoice('free'), false)
+  assert.equal(choosesVoice('pro'), true)
+  delete process.env.FREEMIUM_ENFORCED
+  try {
+    assert.equal(maxMinutesFor('free'), 5)
+    assert.equal(choosesVoice('free'), true)
+  } finally {
+    process.env.FREEMIUM_ENFORCED = 'true'
+  }
 })

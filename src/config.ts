@@ -141,17 +141,29 @@ export const VOICE_OPTIONS: VoiceOption[] = [
 /// La duree reelle, bornee a la LECTURE. Trois bornes se composent : ce que la
 /// requete demande, ce que le palier autorise, et le plafond absolu du produit.
 /// users.target_minutes garde son defaut de 10 en base et n'est jamais reecrit.
+/// La plus longue duree que ce palier autorise, et que l'app propose. Une seule
+/// definition : le serveur borne avec, et /me et /sources la renvoient pour que
+/// l'app n'affiche jamais une duree qu'elle ne pourrait pas obtenir.
+export function maxMinutesFor(plan: Plan): number {
+  return freemiumEnforced() ? Math.min(MAX_TARGET_MINUTES, PLAN_MAX_MINUTES[plan]) : MAX_TARGET_MINUTES
+}
+
+/// Ce palier peut-il choisir sa voix ? Meme raison que maxMinutesFor : l'app
+/// cache le choix plutot que d'afficher un reglage qui serait ignore.
+export function choosesVoice(plan: Plan): boolean {
+  return !freemiumEnforced() || PLAN_CHOOSES_VOICE[plan]
+}
+
 export function targetMinutesFor(plan: Plan, requested: number | null | undefined, stored: number): number {
   const asked = requested ?? stored
-  const planCap = freemiumEnforced() ? PLAN_MAX_MINUTES[plan] : MAX_TARGET_MINUTES
-  return Math.min(MAX_TARGET_MINUTES, planCap, Math.max(1, Math.floor(asked)))
+  return Math.min(maxMinutesFor(plan), Math.max(1, Math.floor(asked)))
 }
 
 export function voiceFor(language: string, override: string | null | undefined, plan: Plan): string | undefined {
   // Le choix de voix est un droit du palier pro. Un voice_id ecrit du temps d'un
   // abonnement reste en base apres la retrogradation : il est ignore ici, pas
   // efface, pour que le reabonnement retrouve le choix intact.
-  const chosen = !freemiumEnforced() || PLAN_CHOOSES_VOICE[plan] ? override : null
+  const chosen = choosesVoice(plan) ? override : null
   return chosen ?? DEFAULT_VOICES[language.trim().toLowerCase().slice(0, 2)] ?? process.env.ELEVENLABS_VOICE_ID
 }
 

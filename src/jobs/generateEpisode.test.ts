@@ -585,6 +585,8 @@ async function seedLikeTheApi(
       apiToken: randomBytes(16).toString('hex'),
       rssToken: randomBytes(16).toString('hex'),
       plan: opts.plan,
+      // planOf ne reconnait un palier payant qu'avec une echeance future.
+      planExpiresAt: opts.plan === 'free' ? null : new Date('2099-01-01T00:00:00Z'),
     })
     .returning({ id: users.id })
   const userId = u!.id
@@ -628,13 +630,13 @@ test('the pipeline refuses to spend on a run that reached it with no quota left'
   // trigger) and paying the writer and TTS for an episode nobody is owed.
   const { db, cleanup } = await createTestDb()
   try {
-    // Free's entire monthly ration (PLAN_EPISODE_LIMIT.free = 1) is already
+    // Plus's entire monthly ration (PLAN_EPISODE_LIMIT.plus = 8) is already
     // spent by a published episode; the queued row is the SECOND of the month.
-    const { userId, episodeId } = await seedLikeTheApi(db, { plan: 'free', alreadyReadyThisMonth: 1 })
+    const { userId, episodeId } = await seedLikeTheApi(db, { plan: 'plus', alreadyReadyThisMonth: 8 })
 
     await assert.rejects(
       generateEpisode(db, { userId, targetSec: 180, episodeId, storage: noopStorage }),
-      /monthly quota spent for plan free/,
+      /monthly quota spent for plan plus/,
     )
   } finally {
     await cleanup()

@@ -26,7 +26,11 @@ export function freemiumEnforced(): boolean {
 // 3 min et ~0,90 EUR celui de 5 min, de l'illimite a 9,99 / 19,99 perd de
 // l'argent des qu'un abonne ecoute tous les jours -- et le produit EST un cron
 // quotidien. 8 et 12 restent rentables meme a la commission de 30 %.
-export const PLAN_EPISODE_LIMIT: Record<Plan, number> = { free: 1, plus: 8, pro: 12 }
+// null = illimite. Le gratuit l'est depuis la decision de Louis du 2026-10-04 :
+// sortie sur l'App Store sans paywall, episodes illimites, mais 3 min et la voix
+// de sa langue (PLAN_MAX_MINUTES, PLAN_CHOOSES_VOICE). Plus et Pro gardent les
+// plafonds de la spec pour le jour ou l'achat existera.
+export const PLAN_EPISODE_LIMIT: Record<Plan, number | null> = { free: null, plus: 8, pro: 12 }
 export const PLAN_MAX_MINUTES: Record<Plan, number> = { free: 3, plus: 3, pro: 5 }
 export const PLAN_CHOOSES_VOICE: Record<Plan, boolean> = { free: false, plus: false, pro: true }
 
@@ -93,13 +97,16 @@ export async function countEpisodesThisMonth(
 
 export function hasQuotaLeft(used: number, plan: Plan): boolean {
   if (!freemiumEnforced()) return true
-  return used < PLAN_EPISODE_LIMIT[plan]
+  const limit = PLAN_EPISODE_LIMIT[plan]
+  return limit === null || used < limit
 }
 
 /// Le refus, dans la langue de l'utilisateur : l'app l'affiche tel quel, comme
 /// shortageMessage() de material.ts.
 export function quotaMessage(language: string, plan: Plan): string {
-  const limit = PLAN_EPISODE_LIMIT[plan]
+  // Jamais appele pour un palier illimite (hasQuotaLeft ne refuse pas) ; 0 garde
+  // la phrase grammaticale si cela arrivait quand meme.
+  const limit = PLAN_EPISODE_LIMIT[plan] ?? 0
   if (language.trim().toLowerCase().startsWith('fr')) {
     const s = limit > 1 ? 's' : ''
     return `Vous avez utilisé vos ${limit} épisode${s} de ce mois-ci. Le compteur repart le 1er.`
