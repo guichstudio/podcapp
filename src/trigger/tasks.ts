@@ -10,6 +10,7 @@ import { generateEpisode } from '../jobs/generateEpisode.js'
 import { processSource } from '../jobs/processSource.js'
 import { publishEpisode } from '../jobs/publishEpisode.js'
 import { notifyReady } from '../push/notify.js'
+import { notifySupport } from '../push/support.js'
 import { publishConsole, publishFeed } from '../rss/feed-data.js'
 import { createStorage, type Storage } from '../storage/index.js'
 
@@ -302,6 +303,30 @@ export const deleteAccountTask = schemaTask({
     const db = await createDb()
     const result = await deleteAccount(db, storage, payload.userId)
     logger.info('delete-account done', { userId: payload.userId, ...result })
+    return result
+  },
+})
+
+// A support message or a feedback request, announced by push. Queued by the
+// edge function, which has no HTTP/2 to reach APNs itself. The message is
+// already in the thread when this runs, so a failure here costs a notification,
+// never a message; two attempts, because a retry is collapsed per message on
+// the phone and cannot ring twice.
+const NotifySupportPayload = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('to_admin'), messageId: z.string().uuid(), adminUserIds: z.array(z.string().uuid()) }),
+  z.object({ kind: z.literal('to_users'), messageId: z.string().uuid() }),
+  z.object({ kind: z.literal('broadcast'), broadcastId: z.string().uuid() }),
+])
+
+export const notifySupportTask = schemaTask({
+  id: 'notify-support',
+  schema: NotifySupportPayload,
+  retry: { maxAttempts: 2 },
+  run: async (payload) => {
+    requireCloudEnv()
+    const db = await createDb()
+    const result = await notifySupport(db, payload)
+    logger.info('notify-support done', { kind: payload.kind, ...result })
     return result
   },
 })
