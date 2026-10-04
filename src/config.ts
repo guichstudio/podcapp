@@ -1,4 +1,4 @@
-import { PLAN_CHOOSES_VOICE, PLAN_MAX_MINUTES, type Plan } from './jobs/quota.js'
+import { freemiumEnforced, PLAN_CHOOSES_VOICE, PLAN_MAX_MINUTES, type Plan } from './jobs/quota.js'
 
 // All tunable constants. Swapping a stage's model must never require code changes.
 
@@ -143,14 +143,15 @@ export const VOICE_OPTIONS: VoiceOption[] = [
 /// users.target_minutes garde son defaut de 10 en base et n'est jamais reecrit.
 export function targetMinutesFor(plan: Plan, requested: number | null | undefined, stored: number): number {
   const asked = requested ?? stored
-  return Math.min(MAX_TARGET_MINUTES, PLAN_MAX_MINUTES[plan], Math.max(1, Math.floor(asked)))
+  const planCap = freemiumEnforced() ? PLAN_MAX_MINUTES[plan] : MAX_TARGET_MINUTES
+  return Math.min(MAX_TARGET_MINUTES, planCap, Math.max(1, Math.floor(asked)))
 }
 
 export function voiceFor(language: string, override: string | null | undefined, plan: Plan): string | undefined {
   // Le choix de voix est un droit du palier pro. Un voice_id ecrit du temps d'un
   // abonnement reste en base apres la retrogradation : il est ignore ici, pas
   // efface, pour que le reabonnement retrouve le choix intact.
-  const chosen = PLAN_CHOOSES_VOICE[plan] ? override : null
+  const chosen = !freemiumEnforced() || PLAN_CHOOSES_VOICE[plan] ? override : null
   return chosen ?? DEFAULT_VOICES[language.trim().toLowerCase().slice(0, 2)] ?? process.env.ELEVENLABS_VOICE_ID
 }
 

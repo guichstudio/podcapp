@@ -18,6 +18,11 @@ import {
 } from './generateEpisode.js'
 import { RUN_ARTIFACTS, runArtifactKey } from './runArtifacts.js'
 
+// Ces tests exercent les regles des paliers ALLUMEES. En production elles sont
+// eteintes tant que FREEMIUM_ENFORCED n'est pas pose (voir freemiumEnforced) ;
+// chaque fichier de test tourne dans son propre processus, donc ceci ne fuit pas.
+process.env.FREEMIUM_ENFORCED = 'true'
+
 test('stripBlocklist removes the filler clause and leaves a sentence behind', () => {
   // A speech engine reads what is left out loud, so the cut takes the conjunction
   // the clause introduced and the sentence starts on a capital again.
