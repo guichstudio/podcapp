@@ -2,7 +2,7 @@ import { and, eq, inArray } from 'drizzle-orm'
 import type { Db } from '../db/client.js'
 import { episodes, pushTokens, users } from '../db/schema.js'
 import { logger } from '../log.js'
-import { apnsConfig, logApns, sendApns, type ApnsEnvironment, type ApnsResult } from './apns.js'
+import { apnsConfig, logApns, sendApns, type ApnsConfig, type ApnsEnvironment, type ApnsMessage, type ApnsResult } from './apns.js'
 
 /// "Your briefing is ready", to every device that asked for it.
 ///
@@ -15,12 +15,6 @@ import { apnsConfig, logApns, sendApns, type ApnsEnvironment, type ApnsResult } 
 export async function notifyReady(db: Db, userId: string, episodeId: string): Promise<void> {
   const config = apnsConfig()
   if (!config) return
-
-  const devices = await db
-    .select({ token: pushTokens.token, environment: pushTokens.environment })
-    .from(pushTokens)
-    .where(eq(pushTokens.userId, userId))
-  if (devices.length === 0) return
 
   const [episode] = await db
     .select({ title: episodes.title, actualSec: episodes.actualSec })
@@ -40,10 +34,35 @@ export async function notifyReady(db: Db, userId: string, episodeId: string): Pr
       ? `${minutes} min à écouter`
       : `${minutes} min to listen`
 
+  await sendToUser(db, config, userId, {
+    title,
+    body,
+    data: { episode_id: episodeId },
+    // The episode id collapses retries: the same briefing announced twice is
+    // one notification on the phone, not two.
+    collapseId: episodeId,
+    threadId: 'briefing',
+  })
+}
+
+/// One alert to every device a user registered. Returns the number of devices
+/// that accepted it.
+export async function sendToUser(
+  db: Db,
+  config: ApnsConfig,
+  userId: string,
+  alert: Omit<ApnsMessage, 'token' | 'environment'>,
+): Promise<number> {
+  const devices = await db
+    .select({ token: pushTokens.token, environment: pushTokens.environment })
+    .from(pushTokens)
+    .where(eq(pushTokens.userId, userId))
+  if (devices.length === 0) return 0
+
   const results: ApnsResult[] = []
   for (const device of devices) {
     const environment = device.environment === 'production' ? 'production' : ('development' as ApnsEnvironment)
-    results.push(await sendApns(config, { token: device.token, environment, title, body, episodeId }))
+    results.push(await sendApns(config, { ...alert, token: device.token, environment }))
   }
   logApns(results)
 
@@ -55,4 +74,5 @@ export async function notifyReady(db: Db, userId: string, episodeId: string): Pr
     await db.delete(pushTokens).where(and(eq(pushTokens.userId, userId), inArray(pushTokens.token, dead)))
     logger.info({ userId, removed: dead.length }, 'dead push tokens removed')
   }
+  return results.filter((r) => r.status === 200).length
 }
