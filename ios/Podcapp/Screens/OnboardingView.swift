@@ -854,7 +854,7 @@ private struct FormatsPage: View {
                     startPoint: .bottomLeading, endPoint: .topTrailing
                 ))) { instagramGlyph }
             }
-            formatRow("X · Twitter", "lien · thread", divider: true) {
+            formatRow("X · Twitter", String(localized: "link · thread"), divider: true) {
                 appIcon(AnyShapeStyle(Palette.ink)) {
                     Text("𝕏").font(.system(size: 13)).foregroundStyle(.white)
                 }
@@ -1166,8 +1166,8 @@ private struct SharePage: View {
 
     private var stepsFloat: some View {
         VStack(alignment: .leading, spacing: 9) {
-            stepRow("1", "Touchez Partager")
-            stepRow("2", "Choisissez Podcapp")
+            stepRow("1", String(localized: "Tap Share"))
+            stepRow("2", String(localized: "Pick Podcapp"))
             // The markup's dash is replaced per the house punctuation rule.
             Text("That’s it: you stay in your app.")
                 .fs(9, lh: 1.35)
