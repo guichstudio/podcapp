@@ -229,3 +229,24 @@ export const pushTokens = pgTable(
   },
   (t) => [index('push_tokens_user_idx').on(t.userId)],
 )
+
+/// One support thread per user: no tickets, no subjects. `read_at` is set by the
+/// RECIPIENT reading it -- the admin for author='user', the user for
+/// author='admin' -- so each side's unread count is one column, not two.
+/// `broadcast_id` ties together one feedback question sent to several threads,
+/// which is how the admin page counts who answered it.
+export const supportMessages = pgTable(
+  'support_messages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    author: text('author').notNull(),
+    body: text('body').notNull(),
+    broadcastId: uuid('broadcast_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    readAt: timestamp('read_at', { withTimezone: true }),
+  },
+  (t) => [index('support_messages_user_idx').on(t.userId, t.createdAt)],
+)
