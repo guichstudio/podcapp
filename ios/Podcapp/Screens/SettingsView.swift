@@ -45,6 +45,7 @@ struct SettingsView: View {
         return nil
     }
     @State private var showingShareHelp = false
+    @ObservedObject private var inbox = SupportInbox.shared
     @State private var copiedFeed = false
     // The devices signed into this account. Loaded once per visit, same as `me`.
     // A separate state so a network hiccup does not read as "no other devices".
@@ -87,6 +88,9 @@ struct SettingsView: View {
                 footnote(Text("The language follows your phone and the voice is yours to pick; the rest is decided by the pipeline."))
 
                 shareHelpCard
+                    .padding(.top, 12)
+
+                supportCard
                     .padding(.top, 12)
 
                 footnote(Text("The RSS feed works in Apple Podcasts, Overcast and the rest. Its address carries a token that is the only key to your episodes: share it with nobody."))
@@ -527,6 +531,45 @@ struct SettingsView: View {
     }
 
     // MARK: - Aide au partage
+
+    /// The way into the support chat. The sheet itself belongs to RootView, so
+    /// a tapped notification and this row open the same one.
+    private var supportCard: some View {
+        Button {
+            Feedback.tap()
+            NotificationCenter.default.post(name: .podcappOpenSupport, object: nil)
+        } label: {
+            SettingsCard {
+                rowPadding(
+                    HStack(spacing: 10) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Contact support")
+                                .typo(Typo.rowLabel)
+                                .foregroundStyle(Palette.ink)
+                            Text("A question, a bug, an idea? Louis replies here.")
+                                .typo(Typo.metaSmall)
+                                .foregroundStyle(Palette.muted2)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 0)
+                        if inbox.unread > 0 {
+                            Text(verbatim: "\(inbox.unread)")
+                                .typo(Typo.buttonSmall)
+                                .foregroundStyle(Palette.onDark)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 2)
+                                .background(Palette.danger, in: Capsule())
+                                .accessibilityLabel(Text("\(inbox.unread) unread"))
+                        }
+                        Text(verbatim: "›")
+                            .typo(Self.chevron)
+                            .foregroundStyle(Palette.tabInactive)
+                    }
+                )
+            }
+        }
+        .buttonStyle(.plain)
+    }
 
     private var shareHelpCard: some View {
         Button { showingShareHelp = true } label: {

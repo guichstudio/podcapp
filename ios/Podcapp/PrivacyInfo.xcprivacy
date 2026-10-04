@@ -54,6 +54,21 @@
 			</array>
 		</dict>
 		<dict>
+			<!-- Messages written in the in-app support chat, stored on
+			     podcapp.vercel.app against the account and read by the developer
+			     to answer them. Deleted with the account. -->
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeCustomerSupport</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
 			<!-- The address Sign in with Apple returns at sign-in, sent once to
 			     podcapp.vercel.app to resolve the account. A private-relay
 			     address is still an email address, so it is still declared. -->

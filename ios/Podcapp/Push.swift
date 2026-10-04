@@ -71,6 +71,28 @@ enum Push {
         return true
     }
 
+    /// Re-registers on every launch and every return to the foreground, once
+    /// permission exists. The token is otherwise sent only at the moment the
+    /// prompt is answered, and that was the whole failure of the first builds:
+    /// on 2026-10-04 the server held ZERO tokens for ten accounts, because an
+    /// upload that failed once was never tried again and anyone who never
+    /// opened the generation sheet was never asked. iOS hands back the same
+    /// token cheaply and the server upserts it, so repeating this costs nothing.
+    static func registerIfAuthorized() async {
+        guard enabled else { return }
+        switch await authorization() {
+        case .authorized, .provisional, .ephemeral:
+            UIApplication.shared.registerForRemoteNotifications()
+        default:
+            break
+        }
+    }
+
+    /// Set when a support notification is tapped before the shell exists -- a
+    /// cold launch from the notification -- so RootView opens the chat once it
+    /// appears instead of missing a NotificationCenter post made too early.
+    static var pendingSupport = false
+
     /// Called from the app delegate with the raw token. Hex, because that is
     /// what APNs expects on the wire and what the server stores.
     static func received(_ deviceToken: Data) {
@@ -137,11 +159,33 @@ final class PushDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCen
     }
 
     /// Shown even when the app is open: someone watching the generation sheet
-    /// is exactly the person who wants to be told it finished.
+    /// is exactly the person who wants to be told it finished. A support reply
+    /// also refreshes the badge, since the banner alone would leave it stale.
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
-        [.banner, .sound]
+        if notification.request.content.userInfo["support"] != nil {
+            await SupportInbox.shared.refresh()
+        }
+        return [.banner, .sound]
     }
+
+    /// A tapped support notification opens the chat.
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse
+    ) async {
+        guard response.notification.request.content.userInfo["support"] != nil else { return }
+        await MainActor.run {
+            Push.pendingSupport = true
+            NotificationCenter.default.post(name: .podcappOpenSupport, object: nil)
+        }
+    }
+}
+
+extension Notification.Name {
+    /// Opens the support chat: from the Settings row, or from a tapped
+    /// notification. RootView owns the sheet, so there is one way in.
+    static let podcappOpenSupport = Notification.Name("podcapp.openSupport")
 }

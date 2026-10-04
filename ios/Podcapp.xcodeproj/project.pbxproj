@@ -22,6 +22,7 @@
 		73F0A4FE46CA3E985AECE1A2 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35A0CE9D3F7061749EEB3BF8 /* Components.swift */; };
 		740B9F13AACFF3F7160D21A5 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C97A129DAF5BADA4DAB4E3C3 /* LibraryView.swift */; };
 		81BD4C17F1E3EC45EA6705DF /* ShareHelpSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE9BD925E30558852DA9F66B /* ShareHelpSheet.swift */; };
+		5A1C0DE5A1C0DE5A1C0DE502 /* SupportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1C0DE5A1C0DE5A1C0DE501 /* SupportView.swift */; };
 		878C02576B2C104B964622A6 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 62EDBCF212556127A1041FCE /* Localizable.strings */; };
 		8C79E8214168ED3F85783FF2 /* logo.png in Resources */ = {isa = PBXBuildFile; fileRef = D74E7507AFB0D36E708C55A9 /* logo.png */; };
 		8DF8E7CEB5FB5469CC22FA19 /* Shared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61ADA2F70DC8C174D6BC7FED /* Shared.swift */; };
@@ -104,6 +105,7 @@
 		C97A129DAF5BADA4DAB4E3C3 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
 		D74E7507AFB0D36E708C55A9 /* logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = logo.png; sourceTree = "<group>"; };
 		DE9BD925E30558852DA9F66B /* ShareHelpSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareHelpSheet.swift; sourceTree = "<group>"; };
+		5A1C0DE5A1C0DE5A1C0DE501 /* SupportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportView.swift; sourceTree = "<group>"; };
 		E34423AD0E18C5FBB1040750 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		E5B10F89582D157DC00C82C6 /* ReadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadView.swift; sourceTree = "<group>"; };
 		EC97B07C5A0B581294CAE728 /* InterTight-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "InterTight-Regular.ttf"; sourceTree = "<group>"; };
@@ -157,6 +159,7 @@
 				E5B10F89582D157DC00C82C6 /* ReadView.swift */,
 				9CAA3D6B575A4B7B96FE86E8 /* SettingsView.swift */,
 				DE9BD925E30558852DA9F66B /* ShareHelpSheet.swift */,
+				5A1C0DE5A1C0DE5A1C0DE501 /* SupportView.swift */,
 				119E53FD38F4BC6164F2565D /* TodayView.swift */,
 			);
 			path = Screens;
@@ -353,6 +356,7 @@
 				4B3036BE5A7935620318E99A /* RootView.swift in Sources */,
 				F4BC388A15FF6259E9A50B1C /* SettingsView.swift in Sources */,
 				81BD4C17F1E3EC45EA6705DF /* ShareHelpSheet.swift in Sources */,
+				5A1C0DE5A1C0DE5A1C0DE502 /* SupportView.swift in Sources */,
 				8DF8E7CEB5FB5469CC22FA19 /* Shared.swift in Sources */,
 				1DEA6A4ABF394DBB90188B85 /* Theme.swift in Sources */,
 				9F33D933C9BB47BB506E235D /* TodayView.swift in Sources */,
@@ -442,7 +446,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 35;
+				CURRENT_PROJECT_VERSION = 36;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = V7BMDJS5C7;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -567,7 +571,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 35;
+				CURRENT_PROJECT_VERSION = 36;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = V7BMDJS5C7;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;

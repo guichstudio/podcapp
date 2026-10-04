@@ -46,6 +46,10 @@ struct RootView: View {
     // Ties the selection pill in every tab button to one moving element:
     // matchedGeometryEffect diffs the two frames and animates between them.
     @Namespace private var tabSelection
+    // The support chat is presented from here and only here: the Settings row
+    // and a tapped notification both post .podcappOpenSupport.
+    @StateObject private var inbox = SupportInbox.shared
+    @State private var showingSupport = false
 
     var body: some View {
         ZStack {
@@ -86,6 +90,24 @@ struct RootView: View {
                 }
             }
         }
+        .sheet(isPresented: $showingSupport, onDismiss: { Task { await inbox.refresh() } }) {
+            SupportView()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .podcappOpenSupport)) { _ in
+            openSupport()
+        }
+        .task {
+            // A cold launch from a tapped notification posts before this view
+            // exists; the flag is what survives that.
+            if Push.pendingSupport { openSupport() }
+            await inbox.refresh()
+        }
+    }
+
+    private func openSupport() {
+        Push.pendingSupport = false
+        dismissKeyboard()
+        showingSupport = true
     }
 
     /// One step along the tab bar, stopping at both ends rather than wrapping:
@@ -158,6 +180,17 @@ struct RootView: View {
                     VStack(spacing: 3) {
                         Image(systemName: candidate.icon)
                             .font(.system(size: 17))
+                            .overlay(alignment: .topTrailing) {
+                                // An unread reply or feedback request waits in
+                                // the support chat, reached from Settings.
+                                if candidate == .settings && inbox.unread > 0 {
+                                    Circle()
+                                        .fill(Palette.danger)
+                                        .frame(width: 7, height: 7)
+                                        .offset(x: 4, y: -2)
+                                        .accessibilityHidden(true)
+                                }
+                            }
                         Text(candidate.label)
                             .typo(Typo.tabLabel)
                     }
@@ -182,6 +215,7 @@ struct RootView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(candidate.label)
+                .accessibilityValue(candidate == .settings && inbox.unread > 0 ? Text("\(inbox.unread) unread") : Text(verbatim: ""))
                 .accessibilityAddTraits(candidate == tab ? [.isSelected, .isButton] : .isButton)
             }
         }

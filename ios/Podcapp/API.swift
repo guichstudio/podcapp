@@ -123,6 +123,22 @@ struct SavedSource: Decodable, Identifiable, Sendable {
     var link: URL? { url.flatMap(URL.init(string:)) }
 }
 
+/// One line of the support thread. snake_case on the wire, like /me.
+struct SupportMessage: Decodable, Identifiable, Sendable, Equatable {
+    let id: String
+    /// "user" for what this person wrote, "admin" for Louis.
+    let author: String
+    let body: String
+    let createdAt: Date
+
+    var fromAdmin: Bool { author == "admin" }
+
+    enum CodingKeys: String, CodingKey {
+        case id, author, body
+        case createdAt = "created_at"
+    }
+}
+
 // GET /me/sessions is snake_case on the wire like the write endpoints (see the
 // top-of-file note): the property names below are the JSON keys verbatim.
 struct DeviceSession: Decodable, Identifiable, Sendable {
@@ -347,6 +363,9 @@ actor API {
         let dailyAt: String
         let feedUrl: String?
         let ingestAddress: String?
+        /// Replies and feedback requests not opened yet. Optional so an older
+        /// server still decodes.
+        let supportUnread: Int?
 
         enum CodingKeys: String, CodingKey {
             case language, voice, voices
@@ -357,6 +376,7 @@ actor API {
             case dailyAt = "daily_at"
             case feedUrl = "feed_url"
             case ingestAddress = "ingest_address"
+            case supportUnread = "support_unread"
         }
 
         var feedURL: URL? { feedUrl.flatMap(URL.init(string:)) }
@@ -364,6 +384,18 @@ actor API {
 
     func me() async throws -> Me {
         try await get("/me", as: Me.self)
+    }
+
+    /// The support thread. Reading it marks what Louis wrote as read, which is
+    /// what clears the badge.
+    func supportMessages() async throws -> [SupportMessage] {
+        struct Reply: Decodable { let messages: [SupportMessage] }
+        return try await get("/support/messages", as: Reply.self).messages
+    }
+
+    func sendSupportMessage(_ body: String) async throws -> SupportMessage {
+        struct Body: Encodable { let body: String }
+        return try await post("/support/messages", body: Body(body: body), as: SupportMessage.self)
     }
 
     /// nil clears the override and the language default takes over again.
