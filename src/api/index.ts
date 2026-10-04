@@ -11,8 +11,9 @@ import { generateEpisode } from '../jobs/generateEpisode.js'
 import { processSource } from '../jobs/processSource.js'
 import { chapterKey, episodeAudioKey, publishEpisode } from '../jobs/publishEpisode.js'
 import { RUN_ARTIFACTS, runArtifactKey } from '../jobs/runArtifacts.js'
-import { CATEGORIES, MAX_TARGET_MINUTES, MIN_SOURCES_PER_EPISODE, VOICE_OPTIONS, voiceFor } from '../config.js'
+import { CATEGORIES, MAX_TARGET_MINUTES, MIN_SOURCES_PER_EPISODE, VOICE_OPTIONS, voiceFor, targetMinutesFor } from '../config.js'
 import { countAvailableSources, hasEnoughSources, shortageMessage } from '../jobs/material.js'
+import { countEpisodesThisMonth, hasQuotaLeft, monthResetsAt, PLAN_EPISODE_LIMIT, planOf, quotaMessage } from '../jobs/quota.js'
 import { privacyHtml } from '../legal/privacy.js'
 import { logger } from '../log.js'
 import { buildFeed, COVER_KEYS, feedKey, type FeedEpisode } from '../rss/feed.js'
@@ -345,7 +346,12 @@ authed.post('/episodes', async (c) => {
     return c.json({ error: `target_min must be a whole number of minutes between 1 and ${MAX_TARGET_MINUTES}` }, 400)
   }
   const [user] = await db
-    .select({ targetMinutes: users.targetMinutes, outputLanguage: users.outputLanguage })
+    .select({
+      targetMinutes: users.targetMinutes,
+      outputLanguage: users.outputLanguage,
+      plan: users.plan,
+      planExpiresAt: users.planExpiresAt,
+    })
     .from(users)
     .where(eq(users.id, userId))
   if (!user) return c.json({ error: 'user not found' }, 404)
@@ -353,7 +359,31 @@ authed.post('/episodes', async (c) => {
   if (!hasEnoughSources(available)) {
     return c.json({ error: shortageMessage(user.outputLanguage, available), available, minimum: MIN_SOURCES_PER_EPISODE }, 422)
   }
-  const targetMin = parsed.data.target_min ?? user.targetMinutes
+
+  // Le quota, apres la regle des liens. Code DISTINCT du 422 : l'app doit
+  // pouvoir distinguer "pas assez de liens" de "plus de quota", les deux ecrans
+  // ne sont pas les memes. Sur l'edge le quota passe APRES la faucheuse de runs
+  // perimes (une ligne morte consomme une place) ; cet entrypoint-ci n'a ni
+  // garde de run actif ni faucheuse -- il tourne dans un process durable ou le
+  // catch de la generation s'execute toujours -- donc il n'y a rien a ordonner
+  // ici. Si une faucheuse arrive un jour dans ce fichier, elle passe AVANT ce
+  // bloc, comme dans api/index.ts.
+  const plan = planOf(user)
+  const used = await countEpisodesThisMonth(db, userId)
+  if (!hasQuotaLeft(used, plan)) {
+    return c.json(
+      {
+        error: quotaMessage(user.outputLanguage, plan),
+        plan,
+        used,
+        limit: PLAN_EPISODE_LIMIT[plan],
+        resets_at: monthResetsAt().toISOString(),
+      },
+      402,
+    )
+  }
+
+  const targetMin = targetMinutesFor(plan, parsed.data.target_min, user.targetMinutes)
   // users.target_minutes is written outside this route, so it gets the same bound:
   // an out-of-range value would overflow the target_sec integer column.
   if (!Number.isInteger(targetMin) || targetMin < 1 || targetMin > MAX_TARGET_MINUTES) {
@@ -471,14 +501,23 @@ const MeUpdateSchema = z.object({
   target_minutes: z.number().int().min(1).max(MAX_TARGET_MINUTES).optional(),
 })
 
-function meView(user: { outputLanguage: string; voiceId: string | null; targetMinutes: number; rssToken: string }) {
+function meView(user: {
+  id: string
+  outputLanguage: string
+  voiceId: string | null
+  targetMinutes: number
+  rssToken: string
+  plan: string
+  planExpiresAt: Date | null
+}) {
   const language = user.outputLanguage.trim().toLowerCase().slice(0, 2)
   const base = (process.env.R2_PUBLIC_BASE_URL ?? '').replace(/\/+$/, '')
   return {
+    id: user.id,
     language,
     voice_id: user.voiceId,
     // The narrator the next episode will actually use, override or default.
-    voice: voiceFor(language, user.voiceId) ?? null,
+    voice: voiceFor(language, user.voiceId, planOf(user)) ?? null,
     voices: VOICE_OPTIONS,
     target_minutes: Math.min(MAX_TARGET_MINUTES, Math.max(1, user.targetMinutes)),
     max_minutes: MAX_TARGET_MINUTES,
@@ -495,7 +534,7 @@ function meView(user: { outputLanguage: string; voiceId: string | null; targetMi
 
 authed.get('/me', async (c) => {
   const [user] = await db
-    .select({ outputLanguage: users.outputLanguage, voiceId: users.voiceId, targetMinutes: users.targetMinutes, rssToken: users.rssToken })
+    .select({ id: users.id, outputLanguage: users.outputLanguage, voiceId: users.voiceId, targetMinutes: users.targetMinutes, rssToken: users.rssToken, plan: users.plan, planExpiresAt: users.planExpiresAt })
     .from(users)
     .where(eq(users.id, c.get('userId')))
   if (!user) return c.json({ error: 'not found' }, 404)
@@ -521,7 +560,7 @@ authed.put('/me', async (c) => {
     const userId = c.get('userId')
   if (Object.keys(patch).length > 0) await db.update(users).set(patch).where(eq(users.id, userId))
   const [user] = await db
-    .select({ outputLanguage: users.outputLanguage, voiceId: users.voiceId, targetMinutes: users.targetMinutes, rssToken: users.rssToken })
+    .select({ id: users.id, outputLanguage: users.outputLanguage, voiceId: users.voiceId, targetMinutes: users.targetMinutes, rssToken: users.rssToken, plan: users.plan, planExpiresAt: users.planExpiresAt })
     .from(users)
     .where(eq(users.id, userId))
   if (!user) return c.json({ error: 'not found' }, 404)

@@ -5,9 +5,10 @@ import { Hono, type Context } from 'hono'
 import { handle } from 'hono/vercel'
 import { z } from 'zod'
 import { ScriptSchema, type Script, type StoredClaim } from '../src/core/types.js'
-import { CATEGORIES, MAX_TARGET_MINUTES, MIN_SOURCES_PER_EPISODE, VOICE_OPTIONS, voiceFor } from '../src/config.js'
+import { CATEGORIES, MAX_TARGET_MINUTES, MIN_SOURCES_PER_EPISODE, VOICE_OPTIONS, voiceFor, targetMinutesFor } from '../src/config.js'
 import { feedKey } from '../src/rss/feed.js'
 import { countAvailableSources, hasEnoughSources, shortageMessage } from '../src/jobs/material.js'
+import { countEpisodesThisMonth, hasQuotaLeft, monthResetsAt, PLAN_EPISODE_LIMIT, planOf, quotaMessage } from '../src/jobs/quota.js'
 import { privacyHtml } from '../src/legal/privacy.js'
 import { termsHtml } from '../src/legal/terms.js'
 import * as schema from '../src/db/schema.js'
@@ -453,14 +454,26 @@ const MeUpdateSchema = z.object({
   target_minutes: z.number().int().min(1).max(MAX_TARGET_MINUTES).optional(),
 })
 
-function meView(user: { outputLanguage: string; voiceId: string | null; targetMinutes: number; rssToken: string }, supportUnread: number) {
+function meView(
+  user: {
+    id: string
+    outputLanguage: string
+    voiceId: string | null
+    targetMinutes: number
+    rssToken: string
+    plan: string
+    planExpiresAt: Date | null
+  },
+  supportUnread: number,
+) {
   const language = user.outputLanguage.trim().toLowerCase().slice(0, 2)
   const base = (process.env.R2_PUBLIC_BASE_URL ?? '').replace(/\/+$/, '')
   return {
+    id: user.id,
     language,
     voice_id: user.voiceId,
     // The narrator the next episode will actually use, override or default.
-    voice: voiceFor(language, user.voiceId) ?? null,
+    voice: voiceFor(language, user.voiceId, planOf(user)) ?? null,
     voices: VOICE_OPTIONS,
     target_minutes: Math.min(MAX_TARGET_MINUTES, Math.max(1, user.targetMinutes)),
     max_minutes: MAX_TARGET_MINUTES,
@@ -480,7 +493,7 @@ function meView(user: { outputLanguage: string; voiceId: string | null; targetMi
 authed.get('/me', async (c) => {
   const [user] = await c
     .get('conn')
-    .select({ outputLanguage: users.outputLanguage, voiceId: users.voiceId, targetMinutes: users.targetMinutes, rssToken: users.rssToken })
+    .select({ id: users.id, outputLanguage: users.outputLanguage, voiceId: users.voiceId, targetMinutes: users.targetMinutes, rssToken: users.rssToken, plan: users.plan, planExpiresAt: users.planExpiresAt })
     .from(users)
     .where(eq(users.id, c.get('userId')))
   if (!user) return c.json({ error: 'not found' }, 404)
@@ -507,7 +520,7 @@ authed.put('/me', async (c) => {
   const userId = c.get('userId')
   if (Object.keys(patch).length > 0) await conn.update(users).set(patch).where(eq(users.id, userId))
   const [user] = await conn
-    .select({ outputLanguage: users.outputLanguage, voiceId: users.voiceId, targetMinutes: users.targetMinutes, rssToken: users.rssToken })
+    .select({ id: users.id, outputLanguage: users.outputLanguage, voiceId: users.voiceId, targetMinutes: users.targetMinutes, rssToken: users.rssToken, plan: users.plan, planExpiresAt: users.planExpiresAt })
     .from(users)
     .where(eq(users.id, userId))
   if (!user) return c.json({ error: 'not found' }, 404)
@@ -700,7 +713,12 @@ authed.post('/episodes', async (c) => {
   const userId = c.get('userId')
 
   const [user] = await conn
-    .select({ targetMinutes: users.targetMinutes, outputLanguage: users.outputLanguage })
+    .select({
+      targetMinutes: users.targetMinutes,
+      outputLanguage: users.outputLanguage,
+      plan: users.plan,
+      planExpiresAt: users.planExpiresAt,
+    })
     .from(users)
     .where(eq(users.id, userId))
   if (!user) return c.json({ error: 'internal error' }, 500)
@@ -733,6 +751,15 @@ authed.post('/episodes', async (c) => {
   // An active row only blocks while its run can still be alive: maxDuration is
   // 900s, so anything older than 30 minutes died without reaching its catch
   // (worker crash, misconfigured env). Left alone it would 409 forever.
+  //
+  // CET ORDRE COMPTE, et il passe AVANT le quota. Une ligne non-'failed'
+  // consomme une place : la faucheuse est le seul endroit du code qui rend sa
+  // place a un run mort sans avoir atteint son catch. La mettre apres le 402,
+  // c'est enfermer un utilisateur gratuit jusqu'au 1er du mois suivant a cause
+  // de NOTRE plantage, sans aucun chemin de retour. Et pour un run REELLEMENT
+  // vivant, le 409 doit gagner sur le 402 : "un episode est deja en
+  // preparation" est vrai et actionnable, "vous avez utilise votre episode" est
+  // trompeur pendant que l'episode se fabrique.
   const staleBefore = new Date(Date.now() - 30 * 60 * 1000)
   const actives = await conn
     .select({ id: episodes.id, status: episodes.status, createdAt: episodes.createdAt })
@@ -752,9 +779,28 @@ authed.post('/episodes', async (c) => {
       .where(and(eq(episodes.id, stale.id), inArray(episodes.status, ACTIVE_EPISODE_STATUSES)))
   }
 
+  // Le quota, apres la regle des liens et apres la faucheuse : `used` n'est
+  // juste qu'une fois les runs morts rendus a 'failed'. Code DISTINCT du 422 :
+  // l'app doit pouvoir distinguer "pas assez de liens" de "plus de quota", les
+  // deux ecrans ne sont pas les memes.
+  const plan = planOf(user)
+  const used = await countEpisodesThisMonth(conn, userId)
+  if (!hasQuotaLeft(used, plan)) {
+    return c.json(
+      {
+        error: quotaMessage(user.outputLanguage, plan),
+        plan,
+        used,
+        limit: PLAN_EPISODE_LIMIT[plan],
+        resets_at: monthResetsAt().toISOString(),
+      },
+      402,
+    )
+  }
+
   // users.target_minutes is written outside this route, so it gets the same
   // bounds as the request body rather than being trusted.
-  const targetMin = Math.min(MAX_TARGET_MINUTES, Math.max(1, parsed.data.target_min ?? user.targetMinutes))
+  const targetMin = targetMinutesFor(plan, parsed.data.target_min, user.targetMinutes)
   const targetSec = targetMin * 60
   // The select-based guard above gives the friendly message; the partial
   // unique index episodes_one_active_per_user makes it correct under two
@@ -1235,6 +1281,13 @@ authed.get('/sources', async (c) => {
   // server's refusal can never disagree.
   const available = new Set(storyRows.filter((s) => s.status === 'open').flatMap((s) => s.sourceIds)).size
 
+  const [planRow] = await conn
+    .select({ plan: users.plan, planExpiresAt: users.planExpiresAt })
+    .from(users)
+    .where(eq(users.id, userId))
+  const plan = planRow ? planOf(planRow) : 'free'
+  const used = await countEpisodesThisMonth(conn, userId)
+
   return c.json({
     sources: rows.map((s) => ({
       id: s.id,
@@ -1254,6 +1307,10 @@ authed.get('/sources', async (c) => {
     available,
     minimum: MIN_SOURCES_PER_EPISODE,
     categories: CATEGORIES,
+    plan,
+    used,
+    limit: PLAN_EPISODE_LIMIT[plan],
+    resets_at: monthResetsAt().toISOString(),
   })
 })
 

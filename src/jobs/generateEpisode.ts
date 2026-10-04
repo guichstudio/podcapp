@@ -4,7 +4,7 @@ import { INTRO_OUTRO_SEC, MIN_SOURCES_PER_EPISODE, PROMPT_VERSIONS, wordsPerMinu
 import { countWords, entityTokens, isCheckable, splitSentences } from '../core/sentences.js'
 import { OutlineSchema, type Claim, type Outline, type Script } from '../core/types.js'
 import type { Db } from '../db/client.js'
-import { episodes, explainedConcepts, sources, stories } from '../db/schema.js'
+import { episodes, explainedConcepts, sources, stories, users } from '../db/schema.js'
 import { callStructured, type CostLedger } from '../llm/index.js'
 import { logger } from '../log.js'
 import { BLOCKLIST_STRIP, EDIT_V1_SYSTEM, blocklistHits, editV1User } from '../prompts/edit.v1.js'
@@ -14,6 +14,7 @@ import { INTRO_OUTRO_V1_SYSTEM, introOutroV1User } from '../prompts/writer.v1.js
 import { writerV2System, writerV2User } from '../prompts/writer.v2.js'
 import type { Storage } from '../storage/index.js'
 import { unusableMaterialMessage } from './material.js'
+import { countEpisodesThisMonth, hasQuotaLeft, planOf } from './quota.js'
 import { persistRunArtifacts } from './runArtifacts.js'
 
 const TextSchema = z.object({ text: z.string().min(1) })
@@ -370,6 +371,25 @@ async function runEpisode(
   const distinctSources = new Set(open.flatMap((s) => s.sourceIds)).size
   if (distinctSources < MIN_SOURCES_PER_EPISODE) {
     throw new Error(`only ${distinctSources} source(s) behind the open stories: ${MIN_SOURCES_PER_EPISODE} needed for an episode`)
+  }
+
+  // The fourth and last guard: the only one that protects the spend when a run
+  // is triggered some way other than POST /episodes or the daily cron (a retry,
+  // a manual trigger from the dashboard). Checked against the user's row, not
+  // trusted from the caller, because opts carries no plan.
+  const [userPlanRow] = await db
+    .select({ plan: users.plan, planExpiresAt: users.planExpiresAt })
+    .from(users)
+    .where(eq(users.id, opts.userId))
+  const plan = planOf(userPlanRow ?? { plan: 'free', planExpiresAt: null })
+  // Ce run possede deja sa ligne 'queued' (les trois appelants l'inserent avant
+  // de declencher), et cette ligne n'est pas 'failed' : sans l'exclure, le run
+  // se compterait lui-meme comme une place prise et le gratuit echouerait a tous
+  // les coups. La question ici est "cette ligne-ci avait-elle droit d'exister",
+  // pas "reste-t-il une place de plus".
+  const used = await countEpisodesThisMonth(db, opts.userId, new Date(), { exceptEpisodeId: opts.episodeId ?? null })
+  if (!hasQuotaLeft(used, plan)) {
+    throw new Error(`monthly quota spent for plan ${plan}`)
   }
 
   const recent = await db

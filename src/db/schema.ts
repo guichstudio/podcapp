@@ -51,8 +51,27 @@ export const users = pgTable('users', {
   outputLanguage: text('output_language').notNull().default('fr'),
   voiceId: text('voice_id'),
   targetMinutes: integer('target_minutes').notNull().default(10),
+  // Le palier d'abonnement. 'free' | 'plus' | 'pro' -- volontairement du texte
+  // et pas un enum PG : ajouter un palier ne doit pas demander une migration de
+  // type. La valeur est bornee a la LECTURE par planOf(), comme target_minutes.
+  plan: text('plan').notNull().default('free'),
+  // Null pour 'free'. Depasse => planOf() rend 'free' sans rien reecrire.
+  planExpiresAt: timestamp('plan_expires_at', { withTimezone: true }),
+  // L'originalTransactionId d'Apple : il survit aux renouvellements et c'est la
+  // seule cle stable pour rapprocher une notification serveur d'une ligne.
+  planOriginalTxnId: text('plan_original_txn_id'),
+  // 'Production' | 'Sandbox'. Les deux espaces d'identifiants sont DISJOINTS :
+  // sans ce champ, l'achat sandbox d'un relecteur peut entrer en collision avec
+  // un achat reel.
+  planEnvironment: text('plan_environment'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-})
+},
+  (t) => [
+    uniqueIndex('users_one_account_per_subscription')
+      .on(t.planOriginalTxnId)
+      .where(sql`plan_original_txn_id is not null`),
+  ],
+)
 
 export const identities = pgTable(
   'identities',

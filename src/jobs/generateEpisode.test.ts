@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict'
-import { randomUUID } from 'node:crypto'
+import { randomBytes, randomUUID } from 'node:crypto'
 import { test } from 'node:test'
 import { eq } from 'drizzle-orm'
 import { MIN_SOURCES_PER_EPISODE } from '../config.js'
 import type { Db } from '../db/client.js'
-import { sources, stories, users } from '../db/schema.js'
+import { episodes, sources, stories, users } from '../db/schema.js'
 import { createTestDb } from '../db/testDb.js'
 import type { Storage } from '../storage/index.js'
 import { countAvailableSources, hasEnoughSources, unusableMaterialMessage } from './material.js'
@@ -560,6 +560,115 @@ test('a hand-picked run never rewrites an aired story: only rows still open are 
     assert.equal(openAfter?.status, 'discarded')
   } finally {
     restore()
+    await cleanup()
+  }
+})
+
+// Seed exactly the way every real caller seeds. POST /episodes (both
+// entrypoints) and the 06:00 cron insert the 'queued' row FIRST and only then
+// hand its id to the pipeline, so a test that calls generateEpisode with no
+// episodeId and no queued row is testing a sequence nobody runs -- and it
+// passes identically whether the counting rule is right or wrong.
+async function seedLikeTheApi(
+  db: Db,
+  opts: { plan: string; alreadyReadyThisMonth: number },
+): Promise<{ userId: string; episodeId: string }> {
+  const [u] = await db
+    .insert(users)
+    .values({
+      email: `${randomBytes(6).toString('hex')}@example.com`,
+      apiToken: randomBytes(16).toString('hex'),
+      rssToken: randomBytes(16).toString('hex'),
+      plan: opts.plan,
+    })
+    .returning({ id: users.id })
+  const userId = u!.id
+
+  for (let i = 0; i < opts.alreadyReadyThisMonth; i++) {
+    await db.insert(episodes).values({ userId, targetSec: 180, status: 'ready' })
+  }
+
+  // Plenty of material: an open story with three distinct sources clears the
+  // links rule on its own, so anything refused below is refused by the quota.
+  await db.insert(stories).values({
+    userId,
+    headline: 'Test story',
+    sourceIds: [randomUUID(), randomUUID(), randomUUID()],
+    firstSeenAt: new Date(),
+    lastSeenAt: new Date(),
+    status: 'open',
+  })
+
+  // The row the route inserts before triggering the run. It is 'queued', so it
+  // is not 'failed', so the plain monthly count sees it.
+  const [ep] = await db
+    .insert(episodes)
+    .values({ userId, targetSec: 180, status: 'queued' })
+    .returning({ id: episodes.id })
+  return { userId, episodeId: ep!.id }
+}
+
+const noopStorage: Storage = {
+  put: async () => {},
+  get: async () => null,
+  delete: async () => {},
+  publicUrl: (key) => key,
+}
+
+test('the pipeline refuses to spend on a run that reached it with no quota left', async () => {
+  // The fourth enforcement point: it must fire even when the links rule alone
+  // would let the run through (three distinct sources, well above the
+  // MIN_SOURCES_PER_EPISODE floor), because it is the only guard standing
+  // between a run triggered some other way (a retry, a manual dashboard
+  // trigger) and paying the writer and TTS for an episode nobody is owed.
+  const { db, cleanup } = await createTestDb()
+  try {
+    // Free's entire monthly ration (PLAN_EPISODE_LIMIT.free = 1) is already
+    // spent by a published episode; the queued row is the SECOND of the month.
+    const { userId, episodeId } = await seedLikeTheApi(db, { plan: 'free', alreadyReadyThisMonth: 1 })
+
+    await assert.rejects(
+      generateEpisode(db, { userId, targetSec: 180, episodeId, storage: noopStorage }),
+      /monthly quota spent for plan free/,
+    )
+  } finally {
+    await cleanup()
+  }
+})
+
+test('the first episode of the month is not refused to a free user', async () => {
+  // The off-by-one this whole guard nearly shipped with. The route counts
+  // BEFORE inserting ("is there room for one more?") and lets the user in; the
+  // pipeline counts AFTER, from inside a run that already owns its 'queued'
+  // row. Counting that row makes used=1 against a limit of 1, so EVERY free
+  // episode fails, forever, and the 06:00 cron repeats it every morning.
+  const { db, cleanup } = await createTestDb()
+  try {
+    const { userId, episodeId } = await seedLikeTheApi(db, { plan: 'free', alreadyReadyThisMonth: 0 })
+
+    // Past the quota gate the next thing the pipeline does is call the
+    // editorial model, so the run still throws -- but on a missing API key, not
+    // on the quota. Cleared explicitly so this never reaches the network.
+    const saved = process.env.DEEPSEEK_API_KEY
+    delete process.env.DEEPSEEK_API_KEY
+    let err: unknown
+    try {
+      await generateEpisode(db, { userId, targetSec: 180, episodeId, storage: noopStorage })
+    } catch (e) {
+      err = e
+    } finally {
+      if (saved !== undefined) process.env.DEEPSEEK_API_KEY = saved
+    }
+
+    assert.doesNotMatch(
+      String(err ?? ''),
+      /monthly quota spent/,
+      'a free user with zero episodes this month was refused their first one',
+    )
+    // And it really did get all the way past the gate, rather than stopping
+    // somewhere earlier for an unrelated reason.
+    assert.match(String(err ?? ''), /Missing env var DEEPSEEK_API_KEY/)
+  } finally {
     await cleanup()
   }
 })

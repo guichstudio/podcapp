@@ -3,10 +3,11 @@ import { and, eq, inArray, ne } from 'drizzle-orm'
 import { z } from 'zod'
 import { createDb, type Db } from '../db/client.js'
 import { episodes, stories, users } from '../db/schema.js'
-import { MAX_TARGET_MINUTES } from '../config.js'
+import { MAX_TARGET_MINUTES, targetMinutesFor } from '../config.js'
 import { deleteAccount } from '../jobs/deleteAccount.js'
 import { countAvailableSources, hasEnoughSources } from '../jobs/material.js'
 import { generateEpisode } from '../jobs/generateEpisode.js'
+import { countEpisodesThisMonth, hasQuotaLeft, PLAN_EPISODE_LIMIT, planOf } from '../jobs/quota.js'
 import { processSource } from '../jobs/processSource.js'
 import { publishEpisode } from '../jobs/publishEpisode.js'
 import { notifyReady } from '../push/notify.js'
@@ -201,13 +202,18 @@ type BriefingOutcome = { userId: string; episodeId?: string; skipped?: string }
 // that died without reaching their catch, then queue a run.
 async function queueBriefing(
   db: Db,
-  user: { id: string; targetMinutes: number; outputLanguage: string },
+  user: { id: string; targetMinutes: number; outputLanguage: string; plan: string; planExpiresAt: Date | null },
 ): Promise<BriefingOutcome> {
   // Same rule as POST /episodes: a morning with three links gets no episode,
   // and the reason is readable in the run.
   const available = await countAvailableSources(db, user.id)
   if (!hasEnoughSources(available)) return { userId: user.id, skipped: `only ${available} source(s) in open stories` }
 
+  // La garde de run actif et la faucheuse passent AVANT le quota, comme dans
+  // POST /episodes : une ligne non-'failed' consomme une place, et cette
+  // faucheuse est le seul endroit qui rend la sienne a un run mort sans avoir
+  // atteint son catch. Sauter sur le quota sans avoir fauche, c'est priver
+  // l'utilisateur de ses matins jusqu'au 1er du mois a cause de notre plantage.
   const staleBefore = new Date(Date.now() - 30 * 60 * 1000)
   const actives = await db
     .select({ id: episodes.id, status: episodes.status, createdAt: episodes.createdAt })
@@ -222,9 +228,22 @@ async function queueBriefing(
       .where(and(eq(episodes.id, stale.id), inArray(episodes.status, ACTIVE_EPISODE_STATUSES)))
   }
 
+  // Same second rendezvous as POST /episodes, after the links rule and after
+  // the reaper: a plan that has spent its month gets no briefing either,
+  // silently to the user (no app is open at 06:00) but readable in the outcome.
+  const plan = planOf(user)
+  const used = await countEpisodesThisMonth(db, user.id)
+  if (!hasQuotaLeft(used, plan)) {
+    logger.log('skipped: monthly quota spent', { userId: user.id, plan, used, limit: PLAN_EPISODE_LIMIT[plan] })
+    return { userId: user.id, skipped: `monthly quota spent (${used}/${PLAN_EPISODE_LIMIT[plan]} on ${plan})` }
+  }
+
   // users.target_minutes is written outside this task, so it gets the same
-  // bounds POST /episodes applies rather than being trusted.
-  const targetSec = Math.min(MAX_TARGET_MINUTES, Math.max(1, user.targetMinutes)) * 60
+  // bounds POST /episodes applies rather than being trusted -- et le plafond du
+  // palier avec, par le MEME targetMinutesFor. Le cron est le chemin qui depense
+  // tous les jours : une borne recopiee a la main ici ignorait PLAN_MAX_MINUTES
+  // et generait chaque matin a 5 min quel que soit l'abonnement.
+  const targetSec = targetMinutesFor(plan, null, user.targetMinutes) * 60
   // The partial unique index episodes_one_active_per_user closes the race
   // between this insert and a concurrent POST /episodes from the user.
   let row: { id: string } | undefined
@@ -270,7 +289,13 @@ export const dailyBriefingsTask = schedules.task({
     requireCloudEnv()
     const db = await createDb()
     const allUsers = await db
-      .select({ id: users.id, targetMinutes: users.targetMinutes, outputLanguage: users.outputLanguage })
+      .select({
+        id: users.id,
+        targetMinutes: users.targetMinutes,
+        outputLanguage: users.outputLanguage,
+        plan: users.plan,
+        planExpiresAt: users.planExpiresAt,
+      })
       .from(users)
 
     // Per-user isolation: one user's failure must not cost the others their
