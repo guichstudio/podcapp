@@ -21,6 +21,8 @@ node-postgres, Trigger.dev, `jose`, SwiftUI + StoreKit 2.
 
 ## Global Constraints
 
+- **Règle de Louis, 2026-10-04 : aucun paywall tant que l'app n'est pas en ligne sur l'App Store.** Pendant la bêta TestFlight, `FREEMIUM_ENFORCED` reste non posé (aucune borne de palier) et l'écran d'achat n'est jamais présenté. Les tâches 7 et 8 (StoreKit, paywall) attendent la sortie publique, ou livrent le paywall caché derrière la même règle.
+
 - **Worktree `~/Code/podcapp-appstore`, branche `appstore`. Jamais de commit sur `main`.** Jamais de `git add -A` ni `git add .` : stager les chemins qu'on a touchés.
 - **Tests :** `pnpm test` (`tsx --test src/**/*.test.ts`, runner `node:test`). 152 tests passent aujourd'hui — le compte ne doit jamais baisser. Base de test : `createTestDb()` de `src/db/testDb.ts` (PGlite neuf par test).
 - **`api/index.ts` déclare `export const config = { runtime: 'edge' }` (ligne 55).** Pas de `node:crypto` : ni `createSign`, ni `X509Certificate`, ni `Buffer`. Signature ES256 par `jose` (`importPKCS8` + `SignJWT`). **Ne jamais importer `src/push/apns.ts` depuis l'edge**, il tourne en Node sur Trigger.dev.
