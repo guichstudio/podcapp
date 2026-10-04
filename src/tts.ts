@@ -67,7 +67,7 @@ writeFileSync(episodePath, audio)
 const minutes = Math.floor(durationSec / 60)
 console.log(`
 chapters   ${rendered.length}
-characters ${totalChars} (~$${((totalChars / 1000) * TTS_USD_PER_1K_CHARS).toFixed(2)} at multilingual_v2 rates)
+characters ${totalChars} (~$${((totalChars / 1000) * TTS_USD_PER_1K_CHARS).toFixed(2)} at the configured TTS rate)
 duration   ${minutes}m${String(durationSec % 60).padStart(2, '0')}s
 assembly   ${method}${method === 'concat' ? ' (no ffmpeg: no loudnorm, tight chapter joins)' : ''}
 output     ${episodePath}

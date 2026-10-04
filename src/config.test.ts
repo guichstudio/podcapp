@@ -8,7 +8,8 @@ import { choosesVoice, maxMinutesFor, targetMinutesFor, voiceFor } from './confi
 process.env.FREEMIUM_ENFORCED = 'true'
 
 test('le palier plafonne la duree, meme si la base dit plus', () => {
-  assert.equal(targetMinutesFor('free', null, 10), 3)
+  // Le gratuit a tout ouvert depuis les credits : seul MAX_TARGET_MINUTES borne.
+  assert.equal(targetMinutesFor('free', null, 10), 5)
   assert.equal(targetMinutesFor('plus', 5, 5), 3)
   assert.equal(targetMinutesFor('pro', 5, 5), 5)
   assert.equal(targetMinutesFor('pro', null, 10), 5) // MAX_TARGET_MINUTES
@@ -21,13 +22,13 @@ test('une duree absurde est ramenee dans les bornes, jamais rejetee', () => {
   assert.equal(targetMinutesFor('pro', 99, 5), 5)
 })
 
-test('seul le palier pro choisit sa voix', () => {
+test('le gratuit et le pro choisissent leur voix, pas le plus', () => {
   const nico = 'MAZdzkb78f8SA7DNBT41'
   const eric = 'cjVigY5qzO86Huf0OWal'
   assert.equal(voiceFor('en', nico, 'pro'), nico)
   // Un voice_id reste en base sur un compte redescendu : il est IGNORE, pas
   // efface, pour que le reabonnement retrouve le choix intact.
-  assert.equal(voiceFor('en', nico, 'free'), eric)
+  assert.equal(voiceFor('en', nico, 'free'), nico)
   assert.equal(voiceFor('en', nico, 'plus'), eric)
   assert.equal(voiceFor('en', null, 'pro'), eric)
 })
@@ -41,18 +42,18 @@ test('eteint, le freemium laisse la duree et la voix comme avant la fusion', () 
   } finally {
     process.env.FREEMIUM_ENFORCED = 'true'
   }
-  assert.equal(targetMinutesFor('free', null, 10), 3)
+  assert.equal(targetMinutesFor('plus', null, 10), 3)
 })
 
 test('l app recoit les memes bornes que celles que le serveur applique', () => {
-  assert.equal(maxMinutesFor('free'), 3)
-  assert.equal(maxMinutesFor('pro'), 5)
-  assert.equal(choosesVoice('free'), false)
-  assert.equal(choosesVoice('pro'), true)
+  assert.equal(maxMinutesFor('free'), 5)
+  assert.equal(maxMinutesFor('plus'), 3)
+  assert.equal(choosesVoice('free'), true)
+  assert.equal(choosesVoice('plus'), false)
   delete process.env.FREEMIUM_ENFORCED
   try {
-    assert.equal(maxMinutesFor('free'), 5)
-    assert.equal(choosesVoice('free'), true)
+    assert.equal(maxMinutesFor('plus'), 5)
+    assert.equal(choosesVoice('plus'), true)
   } finally {
     process.env.FREEMIUM_ENFORCED = 'true'
   }

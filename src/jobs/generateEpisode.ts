@@ -14,6 +14,7 @@ import { INTRO_OUTRO_V1_SYSTEM, introOutroV1User } from '../prompts/writer.v1.js
 import { writerV2System, writerV2User } from '../prompts/writer.v2.js'
 import type { Storage } from '../storage/index.js'
 import { unusableMaterialMessage } from './material.js'
+import { hasCreditsFor, spentCreditsThisMonth } from './credits.js'
 import { countEpisodesThisMonth, hasQuotaLeft, planOf } from './quota.js'
 import { persistRunArtifacts } from './runArtifacts.js'
 
@@ -390,6 +391,12 @@ async function runEpisode(
   const used = await countEpisodesThisMonth(db, opts.userId, new Date(), { exceptEpisodeId: opts.episodeId ?? null })
   if (!hasQuotaLeft(used, plan)) {
     throw new Error(`monthly quota spent for plan ${plan}`)
+  }
+  // Les credits, meme exclusion de sa propre ligne : la reserve de ce run ne
+  // doit pas etre comptee contre lui-meme.
+  const spent = await spentCreditsThisMonth(db, opts.userId, new Date(), { exceptEpisodeId: opts.episodeId ?? null })
+  if (!hasCreditsFor(plan, spent, opts.targetSec / 60)) {
+    throw new Error(`monthly credits spent for plan ${plan} (${Math.floor(spent)} used)`)
   }
 
   const recent = await db

@@ -167,9 +167,10 @@ export function voiceFor(language: string, override: string | null | undefined, 
   return chosen ?? DEFAULT_VOICES[language.trim().toLowerCase().slice(0, 2)] ?? process.env.ELEVENLABS_VOICE_ID
 }
 
-// ElevenLabs multilingual_v2 list price. TTS dominates the cost of an episode
+// ElevenLabs turbo_v2_5 list price (half of multilingual_v2, which was 0.15). TTS
+// dominates the cost of an episode
 // (§6), so its characters and dollars are recorded next to the LLM breakdown.
-export const TTS_USD_PER_1K_CHARS = 0.15
+export const TTS_USD_PER_1K_CHARS = 0.075
 
 // Absolute origin the API is reachable at. Podcast clients fetch the feed and
 // the audio from outside the process, so enclosure URLs can never be relative.

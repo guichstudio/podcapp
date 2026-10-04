@@ -679,3 +679,19 @@ test('the first episode of the month is not refused to a free user', async () =>
     await cleanup()
   }
 })
+
+test('the pipeline refuses a free run once the month s credits are spent', async () => {
+  // Free is unlimited in episodes but not in credits. Thirteen published
+  // episodes with no recorded cost count at their reserve price (8 credits for
+  // 3 min), 104 of 100: the run must stop before paying the writer and TTS.
+  const { db, cleanup } = await createTestDb()
+  try {
+    const { userId, episodeId } = await seedLikeTheApi(db, { plan: 'free', alreadyReadyThisMonth: 13 })
+    await assert.rejects(
+      generateEpisode(db, { userId, targetSec: 180, episodeId, storage: noopStorage }),
+      /monthly credits spent for plan free/,
+    )
+  } finally {
+    await cleanup()
+  }
+})

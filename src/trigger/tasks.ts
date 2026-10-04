@@ -9,6 +9,7 @@ import { countAvailableSources, hasEnoughSources } from '../jobs/material.js'
 import { generateEpisode } from '../jobs/generateEpisode.js'
 import { createAppStoreClient } from '../apple/appstore.js'
 import { planWithSafetyNet } from '../apple/refresh.js'
+import { hasCreditsFor, spentCreditsThisMonth } from '../jobs/credits.js'
 import { countEpisodesThisMonth, hasQuotaLeft, PLAN_EPISODE_LIMIT } from '../jobs/quota.js'
 import { processSource } from '../jobs/processSource.js'
 import { publishEpisode } from '../jobs/publishEpisode.js'
@@ -255,6 +256,13 @@ async function queueBriefing(
   // tous les jours : une borne recopiee a la main ici ignorait PLAN_MAX_MINUTES
   // et generait chaque matin a 5 min quel que soit l'abonnement.
   const targetSec = targetMinutesFor(plan, null, user.targetMinutes) * 60
+  // Les credits du mois : plus assez pour la reserve de ce briefing, pas de
+  // briefing ce matin -- en silence pour l'utilisateur, lisible dans le run.
+  const spent = await spentCreditsThisMonth(db, user.id)
+  if (!hasCreditsFor(plan, spent, targetSec / 60)) {
+    logger.log('skipped: monthly credits spent', { userId: user.id, plan, spent: Math.floor(spent) })
+    return { userId: user.id, skipped: `monthly credits spent (${Math.floor(spent)} used on ${plan})` }
+  }
   // The partial unique index episodes_one_active_per_user closes the race
   // between this insert and a concurrent POST /episodes from the user.
   let row: { id: string } | undefined

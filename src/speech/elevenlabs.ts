@@ -3,7 +3,11 @@ import { logger } from '../log.js'
 import type { SpeechChapter, SpeechProvider, SynthesizedChapter } from './provider.js'
 
 const API = 'https://api.elevenlabs.io/v1/text-to-speech'
-export const DEFAULT_TTS_MODEL = 'eleven_multilingual_v2'
+// Turbo v2.5 depuis le 2026-10-04 (decision de Louis) : environ deux fois moins
+// cher que multilingual_v2, qu'il avait choisi a l'oreille le 2026-08-31. C'est
+// ce qui fait tenir une quinzaine de briefings dans les 100 credits du gratuit.
+// Il accepte previous_text / next_text, donc la couture entre chapitres reste.
+export const DEFAULT_TTS_MODEL = 'eleven_turbo_v2_5'
 
 // One request per chapter, carrying previous_text / next_text so prosody stays
 // continuous across the cuts (request stitching). Per-chapter requests also make

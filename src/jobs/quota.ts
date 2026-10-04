@@ -31,8 +31,11 @@ export function freemiumEnforced(): boolean {
 // de sa langue (PLAN_MAX_MINUTES, PLAN_CHOOSES_VOICE). Plus et Pro gardent les
 // plafonds de la spec pour le jour ou l'achat existera.
 export const PLAN_EPISODE_LIMIT: Record<Plan, number | null> = { free: null, plus: 8, pro: 12 }
-export const PLAN_MAX_MINUTES: Record<Plan, number> = { free: 3, plus: 3, pro: 5 }
-export const PLAN_CHOOSES_VOICE: Record<Plan, boolean> = { free: false, plus: false, pro: true }
+// Le gratuit a tout ouvert depuis l'arrivee des credits (2026-10-04) : un
+// briefing plus long ou une autre voix consomment des credits, ils n'ont plus a
+// etre interdits (voir credits.ts).
+export const PLAN_MAX_MINUTES: Record<Plan, number> = { free: 5, plus: 3, pro: 5 }
+export const PLAN_CHOOSES_VOICE: Record<Plan, boolean> = { free: true, plus: false, pro: true }
 
 const PLANS = new Set<string>(['free', 'plus', 'pro'])
 

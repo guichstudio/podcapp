@@ -12,6 +12,7 @@ import { countEpisodesThisMonth, hasQuotaLeft, monthResetsAt, PLAN_EPISODE_LIMIT
 import { createAppStoreClient, readOriginalTransactionId, readSignedTransactionFromNotification } from '../src/apple/appstore.js'
 import { planWithSafetyNet, refreshByTransaction } from '../src/apple/refresh.js'
 import { linkSubscription } from '../src/apple/link.js'
+import { creditsMessage, creditsView, hasCreditsFor, PLAN_MONTHLY_CREDITS, reserveCredits, spentCreditsThisMonth } from '../src/jobs/credits.js'
 import { privacyHtml } from '../src/legal/privacy.js'
 import { termsHtml } from '../src/legal/terms.js'
 import * as schema from '../src/db/schema.js'
@@ -499,6 +500,7 @@ function meView(
     planExpiresAt: Date | null
   },
   supportUnread: number,
+  creditsSpent: number,
 ) {
   const language = user.outputLanguage.trim().toLowerCase().slice(0, 2)
   const base = (process.env.R2_PUBLIC_BASE_URL ?? '').replace(/\/+$/, '')
@@ -514,6 +516,8 @@ function meView(
     target_minutes: targetMinutesFor(planOf(user), null, user.targetMinutes),
     max_minutes: maxMinutesFor(planOf(user)),
     voice_choice: choosesVoice(planOf(user)),
+    // The month's credits, or null when there is nothing to count.
+    credits: creditsView(planOf(user), creditsSpent),
     minimum_sources: MIN_SOURCES_PER_EPISODE,
     daily_at: '06:00',
     // Public by necessity (podcast apps fetch it anonymously); the token in it
@@ -534,7 +538,7 @@ authed.get('/me', async (c) => {
     .from(users)
     .where(eq(users.id, c.get('userId')))
   if (!user) return c.json({ error: 'not found' }, 404)
-  return c.json(meView(user, await unreadFor(c.get('conn'), c.get('userId'))))
+  return c.json(meView(user, await unreadFor(c.get('conn'), c.get('userId')), await spentCreditsThisMonth(c.get('conn'), c.get('userId'))))
 })
 
 authed.put('/me', async (c) => {
@@ -561,7 +565,7 @@ authed.put('/me', async (c) => {
     .from(users)
     .where(eq(users.id, userId))
   if (!user) return c.json({ error: 'not found' }, 404)
-  return c.json(meView(user, await unreadFor(c.get('conn'), c.get('userId'))))
+  return c.json(meView(user, await unreadFor(c.get('conn'), c.get('userId')), await spentCreditsThisMonth(c.get('conn'), c.get('userId'))))
 })
 
 /// A device asking to be told when its briefing is ready.
@@ -874,6 +878,23 @@ authed.post('/episodes', async (c) => {
   // bounds as the request body rather than being trusted.
   const targetMin = targetMinutesFor(plan, parsed.data.target_min, user.targetMinutes)
   const targetSec = targetMin * 60
+
+  // The credits: free accounts get 100 a month, worth 5 EUR of real cost. A
+  // briefing starts only if its reserve fits in what is left, so the promise
+  // holds whatever length or voice is picked. Same 402 as the episode quota,
+  // with the numbers the app needs to say why.
+  const spent = await spentCreditsThisMonth(conn, userId)
+  if (!hasCreditsFor(plan, spent, targetMin)) {
+    const monthly = PLAN_MONTHLY_CREDITS[plan] ?? 0
+    return c.json(
+      {
+        error: creditsMessage(user.outputLanguage, monthly - spent, targetMin),
+        credits: creditsView(plan, spent),
+        credits_needed: reserveCredits(targetMin),
+      },
+      402,
+    )
+  }
   // The select-based guard above gives the friendly message; the partial
   // unique index episodes_one_active_per_user makes it correct under two
   // concurrent requests (no transaction is possible on the HTTP driver).
@@ -1384,6 +1405,7 @@ authed.get('/sources', async (c) => {
     limit: PLAN_EPISODE_LIMIT[plan],
     max_minutes: maxMinutesFor(plan),
     voice_choice: choosesVoice(plan),
+    credits: creditsView(plan, await spentCreditsThisMonth(conn, userId)),
     resets_at: monthResetsAt().toISOString(),
   })
 })
