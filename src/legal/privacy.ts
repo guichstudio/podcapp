@@ -9,8 +9,8 @@
 import { legalPage, wantsFrench } from './layout.js'
 
 export const PRIVACY_CONTACT = 'guich.studio@gmail.com'
-export const PRIVACY_UPDATED = '1er septembre 2026'
-export const PRIVACY_UPDATED_EN = '1 September 2026'
+export const PRIVACY_UPDATED = '4 octobre 2026'
+export const PRIVACY_UPDATED_EN = '4 October 2026'
 
 const BODY_FR = `
 <h1>Politique de confidentialité</h1>
@@ -35,6 +35,10 @@ l’éditeur, la date de publication, ainsi que l’analyse et le vecteur qui en
 <li><b>Vos épisodes</b> — le plan, le script, le rapport de vérification phrase par phrase, le
 coût de fabrication et le fichier audio.</li>
 <li><b>Vos réglages</b> — langue, voix, durée cible.</li>
+<li><b>Vos messages de support</b> — ce que vous écrivez dans le chat de l’application, et les
+réponses qui vous sont faites. Ils sont lus par Louis Guichard seul, pour vous répondre.</li>
+<li><b>L’identifiant de notification de vos appareils</b> — si vous autorisez les notifications,
+pour vous prévenir qu’un briefing est prêt ou qu’une réponse vous attend.</li>
 <li><b>Un journal technique</b> — refus d’un email entrant, échecs d’extraction : de quoi
 comprendre pourquoi quelque chose n’a pas marché.</li>
 </ul>
@@ -54,6 +58,8 @@ regroupement en sujets, le choix éditorial et la vérification.</li>
 <li><b>ElevenLabs</b> — reçoit le script final, pour en faire une voix.</li>
 <li><b>Postmark</b> — reçoit les newsletters que vous transférez, et l’adresse d’où vous les
 transférez, pour la réception du courrier entrant.</li>
+<li><b>Apple</b> — achemine les notifications : il reçoit l’identifiant de l’appareil et le texte
+de la notification, par exemple le début d’une réponse du support.</li>
 </ul>
 <p>À l’exception de Postmark, dont c’est le métier, aucun de ces prestataires ne reçoit votre
 adresse email ni vos jetons : ils ne voient que le contenu à traiter.</p>
@@ -80,7 +86,8 @@ suppression se fait à la demande, manuellement, sous quelques jours.</p>
 <p>Vous pouvez demander l’accès à vos données, leur rectification, leur effacement, leur
 portabilité, ou vous opposer à leur traitement, en écrivant à
 <a href="mailto:${PRIVACY_CONTACT}">${PRIVACY_CONTACT}</a>. La réponse arrive sous trente jours.
-Un effacement supprime le compte, les sources, les sujets, les épisodes, l’audio et le flux : il
+Un effacement supprime le compte, les sources, les sujets, les épisodes, l’audio, le flux et
+les messages de support : il
 est définitif et rien n’en est conservé. Vous pouvez aussi saisir la CNIL.</p>
 
 <h2>Sécurité</h2>
@@ -126,6 +133,10 @@ publisher and publication date, plus the analysis and the vector derived from th
 <li><b>Your episodes</b> — the outline, the script, the sentence-by-sentence verification
 report, what it cost to make, and the audio file.</li>
 <li><b>Your settings</b> — language, voice, target length.</li>
+<li><b>Your support messages</b> — what you write in the app's chat, and the replies you
+get. Only Louis Guichard reads them, to answer you.</li>
+<li><b>Your devices' notification identifier</b> — if you allow notifications, to tell you a
+briefing is ready or a reply is waiting.</li>
 <li><b>A technical log</b> — a rejected inbound email, a failed extraction: enough to
 understand why something did not work.</li>
 </ul>
@@ -146,6 +157,8 @@ script.</li>
 <li><b>ElevenLabs</b> — receives the final script, to turn it into a voice.</li>
 <li><b>Postmark</b> — receives the newsletters you forward, and the address you forward
 them from, to handle inbound mail.</li>
+<li><b>Apple</b> — delivers notifications: it receives the device identifier and the text
+of the notification, such as the start of a support reply.</li>
 </ul>
 <p>Postmark aside, whose job it is, none of these providers receives your email address or
 your tokens: they only see the content to be processed.</p>
@@ -172,8 +185,8 @@ request, by hand, within a few days.</p>
 <p>You can ask for access to your data, its correction, its erasure, its portability, or
 object to its processing, by writing to
 <a href="mailto:${PRIVACY_CONTACT}">${PRIVACY_CONTACT}</a>. An answer comes within thirty
-days. An erasure removes the account, the sources, the stories, the episodes, the audio and
-the feed: it is final and nothing is kept. If you are in the EU you may also complain to
+days. An erasure removes the account, the sources, the stories, the episodes, the audio, the
+feed and the support messages: it is final and nothing is kept. If you are in the EU you may also complain to
 your data protection authority; in France, the CNIL.</p>
 
 <h2>Security</h2>
