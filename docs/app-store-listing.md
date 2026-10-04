@@ -79,6 +79,7 @@ WHAT IT DOES
 • Save from anywhere. Share to Podcapp from Safari, YouTube, Threads or any app. Videos are transcribed.
 • Your briefing is ready in the morning once you have three links, or make one right away from the links you pick.
 • Three to five minutes, your choice, one chapter per story.
+• Free, with 100 credits every month: about 12 to 16 briefings, renewed on the 1st.
 • Read along. Every chapter shows its text and the sources behind it, and you can open the original.
 • In your language. English or French, following your phone. A source in another language is summed up in yours.
 • Shelves by topic. Make a tech, finance or science episode from just those links.
@@ -173,6 +174,7 @@ CE QU'IL FAIT
 • Enregistrez depuis partout. Partagez vers Podcapp depuis Safari, YouTube, Threads ou n'importe quelle app. Les vidéos sont transcrites.
 • Votre briefing est prêt le matin dès que vous avez trois liens, ou créez-en un tout de suite avec les liens de votre choix.
 • De trois à cinq minutes, au choix, un chapitre par sujet.
+• Gratuit, avec 100 crédits chaque mois : environ 12 à 16 briefings, renouvelés le 1er.
 • Lisez en écoutant. Chaque chapitre montre son texte et les sources derrière, et vous pouvez ouvrir l'original.
 • Dans votre langue. Français ou anglais, selon votre téléphone. Une source dans une autre langue est résumée dans la vôtre.
 • Des étagères par thème. Faites un épisode tech, finance ou science avec ces seuls liens.
