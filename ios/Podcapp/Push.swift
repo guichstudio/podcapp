@@ -78,11 +78,21 @@ enum Push {
     /// upload that failed once was never tried again and anyone who never
     /// opened the generation sheet was never asked. iOS hands back the same
     /// token cheaply and the server upserts it, so repeating this costs nothing.
+    ///
+    /// It also ASKS when iOS never has (b37). b36 waited for an "obvious"
+    /// moment -- a generation started, a first support message -- and measured
+    /// on Louis's own phone the same day, that moment never came: he opened the
+    /// chat without writing, and the feedback request had nobody to reach. This
+    /// only runs inside the signed-in shell, after the onboarding has explained
+    /// what the app does, so it is not the cold first-launch prompt the comment
+    /// at the top of this file rightly avoids.
     static func registerIfAuthorized() async {
         guard enabled else { return }
         switch await authorization() {
         case .authorized, .provisional, .ephemeral:
             UIApplication.shared.registerForRemoteNotifications()
+        case .notDetermined:
+            await askAndRegister()
         default:
             break
         }
