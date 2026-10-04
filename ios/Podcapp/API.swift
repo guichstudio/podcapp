@@ -123,6 +123,29 @@ struct SavedSource: Decodable, Identifiable, Sendable {
     var link: URL? { url.flatMap(URL.init(string:)) }
 }
 
+/// The month's credits, as the server counts them: 100 a month on the free
+/// plan, worth 5 EUR of real cost. Absent (nil) when nothing is counted.
+struct Credits: Decodable, Sendable, Equatable {
+    let monthly: Int
+    let left: Int
+    let resetsAt: Date
+    /// What a briefing of each length usually costs, keyed "3", "4", "5".
+    let perEpisode: [String: Int]
+    /// What the server demands before starting each length.
+    let reserve: [String: Int]
+
+    enum CodingKeys: String, CodingKey {
+        case monthly, left, reserve
+        case resetsAt = "resets_at"
+        case perEpisode = "per_episode"
+    }
+
+    func typical(_ minutes: Int) -> Int? { perEpisode[String(minutes)] }
+
+    /// The server's own rule, never a client-side guess.
+    func canAfford(_ minutes: Int) -> Bool { left >= (reserve[String(minutes)] ?? 0) }
+}
+
 /// One line of the support thread. snake_case on the wire, like /me.
 struct SupportMessage: Decodable, Identifiable, Sendable, Equatable {
     let id: String
@@ -369,6 +392,7 @@ actor API {
         /// False when the plan does not let this account pick its narrator;
         /// the voice card is then hidden rather than shown and ignored.
         let voiceChoice: Bool?
+        let credits: Credits?
 
         enum CodingKeys: String, CodingKey {
             case language, voice, voices
@@ -381,6 +405,7 @@ actor API {
             case ingestAddress = "ingest_address"
             case supportUnread = "support_unread"
             case voiceChoice = "voice_choice"
+            case credits
         }
 
         var feedURL: URL? { feedUrl.flatMap(URL.init(string:)) }
@@ -424,9 +449,10 @@ actor API {
         /// The longest episode this account's plan allows. Absent on older
         /// servers, which allowed 5.
         let maxMinutes: Int?
+        let credits: Credits?
 
         enum CodingKeys: String, CodingKey {
-            case sources, available, minimum, categories
+            case sources, available, minimum, categories, credits
             case maxMinutes = "max_minutes"
         }
     }

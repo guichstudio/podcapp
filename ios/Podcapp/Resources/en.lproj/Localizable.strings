@@ -8,6 +8,8 @@
 "%@ against these sources before air. None needed a fix." = "%@ against these sources before air. None needed a fix.";
 "%lld chapters" = "%lld chapters";
 "%lld cited sources are no longer in your library: they are flagged rather than reconstructed." = "%lld cited sources are no longer in your library: they are flagged rather than reconstructed.";
+"%lld credits every month" = "%lld credits every month";
+"%lld credits left" = "%lld credits left";
 "%lld links of %lld minimum" = "%lld links of %lld minimum";
 "%lld min · max %lld" = "%lld min · max %lld";
 "%lld new today" = "%lld new today";
@@ -65,6 +67,7 @@
 "Built by you," = "Built by you,";
 "Built, not read aloud." = "Built, not read aloud.";
 "CHAPTER 1 OF 4" = "CHAPTER 1 OF 4";
+"CREDITS" = "CREDITS";
 "Cancel" = "Cancel";
 "Captured in 1 s" = "Captured in 1 s";
 "Captured in 1s" = "Captured in 1s";
@@ -101,6 +104,7 @@
 "Duplicate" = "Duplicate";
 "EARLIER" = "EARLIER";
 "EXTRACTING" = "EXTRACTING";
+"Each briefing uses credits according to its length: about %lld for 3 minutes, %lld for 5. That makes between %lld and %lld briefings a month." = "Each briefing uses credits according to its length: about %lld for 3 minutes, %lld for 5. That makes between %lld and %lld briefings a month.";
 "Editing" = "Editing";
 "Editorial" = "Editorial";
 "Editorial: intro/outro, no external facts" = "Editorial: intro/outro, no external facts";
@@ -169,6 +173,7 @@
 "Newsletters go by email: forward them to your ingest address once it is set up." = "Newsletters go by email: forward them to your ingest address once it is set up.";
 "Next briefing" = "Next briefing";
 "Next chapter" = "Next chapter";
+"Next renewal" = "Next renewal";
 "Nine editorial steps" = "Nine editorial steps";
 "Nine editorial steps · target %lld min" = "Nine editorial steps · target %lld min";
 "No audio for this episode yet (%@)." = "No audio for this episode yet (%@).";
@@ -181,6 +186,7 @@
 "No source saved yet." = "No source saved yet.";
 "No text for this chapter: the episode has no readable script yet." = "No text for this chapter: the episode has no readable script yet.";
 "No verification report for this episode." = "No verification report for this episode.";
+"Not enough credits for a %lld-minute briefing. Your %lld credits come back on %@." = "Not enough credits for a %lld-minute briefing. Your %lld credits come back on %@.";
 "Not found on the server." = "Not found on the server.";
 "Not sent · tap to retry" = "Not sent · tap to retry";
 "Nothing in this filter." = "Nothing in this filter.";
@@ -226,6 +232,7 @@
 "Really, anything." = "Really, anything.";
 "Received" = "Received";
 "Refused in iOS Settings. Turn them back on there, in Notifications." = "Refused in iOS Settings. Turn them back on there, in Notifications.";
+"Renewed on %@ · ≈ %lld briefings" = "Renewed on %@ · ≈ %lld briefings";
 "Replay the intro" = "Replay the intro";
 "Revoke" = "Revoke";
 "SET ASIDE" = "SET ASIDE";
@@ -296,6 +303,7 @@
 "The run stopped before publishing. Try again from Today." = "The run stopped before publishing. Try again from Today.";
 "The script is still being written. Come back in a few minutes." = "The script is still being written. Come back in a few minutes.";
 "They leave your library for good. An episode that already cited one keeps the citation, flagged as no longer available." = "They leave your library for good. An episode that already cited one keeps the citation, flagged as no longer available.";
+"They renew on the 1st of every month. A briefing that fails costs nothing." = "They renew on the 1st of every month. A briefing that fails costs nothing.";
 "This PDF has no text to read: it is probably a scan." = "This PDF has no text to read: it is probably a scan.";
 "This briefing has no text yet." = "This briefing has no text yet.";
 "This device" = "This device";
@@ -313,6 +321,7 @@
 "Unsupported" = "Unsupported";
 "Unsupported content type." = "Unsupported content type.";
 "Untitled" = "Untitled";
+"Used this month" = "Used this month";
 "Usually replies within a day" = "Usually replies within a day";
 "Verification pass" = "Verification pass";
 "Verified" = "Verified";
@@ -346,6 +355,7 @@
 "not attached yet" = "not attached yet";
 "note" = "note";
 "nothing new today" = "nothing new today";
+"of %lld" = "of %lld";
 "onboarding.recap.lang" = "EN";
 "onboarding.recap.quote" = "Private credit is showing its first cracks: Blue Owl down 40%.";
 "onboarding.source.lang" = "FR";
@@ -373,6 +383,7 @@
 "“You loved subprime…”" = "“You loved subprime…”";
 "“over the week” → “in one week” date not established" = "“over the week” → “in one week” date not established";
 "↓ TRANSLATED · SUMMED UP" = "↓ TRANSLATED · SUMMED UP";
+"≈ %lld credits" = "≈ %lld credits";
 "≈ 5 min of audio · every morning" = "≈ 5 min of audio · every morning";
 "≈1,500 words, documentary register" = "≈1,500 words, documentary register";
 "▶ Listen" = "▶ Listen";

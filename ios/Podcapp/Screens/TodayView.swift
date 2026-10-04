@@ -242,6 +242,7 @@ struct TodayView: View {
                 minimum: data.minimum ?? 4,
                 targetMinutes: $targetMinutes,
                 maxMinutes: data.maxMinutes ?? 5,
+                credits: data.credits,
                 inFlight: data.inFlight
             )
             .padding(.horizontal, 20)
@@ -385,6 +386,7 @@ struct TodayView: View {
                     available: batch.available,
                     minimum: batch.minimum,
                     maxMinutes: batch.maxMinutes,
+                    credits: batch.credits,
                     newTodayCount: focus.filter { Calendar.current.isDateInToday($0.capturedAt) }.count,
                     // The server is the one that knows: these are the statuses
                     // a generation moves through, and ACTIVE_EPISODE_STATUSES in
@@ -426,6 +428,7 @@ struct TodayView: View {
         let minimum: Int?
         /// The longest episode the plan allows; nil on an older server.
         let maxMinutes: Int?
+        let credits: Credits?
         let newTodayCount: Int
         /// A briefing being made right now, wherever it was started from. The
         /// Library can queue one from picked links and then the reader walks
@@ -749,6 +752,9 @@ private struct TodayGenerateCard: View {
     /// The plan's ceiling, from the server: lengths above it are not offered,
     /// because the server would cut them back to this anyway.
     let maxMinutes: Int
+    /// The month's credits; nil when the server counts none.
+    let credits: Credits?
+    @State private var showingCredits = false
     /// A briefing already being made, started from anywhere: this card, the
     /// Library's picked-links button, or the 06:00 cron. The card then stops
     /// offering to start another and shows that one -- the server refuses a
@@ -794,7 +800,7 @@ private struct TodayGenerateCard: View {
                         Text("Next briefing")
                             .typo(Typo.rowTitleStrong)
                             .foregroundStyle(Palette.ink)
-                        Text("\(readySourceCount) ready · ~\(targetMinutes) min")
+                        Text(subtitleLine)
                             .typo(Typo.meta)
                             .foregroundStyle(Palette.muted)
                     }
@@ -819,6 +825,8 @@ private struct TodayGenerateCard: View {
                 }
                 .padding(.top, 2)
                 .padding(.bottom, 4)
+
+                if let credits { creditsBlock(credits) }
 
                 if let running = inFlight {
                     Button {
@@ -865,7 +873,7 @@ private struct TodayGenerateCard: View {
                 // fill, so a refused tap still reads as the same one. That is
                 // what `disabled` already does, and to about the prototype's
                 // `opacity:.5`; dimming the label as well only halved it twice.
-                .disabled(isGenerating || !rule.met)
+                .disabled(isGenerating || !rule.met || !(credits?.canAfford(targetMinutes) ?? true))
                 }
 
                 switch outcome {
@@ -886,6 +894,62 @@ private struct TodayGenerateCard: View {
                 }
             }
         }
+    }
+
+    private var subtitleLine: String {
+        let base = String(localized: "\(readySourceCount) ready · ~\(targetMinutes) min")
+        guard let cost = credits?.typical(targetMinutes) else { return base }
+        return base + " · " + String(localized: "≈ \(cost) credits")
+    }
+
+
+    /// The gauge: what is left of the month, when it comes back, and roughly how
+    /// many briefings that still makes. Tapping it explains the credits.
+    @ViewBuilder
+    private func creditsBlock(_ credits: Credits) -> some View {
+        let date = CreditsDate.string(credits.resetsAt)
+        let perBriefing = max(1, credits.typical(targetMinutes) ?? 1)
+        Button {
+            Feedback.tap()
+            showingCredits = true
+        } label: {
+            VStack(alignment: .leading, spacing: 5) {
+                HStack {
+                    Text("\(credits.left) credits left")
+                        .typo(Typo.rowLabelStrong)
+                        .foregroundStyle(Palette.ink)
+                    Spacer(minLength: 6)
+                    Text("of \(credits.monthly)")
+                        .typo(Typo.metaSmall)
+                        .foregroundStyle(Palette.muted2)
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Palette.muted2)
+                }
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Palette.hairline)
+                        Capsule()
+                            .fill(credits.canAfford(targetMinutes) ? Palette.accent : Palette.warning)
+                            .frame(width: geo.size.width * CGFloat(min(credits.left, credits.monthly)) / CGFloat(max(1, credits.monthly)))
+                    }
+                }
+                .frame(height: 6)
+                if credits.canAfford(targetMinutes) {
+                    Text("Renewed on \(date) · ≈ \(credits.left / perBriefing) briefings")
+                        .typo(Typo.metaSmall)
+                        .foregroundStyle(Palette.muted2)
+                } else {
+                    Text("Not enough credits for a \(targetMinutes)-minute briefing. Your \(credits.monthly) credits come back on \(date).")
+                        .typo(Typo.metaSmall)
+                        .foregroundStyle(Palette.warning)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showingCredits) { CreditsSheet(credits: credits) }
     }
 
     private var ruleSub: String {
@@ -1217,4 +1281,84 @@ private enum TodayText {
 
 #Preview("Today") {
     TodayView(isActive: true)
+}
+
+/// What the credits are, in four lines: how many, what a briefing costs, when
+/// they come back, and that a failed briefing costs nothing.
+struct CreditsSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let credits: Credits
+
+
+    var body: some View {
+        let short = credits.typical(3) ?? 0
+        let long = credits.typical(5) ?? 0
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                Overline(text: String(localized: "CREDITS"), color: Palette.accentDeep)
+                Spacer(minLength: 8)
+                Button("Close") { dismiss() }
+                    .typo(Typo.navButton)
+                    .foregroundStyle(Palette.accentDeep)
+            }
+            Text("\(credits.monthly) credits every month")
+                .typo(Typo.playerTitle)
+                .foregroundStyle(Palette.ink)
+            Text("Each briefing uses credits according to its length: about \(short) for 3 minutes, \(long) for 5. That makes between \(credits.monthly / max(1, long)) and \(credits.monthly / max(1, short)) briefings a month.")
+                .typo(Typo.sheetLead)
+                .foregroundStyle(Palette.body)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("They renew on the 1st of every month. A briefing that fails costs nothing.")
+                .typo(Typo.sheetLead)
+                .foregroundStyle(Palette.body)
+                .fixedSize(horizontal: false, vertical: true)
+            PlainCard(cornerRadius: 16, padding: 14) {
+                VStack(spacing: 8) {
+                    HStack {
+                        Text("Used this month").typo(Typo.rowLabel).foregroundStyle(Palette.ink)
+                        Spacer()
+                        Text("\(max(0, credits.monthly - credits.left))").typo(Typo.rowLabelStrong).foregroundStyle(Palette.ink)
+                    }
+                    HStack {
+                        Text("Next renewal").typo(Typo.rowLabel).foregroundStyle(Palette.muted2)
+                        Spacer()
+                        Text(CreditsDate.string(credits.resetsAt)).typo(Typo.rowLabel).foregroundStyle(Palette.muted2)
+                    }
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(20)
+        .background(ScreenBackground())
+        .presentationDragIndicator(.visible)
+        .presentationDetents([.medium])
+    }
+}
+
+/// "1er novembre" in French, "November 1" in English: the 1st is the only day
+/// the credits ever renew, and French writes it as an ordinal.
+enum CreditsDate {
+    private static let month: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = AppLocale.current
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        formatter.setLocalizedDateFormatFromTemplate("MMMM")
+        return formatter
+    }()
+    private static let dayMonth: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = AppLocale.current
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        formatter.setLocalizedDateFormatFromTemplate("d MMMM")
+        return formatter
+    }()
+
+    static func string(_ date: Date) -> String {
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        if AppLocale.code == "fr", utc.component(.day, from: date) == 1 {
+            return "1er " + month.string(from: date)
+        }
+        return dayMonth.string(from: date)
+    }
 }
