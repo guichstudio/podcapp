@@ -1,0 +1,78 @@
+<!doctype html>
+<!-- One App Store screenshot, 1320x2868 (iPhone 6.9"), for an in-app screen:
+     ?lang=en|fr&shot=read|sources|settings picks the caption and app/<shot>.png.
+     The onboarding pages need no frame, they are used full-bleed (make-screens.sh).
+     Same tokens and Inter Tight as the site and the onboarding. -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face {
+    font-family: 'Inter Tight'; font-weight: 300 800;
+    src: url('../../../site/assets/fonts/inter-tight-latin.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F;
+  }
+  @font-face {
+    font-family: 'Inter Tight'; font-weight: 300 800;
+    src: url('../../../site/assets/fonts/inter-tight-latin-ext.woff2') format('woff2');
+    unicode-range: U+0100-02BA, U+1E00-1EFF;
+  }
+  :root { --ink: #1c1b22; --ink-3: #55525e; --violet: #5b4dbe; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1320px; height: 2868px; overflow: hidden; }
+  body {
+    background:
+      radial-gradient(900px 700px at 0% 0%, rgba(124, 108, 220, 0.30), transparent 70%),
+      radial-gradient(900px 800px at 100% 100%, rgba(150, 170, 245, 0.45), transparent 70%),
+      linear-gradient(180deg, #f1edfb 0%, #eae5f8 45%, #dcd4f1 100%);
+    font-family: 'Inter Tight', system-ui, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .caption { margin-top: 170px; padding: 0 90px; text-align: center; }
+  h1 {
+    font-size: 116px; font-weight: 800; line-height: 1.02; letter-spacing: -0.035em;
+  }
+  h1 em { font-style: normal; color: var(--violet); }
+  /* The phone: the raw capture (1320x2868) scaled down uniformly inside a
+     closed dark bezel, never cropped, never bleeding off the canvas. */
+  .phone {
+    margin-top: 110px;
+    width: 1000px; height: 2121px;          /* 956x2077 of capture (x0.7242) + 22px bezel */
+    padding: 22px; border-radius: 150px;
+    background: #121117;
+    box-shadow: 0 60px 140px rgba(50, 42, 110, 0.30), 0 0 0 3px rgba(255,255,255,0.35) inset;
+  }
+  .phone img {
+    width: 100%; height: 100%; display: block;
+    border-radius: 128px; object-fit: cover;
+  }
+</style>
+</head>
+<body>
+  <div class="caption"><h1 id="h"></h1></div>
+  <div class="phone"><img id="shot" alt=""></div>
+<script>
+  // Captions in the onboarding's own voice: a dark line, then a violet one.
+  const CAPTIONS = {
+    en: {
+      read: 'Every briefing,<br><em>as an article.</em>',
+      sources: 'Your links,<br><em>sorted by topic.</em>',
+      settings: 'Pick your<br><em>narrator.</em>',
+    },
+    fr: {
+      read: 'Chaque briefing,<br><em>en article.</em>',
+      sources: 'Vos liens,<br><em>rangés par thème.</em>',
+      settings: 'Choisissez<br><em>votre narrateur.</em>',
+    },
+  }
+  const q = new URLSearchParams(location.search)
+  const lang = q.get('lang') === 'fr' ? 'fr' : 'en'
+  const shot = q.get('shot') in CAPTIONS.en ? q.get('shot') : 'read'
+  document.documentElement.lang = lang
+  document.getElementById('h').innerHTML = CAPTIONS[lang][shot]
+  document.getElementById('shot').src = `app/${shot}.png`
+</script>
+</body>
+</html>
