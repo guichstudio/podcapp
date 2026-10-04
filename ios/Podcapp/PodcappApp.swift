@@ -28,6 +28,7 @@ struct PodcappApp: App {
 // honest first screen.
 private struct Entry: View {
     @State private var connected = Config.isConfigured && Config.hasSeenOnboarding
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         if connected {
@@ -36,6 +37,17 @@ private struct Entry: View {
                 // follows it on its own, and this is what makes the episodes
                 // follow it too.
                 .task { await API.shared.reportLanguageIfChanged() }
+                // The device token goes back to the server on every launch and
+                // every return, once notifications are allowed: see
+                // Push.registerIfAuthorized for why once was never enough.
+                .task { await Push.registerIfAuthorized() }
+                .onChange(of: scenePhase) { _, phase in
+                    guard phase == .active else { return }
+                    Task {
+                        await Push.registerIfAuthorized()
+                        await SupportInbox.shared.refresh()
+                    }
+                }
                 .onReceive(NotificationCenter.default.publisher(for: .podcappSignedOut)) { _ in
                     withAnimation { connected = false }
                 }

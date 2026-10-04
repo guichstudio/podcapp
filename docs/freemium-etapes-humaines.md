@@ -11,6 +11,21 @@ Apple et sans contrat. Toutes empêchent en revanche d'**encaisser**.
 
 L'ordre ci-dessous est contraignant : chaque étape a besoin de la précédente.
 
+> **État au 2026-10-04 (relevé dans App Store Connect) :** contrat Applications
+> gratuites actif jusqu'au 1er septembre 2027 ; contrat Applications payantes au
+> statut « Nouveau », jamais signé ; Apple exige de mettre à jour l'entité
+> juridique (aujourd'hui louis guichard, Lyon) et le statut DSA avant de le
+> signer ; aucun groupe d'abonnement ni produit. **Étape 1 tranchée le même jour : on vend en NOM PROPRE,
+> sous l'auto-entreprise française de Louis** (l'entité déjà enregistrée chez
+> Apple, louis guichard, Lyon). Le passage à guich, LLC est reporté : il exige de
+> convertir l'adhésion développeur (D-U-N-S, site et e-mail sur le domaine,
+> demande au support Apple) — dans App Store Connect, nom, type et pays de
+> l'entité sont verrouillés. Prochaines étapes, sans urgence puisque le paywall
+> attend la sortie : statut DSA (commerçant en nom propre) puis contrat payant — rien ne presse, le paywall attend la sortie sur
+> l'App Store. L'étiquette App Privacy, elle, est faite (Assistance client et
+> Identifiant de l'appareil ajoutés le 2026-10-04). Les étapes bancaires,
+> fiscales et la clé d'achat intégré restent à faire par Louis lui-même.
+
 ---
 
 ## 1. Trancher la question d'entité — avant tout le reste

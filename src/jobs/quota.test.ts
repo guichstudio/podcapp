@@ -12,6 +12,11 @@ import {
   quotaMessage,
 } from './quota.js'
 
+// Ces tests exercent les regles des paliers ALLUMEES. En production elles sont
+// eteintes tant que FREEMIUM_ENFORCED n'est pas pose (voir freemiumEnforced) ;
+// chaque fichier de test tourne dans son propre processus, donc ceci ne fuit pas.
+process.env.FREEMIUM_ENFORCED = 'true'
+
 const seedUser = async (db: Awaited<ReturnType<typeof createTestDb>>['db']) => {
   const [u] = await db
     .insert(users)
@@ -139,4 +144,19 @@ test('la remise a zero est le 1er du mois suivant, en UTC', () => {
 test('le refus est dans la langue de l utilisateur et nomme le palier', () => {
   assert.match(quotaMessage('fr', 'free'), /1 épisode/)
   assert.match(quotaMessage('en-US', 'plus'), /8 episodes/)
+})
+
+test('eteint, le freemium ne plafonne personne : le gratuit garde tous ses episodes', () => {
+  delete process.env.FREEMIUM_ENFORCED
+  try {
+    assert.equal(hasQuotaLeft(0, 'free'), true)
+    assert.equal(hasQuotaLeft(30, 'free'), true)
+    assert.equal(hasQuotaLeft(100, 'plus'), true)
+    // Seule la valeur exacte 'true' allume : une faute de frappe ne plafonne pas.
+    process.env.FREEMIUM_ENFORCED = '1'
+    assert.equal(hasQuotaLeft(1, 'free'), true)
+  } finally {
+    process.env.FREEMIUM_ENFORCED = 'true'
+  }
+  assert.equal(hasQuotaLeft(1, 'free'), false)
 })

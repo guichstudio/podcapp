@@ -409,7 +409,10 @@ authed.post('/episodes', async (c) => {
     try {
       await db
         .update(episodes)
-        .set({ status: 'failed', failedStage: 'generate', error: String(err).slice(0, 2000) })
+        // err.message, not String(err): generateEpisode's refusals are written
+        // for the user and the app shows this column verbatim, so it must not
+        // arrive prefixed with "Error: ". Same as the Trigger.dev task.
+        .set({ status: 'failed', failedStage: 'generate', error: (err instanceof Error ? err.message : String(err)).slice(0, 2000) })
         .where(and(eq(episodes.id, episodeId), ne(episodes.status, 'failed')))
     } catch (writeErr) {
       logger.error({ episodeId, err: String(writeErr) }, 'episode run: could not record the failure')

@@ -10,6 +10,18 @@ type AnyDb = PgDatabase<PgQueryResultHKT, typeof schema>
 
 export type Plan = 'free' | 'plus' | 'pro'
 
+/// L'interrupteur du freemium. Eteint tant que FREEMIUM_ENFORCED ne vaut pas
+/// exactement 'true' : le code des paliers est sur main, mais l'ecran d'achat
+/// (taches 7 et 8 du plan) n'existe pas encore, et l'allumer plafonnerait les
+/// testeurs a 1 episode par mois sans aucun moyen de payer pour lever la
+/// limite (decision de Louis, 2026-10-04). Eteint, AUCUNE borne de palier ne
+/// s'applique : ni le compte mensuel, ni la duree, ni le choix de voix -- le
+/// produit se comporte exactement comme avant la fusion. Lu a chaque appel,
+/// pas une seule fois au chargement, pour que les tests puissent le basculer.
+export function freemiumEnforced(): boolean {
+  return process.env.FREEMIUM_ENFORCED === 'true'
+}
+
 // Les plafonds. Ils ne sont pas un choix de packaging : a ~0,55 EUR l'episode de
 // 3 min et ~0,90 EUR celui de 5 min, de l'illimite a 9,99 / 19,99 perd de
 // l'argent des qu'un abonne ecoute tous les jours -- et le produit EST un cron
@@ -80,6 +92,7 @@ export async function countEpisodesThisMonth(
 }
 
 export function hasQuotaLeft(used: number, plan: Plan): boolean {
+  if (!freemiumEnforced()) return true
   return used < PLAN_EPISODE_LIMIT[plan]
 }
 

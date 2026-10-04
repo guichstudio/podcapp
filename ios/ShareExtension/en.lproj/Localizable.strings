@@ -16,6 +16,7 @@
 "%lld selected" = "%lld selected";
 "%lld sentences were checked" = "%lld sentences were checked";
 "%lld sources" = "%lld sources";
+"%lld unread" = "%lld unread";
 "%lld were rewritten" = "%lld were rewritten";
 "1 chapter" = "1 chapter";
 "1 cited source is no longer in your library: it is flagged rather than reconstructed." = "1 cited source is no longer in your library: it is flagged rather than reconstructed.";
@@ -29,6 +30,8 @@
 "28 min to watch" = "28 min to watch";
 "40-post thread" = "40-post thread";
 "5 min max" = "5 min max";
+"A question, a bug, an idea? Louis reads everything and replies here." = "A question, a bug, an idea? Louis reads everything and replies here.";
+"A question, a bug, an idea? Louis replies here." = "A question, a bug, an idea? Louis replies here.";
 "A tap under your finger on tabs, playback and chapters." = "A tap under your finger on tabs, playback and chapters.";
 "ANALYSED" = "ANALYSED";
 "Active on this device." = "Active on this device.";
@@ -73,6 +76,7 @@
 "Checking" = "Checking";
 "Close" = "Close";
 "Close the player" = "Close the player";
+"Contact support" = "Contact support";
 "Continue with Google" = "Continue with Google";
 "Copied" = "Copied";
 "Copy" = "Copy";
@@ -178,6 +182,7 @@
 "No text for this chapter: the episode has no readable script yet." = "No text for this chapter: the episode has no readable script yet.";
 "No verification report for this episode." = "No verification report for this episode.";
 "Not found on the server." = "Not found on the server.";
+"Not sent · tap to retry" = "Not sent · tap to retry";
 "Nothing in this filter." = "Nothing in this filter.";
 "Nothing new since the last briefing. Share a link to Podcapp, from Safari or any app, to feed the next one." = "Nothing new since the last briefing. Share a link to Podcapp, from Safari or any app, to feed the next one.";
 "Nothing playing" = "Nothing playing";
@@ -236,6 +241,7 @@
 "Select" = "Select";
 "Select all" = "Select all";
 "Selecting" = "Selecting";
+"Send" = "Send";
 "Sending…" = "Sending…";
 "Server unreachable. %@" = "Server unreachable. %@";
 "Set aside" = "Set aside";
@@ -306,6 +312,7 @@
 "Unsupported" = "Unsupported";
 "Unsupported content type." = "Unsupported content type.";
 "Untitled" = "Untitled";
+"Usually replies within a day" = "Usually replies within a day";
 "Verification pass" = "Verification pass";
 "Verified" = "Verified";
 "Video" = "Video";
@@ -314,6 +321,7 @@
 "Waiting for the device token…" = "Waiting for the device token…";
 "Welcome to Podcapp" = "Welcome to Podcapp";
 "Where it comes from" = "Where it comes from";
+"Write to Louis…" = "Write to Louis…";
 "Writing" = "Writing";
 "YOUR ARTICLE" = "YOUR ARTICLE";
 "You stay in your app · the analysis runs in the background" = "You stay in your app · the analysis runs in the background";

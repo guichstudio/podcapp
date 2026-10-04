@@ -45,6 +45,39 @@ export interface AppleSubscription {
   environment: AppleEnvironment
 }
 
+/// A-t-on le droit de servir cet abonnement ?
+///
+/// PAS `status === 1`, et PAS `expiresDate > now` : pendant une periode de
+/// grace (4), et pendant une nouvelle tentative de paiement (3), Apple
+/// considere l'abonne comme AYANT DROIT alors que son expiresDate est deja
+/// DANS LE PASSE. Ecrire l'une ou l'autre de ces conditions coupe le service a
+/// quelqu'un qui paie et dont le paiement vient d'echouer -- exactement la
+/// personne qu'il ne faut pas braquer.
+///
+/// `null` veut dire "Apple n'a rien dit, ou a dit quelque chose qu'on ne
+/// connait pas". Ce n'est pas un droit.
+export function isEntitled(sub: AppleSubscription): boolean {
+  return (
+    sub.status === APPLE_SUBSCRIPTION_STATUS.active ||
+    sub.status === APPLE_SUBSCRIPTION_STATUS.billingRetry ||
+    sub.status === APPLE_SUBSCRIPTION_STATUS.gracePeriod
+  )
+}
+
+const GRACE_LEASE_MS = 24 * 60 * 60 * 1000
+
+/// La date a ecrire dans users.plan_expires_at pour un abonnement qui a droit.
+///
+/// planOf() lit le palier comme gratuit des que cette date est passee. Ecrire
+/// l'expiresDate d'Apple telle quelle rendait donc la grace inutile : Apple dit
+/// "a droit", la base dit "echu", et planOf tranche pour la base. Quand
+/// l'echeance d'Apple est deja passee, on ecrit un bail d'un jour ; le filet
+/// (POST /episodes et le cron) relit chez Apple des que le bail expire, et la
+/// notification de renouvellement ou d'expiration le remplace avant.
+export function entitledUntil(sub: AppleSubscription, now: Date = new Date()): Date {
+  return sub.expiresDate.getTime() > now.getTime() ? sub.expiresDate : new Date(now.getTime() + GRACE_LEASE_MS)
+}
+
 /// 4040010 = TransactionIdNotFoundError, le SEUL des cinq 404 documentes de
 /// cet endpoint qui veuille dire "cette transaction n'est pas dans cet
 /// environnement". Les quatre autres (4040001/4040002 compte introuvable,
@@ -79,6 +112,18 @@ export function readOriginalTransactionId(jws: string): string | null {
   const id = payload?.originalTransactionId
   if (typeof id !== 'string' || !TRANSACTION_ID.test(id)) return null
   return id
+}
+
+/// La notification serveur V2 emboite le JWS de la transaction dans son propre
+/// JWS (`data.signedTransactionInfo`). Meme regle que readOriginalTransactionId :
+/// ni l'un ni l'autre n'est verifie, on n'en tire qu'un identifiant, et l'etat
+/// vient d'Apple par TLS.
+export function readSignedTransactionFromNotification(signedPayload: string): string | null {
+  const parts = signedPayload.split('.')
+  if (parts.length !== 3) return null
+  const payload = decodeSegment(parts[1]!)
+  const signed = (payload?.data as { signedTransactionInfo?: unknown } | undefined)?.signedTransactionInfo
+  return typeof signed === 'string' ? signed : null
 }
 
 /// Le filtre vit ICI, dans la fonction qui construit l'URL, et non seulement

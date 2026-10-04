@@ -91,28 +91,45 @@ export interface ApnsResult {
   reason?: string | undefined
 }
 
-/// One alert to one device. Returns rather than throws: a notification that
-/// fails must never fail the episode that triggered it.
-export async function sendApns(
-  config: ApnsConfig,
-  input: { token: string; environment: ApnsEnvironment; title: string; body: string; episodeId: string },
-): Promise<ApnsResult> {
-  const client = connect(HOSTS[input.environment])
+/// One alert to one device, whatever it announces. `data` rides next to `aps`
+/// as top-level keys: the app reads `episode_id` to open a briefing and
+/// `support` to open the chat.
+export interface ApnsMessage {
+  token: string
+  environment: ApnsEnvironment
+  title: string
+  body: string
+  data?: Record<string, string>
+  /// The same id twice is one notification on the phone, not two.
+  collapseId?: string
+  /// Groups notifications in Notification Centre.
+  threadId?: string
+}
+
+export function apnsPayload(message: ApnsMessage): string {
+  return JSON.stringify({
+    aps: {
+      alert: { title: message.title, body: message.body },
+      sound: 'default',
+      ...(message.threadId ? { 'thread-id': message.threadId } : {}),
+    },
+    ...message.data,
+  })
+}
+
+/// Returns rather than throws: a notification that fails must never fail the
+/// episode or the message that triggered it.
+export async function sendApns(config: ApnsConfig, message: ApnsMessage): Promise<ApnsResult> {
+  const client = connect(HOSTS[message.environment])
   try {
     return await new Promise<ApnsResult>((resolve) => {
-      const payload = JSON.stringify({
-        aps: { alert: { title: input.title, body: input.body }, sound: 'default', 'thread-id': 'briefing' },
-        episode_id: input.episodeId,
-      })
       const req = client.request({
         [constants.HTTP2_HEADER_METHOD]: 'POST',
-        [constants.HTTP2_HEADER_PATH]: `/3/device/${input.token}`,
+        [constants.HTTP2_HEADER_PATH]: `/3/device/${message.token}`,
         authorization: `bearer ${providerToken(config)}`,
         'apns-topic': config.topic,
         'apns-push-type': 'alert',
-        // The episode id collapses retries: the same briefing announced twice
-        // is one notification on the phone, not two.
-        'apns-collapse-id': input.episodeId.slice(0, 64),
+        ...(message.collapseId ? { 'apns-collapse-id': message.collapseId.slice(0, 64) } : {}),
         'content-type': 'application/json',
       })
       let status = 0
@@ -126,14 +143,14 @@ export async function sendApns(
       })
       req.on('end', () => {
         const reason = raw ? (JSON.parse(raw) as { reason?: string }).reason : undefined
-        resolve({ token: input.token, status, gone: status === 410 || reason === 'BadDeviceToken', reason })
+        resolve({ token: message.token, status, gone: status === 410 || reason === 'BadDeviceToken', reason })
       })
       req.on('error', (err) => {
         // The message, never the config: an HTTP/2 error can quote the request
         // it failed on, and the authorization header is in it.
-        resolve({ token: input.token, status: 0, gone: false, reason: err.name })
+        resolve({ token: message.token, status: 0, gone: false, reason: err.name })
       })
-      req.end(payload)
+      req.end(apnsPayload(message))
     })
   } finally {
     client.close()

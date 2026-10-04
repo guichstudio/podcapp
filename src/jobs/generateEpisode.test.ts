@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict'
 import { randomBytes, randomUUID } from 'node:crypto'
 import { test } from 'node:test'
+import { eq } from 'drizzle-orm'
+import { MIN_SOURCES_PER_EPISODE } from '../config.js'
 import type { Db } from '../db/client.js'
+import { episodes, sources, stories, users } from '../db/schema.js'
 import { createTestDb } from '../db/testDb.js'
-import { episodes, stories, users } from '../db/schema.js'
 import type { Storage } from '../storage/index.js'
+import { countAvailableSources, hasEnoughSources, unusableMaterialMessage } from './material.js'
 import {
   countUnsupportedShipped,
   editDrift,
@@ -14,6 +17,11 @@ import {
   type GroundingEntry,
 } from './generateEpisode.js'
 import { RUN_ARTIFACTS, runArtifactKey } from './runArtifacts.js'
+
+// Ces tests exercent les regles des paliers ALLUMEES. En production elles sont
+// eteintes tant que FREEMIUM_ENFORCED n'est pas pose (voir freemiumEnforced) ;
+// chaque fichier de test tourne dans son propre processus, donc ceci ne fuit pas.
+process.env.FREEMIUM_ENFORCED = 'true'
 
 test('stripBlocklist removes the filler clause and leaves a sentence behind', () => {
   // A speech engine reads what is left out loud, so the cut takes the conjunction
@@ -247,6 +255,318 @@ test('a run that throws still persists the artifacts it produced', async () => {
   )
   const metrics = JSON.parse(written.get(runArtifactKey('ep1', 'metrics')) ?? '{}') as { error?: string }
   assert.match(metrics.error ?? '', /db down/)
+})
+
+// --- The morning that repeated itself ---------------------------------------
+// A real account failed six times in one morning on one open story whose three
+// links were Facebook share wrappers: no article behind them, so the editor
+// selected nothing, the run threw, the story stayed `open`, it still satisfied
+// the link rule, and 06:00 replayed it the next day. These two tests fence the
+// fix in from both sides: zero sections must close the loop, and one section
+// must leave everything alone.
+
+interface StubbedCall {
+  url: string
+  body: string
+}
+
+// The pipeline's only seam is fetch: the providers call it directly. Stubbing
+// it here runs the REAL runEpisode against a real (PGlite) database, which is
+// the only way a test can prove what the story rows look like afterwards.
+function stubLlm(handler: (call: StubbedCall) => unknown | Error): () => void {
+  const real = globalThis.fetch
+  const keys = { DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY, ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY }
+  process.env.DEEPSEEK_API_KEY = 'test-key'
+  process.env.ANTHROPIC_API_KEY = 'test-key'
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+    const answer = handler({ url, body: String(init?.body ?? '') })
+    if (answer instanceof Error) throw answer
+    return new Response(JSON.stringify(answer), { status: 200, headers: { 'content-type': 'application/json' } })
+  }) as typeof fetch
+  return () => {
+    globalThis.fetch = real
+    for (const [k, v] of Object.entries(keys)) {
+      if (v === undefined) delete process.env[k]
+      else process.env[k] = v
+    }
+  }
+}
+
+// DeepSeek is OpenAI-shaped; the outline is whatever JSON we hand back here.
+const asDeepseek = (payload: unknown): unknown => ({
+  choices: [{ message: { content: JSON.stringify(payload) } }],
+  usage: { prompt_tokens: 10, completion_tokens: 10 },
+})
+
+const outlineWith = (sections: unknown[], discarded: { story_id: string; reason: string }[]): unknown => ({
+  intro: 'Bonjour.',
+  sections,
+  discarded,
+  outro: 'À demain.',
+})
+
+const outlineSection = (storyId: string): unknown => ({
+  story_id: storyId,
+  title: 'Un sujet',
+  airtime_sec: 120,
+  angle: 'angle',
+  why_it_matters: 'pourquoi',
+  new_information: ['du neuf'],
+  transition_hint: 'ensuite',
+})
+
+// A user whose only open story is backed by enough links to pass the link rule
+// — which is exactly what made the incident possible: the count was green.
+async function seedOpenStory(
+  db: Db,
+  // A good story reads exactly the same to this code path as an unusable one:
+  // the tests below that seed quality material rely on that, because the whole
+  // question is what happens when the pipeline CANNOT tell them apart.
+  opts: { headline?: string; quality?: number; claim?: string } = {},
+): Promise<{ userId: string; storyId: string }> {
+  const headline = opts.headline ?? 'Facebook'
+  const [user] = await db
+    .insert(users)
+    .values({ email: `t-${randomUUID()}@podcapp.test`, apiToken: randomUUID(), rssToken: randomUUID() })
+    .returning()
+  if (!user) throw new Error('seed: no user')
+  const rows = await db
+    .insert(sources)
+    .values(
+      Array.from({ length: MIN_SOURCES_PER_EPISODE }, (_, i) => ({
+        userId: user.id,
+        type: 'web',
+        url: `https://facebook.com/share/r/${i}/`,
+        sourceHash: randomUUID(),
+        title: headline,
+        cleanText: headline,
+        extractionQuality: opts.quality ?? 0.2,
+        status: 'ready',
+      })),
+    )
+    .returning({ id: sources.id })
+  const [story] = await db
+    .insert(stories)
+    .values({
+      userId: user.id,
+      headline,
+      topic: 'other',
+      sourceIds: rows.map((r) => r.id),
+      claims: [
+        {
+          text: opts.claim ?? 'Une page de partage Facebook.',
+          type: 'fact',
+          evidence_quote: headline,
+          confidence: opts.quality ?? 0.2,
+        },
+      ],
+      firstSeenAt: new Date(),
+      lastSeenAt: new Date(),
+      status: 'open',
+    })
+    .returning({ id: stories.id })
+  if (!story) throw new Error('seed: no story')
+  return { userId: user.id, storyId: story.id }
+}
+
+test('an outline that keeps nothing discards the material, so the next morning cannot replay it', async () => {
+  const { db, cleanup } = await createTestDb()
+  const { userId, storyId } = await seedOpenStory(db)
+  // The editor read the share wrappers and kept none of them.
+  const restore = stubLlm(() => asDeepseek(outlineWith([], [{ story_id: storyId, reason: 'no article behind the link' }])))
+  try {
+    assert.equal(await countAvailableSources(db, userId), MIN_SOURCES_PER_EPISODE)
+
+    // 1. The refusal is the sentence written for the user, not the internal
+    //    one: episodes.error is displayed verbatim by the app.
+    await assert.rejects(generateEpisode(db, { userId, targetSec: 300, language: 'en' }), (err: Error) => {
+      assert.equal(err.message, unusableMaterialMessage('en'))
+      assert.doesNotMatch(err.message, /no known story|story_id|outline/)
+      return true
+    })
+
+    // 2. The editor's judgement is now persisted instead of thrown away.
+    const [after] = await db.select({ status: stories.status }).from(stories).where(eq(stories.id, storyId))
+    assert.equal(after?.status, 'discarded')
+
+    // 3. Which is what closes the loop: the shared definition of "enough
+    //    material" filters on 'open', so the count drops on its own and the
+    //    app's Generate button greys out with no change to the counter.
+    assert.equal(await countAvailableSources(db, userId), 0)
+    assert.equal(hasEnoughSources(await countAvailableSources(db, userId)), false)
+
+    // 4. Tomorrow's 06:00 run refuses on thin material instead of replaying
+    //    the same failure forever.
+    await assert.rejects(generateEpisode(db, { userId, targetSec: 300, language: 'en' }), (err: Error) => {
+      assert.doesNotMatch(err.message, /no known story/)
+      assert.match(err.message, /no open stories/)
+      return true
+    })
+  } finally {
+    restore()
+    await cleanup()
+  }
+})
+
+test('a story dropped while others are kept stays open: crowded out is not unusable', async () => {
+  // The guard-rail on the fix. editorial.v2 exists because v1 invented quality
+  // reasons for stories it merely had no room for (2026-09-04); marking those
+  // discarded would destroy material permanently. Only ZERO sections means the
+  // editor judged the material itself, so only zero sections may mark.
+  const { db, cleanup } = await createTestDb()
+  const { userId, storyId } = await seedOpenStory(db)
+  const restore = stubLlm((call) =>
+    call.url.includes('deepseek')
+      ? asDeepseek(outlineWith([outlineSection(storyId)], [{ story_id: randomUUID(), reason: 'no airtime left' }]))
+      : // The run is stopped at the writer: what matters is that it got PAST
+        // the zero-section branch with a section in hand.
+        new Error('stub: the writer is not part of this test'),
+  )
+  try {
+    await assert.rejects(generateEpisode(db, { userId, targetSec: 300, language: 'en' }), /stub: the writer/)
+    const [after] = await db.select({ status: stories.status }).from(stories).where(eq(stories.id, storyId))
+    assert.equal(after?.status, 'open')
+    assert.equal(await countAvailableSources(db, userId), MIN_SOURCES_PER_EPISODE)
+  } finally {
+    restore()
+    await cleanup()
+  }
+})
+
+// --- The other way to reach zero sections ------------------------------------
+// `sections` is the FILTERED list, so it also hits zero when the model answers
+// with story_ids that are not ours (OutlineSchema types story_id as a bare
+// string: nothing checks membership). That is our bug, not a verdict on the
+// user's material, and it is self-healing — the next sample probably returns
+// real ids. Marking there would destroy good stories permanently, with no
+// in-app undo, so the guard reads the UNFILTERED count.
+
+test('an outline that selects unknown ids leaves the material open: an id mismatch is our bug, not a verdict', async () => {
+  const { db, cleanup } = await createTestDb()
+  // Quality material the editor WANTED to air — it returned a section for it.
+  const { userId, storyId } = await seedOpenStory(db, {
+    headline: 'La BCE relève ses taux',
+    quality: 0.86,
+    claim: 'La BCE a relevé son taux directeur de 25 points de base.',
+  })
+  // Same story, hallucinated id: the section is real, the identifier is not.
+  const restore = stubLlm(() => asDeepseek(outlineWith([outlineSection(randomUUID())], [])))
+  try {
+    await assert.rejects(generateEpisode(db, { userId, targetSec: 300, language: 'en' }), (err: Error) => {
+      // Loud and technical: this must page us, not accuse the user's links.
+      assert.match(err.message, /no known story/)
+      assert.notEqual(err.message, unusableMaterialMessage('en'))
+      return true
+    })
+
+    // The story the editor picked is still there for tomorrow's run.
+    const [after] = await db.select({ status: stories.status }).from(stories).where(eq(stories.id, storyId))
+    assert.equal(after?.status, 'open')
+    assert.equal(await countAvailableSources(db, userId), MIN_SOURCES_PER_EPISODE)
+  } finally {
+    restore()
+    await cleanup()
+  }
+})
+
+test('an outline that puts everything over budget leaves the material open: no airtime is not unusable', async () => {
+  // editorial.v2 (rule: "keep the most useful") makes a zero-selection from
+  // arithmetic impossible in principle — but v2 exists BECAUSE v1 mishandled
+  // the budget case, and a model can violate a prompt. The reason string it is
+  // told to write is the signal, so we read it and refuse to mark.
+  const { db, cleanup } = await createTestDb()
+  const { userId, storyId } = await seedOpenStory(db, { headline: 'Un vrai sujet', quality: 0.8 })
+  const restore = stubLlm(() =>
+    asDeepseek(outlineWith([], [{ story_id: storyId, reason: 'over budget: 240 seconds for 5 stories' }])),
+  )
+  try {
+    await assert.rejects(generateEpisode(db, { userId, targetSec: 300, language: 'en' }), (err: Error) => {
+      assert.notEqual(err.message, unusableMaterialMessage('en'))
+      return true
+    })
+    const [after] = await db.select({ status: stories.status }).from(stories).where(eq(stories.id, storyId))
+    assert.equal(after?.status, 'open')
+    assert.equal(await countAvailableSources(db, userId), MIN_SOURCES_PER_EPISODE)
+  } finally {
+    restore()
+    await cleanup()
+  }
+})
+
+test('a hand-picked run never rewrites an aired story: only rows still open are marked', async () => {
+  // A hand-picked run selects by SOURCE id whatever the status, so `open` here
+  // holds aired stories too. Marking one 'discarded' would rewrite the record
+  // of what was broadcast. Deleting the status filter in generateEpisode makes
+  // this test — and only this test — fail.
+  const { db, cleanup } = await createTestDb()
+  const [user] = await db
+    .insert(users)
+    .values({ email: `t-${randomUUID()}@podcapp.test`, apiToken: randomUUID(), rssToken: randomUUID() })
+    .returning()
+  if (!user) throw new Error('seed: no user')
+  const insertSources = async (n: number): Promise<string[]> => {
+    const rows = await db
+      .insert(sources)
+      .values(
+        Array.from({ length: n }, () => ({
+          userId: user.id,
+          type: 'web',
+          url: `https://example.test/${randomUUID()}`,
+          sourceHash: randomUUID(),
+          title: 'Un article',
+          cleanText: 'Un article',
+          extractionQuality: 0.8,
+          status: 'ready',
+        })),
+      )
+      .returning({ id: sources.id })
+    return rows.map((r) => r.id)
+  }
+  const insertStory = async (sourceIds: string[], status: string): Promise<string> => {
+    const [story] = await db
+      .insert(stories)
+      .values({
+        userId: user.id,
+        headline: `Sujet ${status}`,
+        topic: 'other',
+        sourceIds,
+        claims: [{ text: 'Un fait.', type: 'fact', evidence_quote: 'Un article', confidence: 0.8 }],
+        firstSeenAt: new Date(),
+        lastSeenAt: new Date(),
+        status,
+      })
+      .returning({ id: stories.id })
+    if (!story) throw new Error('seed: no story')
+    return story.id
+  }
+  const airedSources = await insertSources(2)
+  const openSources = await insertSources(MIN_SOURCES_PER_EPISODE)
+  const airedId = await insertStory(airedSources, 'aired')
+  const openId = await insertStory(openSources, 'open')
+  // The editor kept nothing at all: the marking branch, on a mixed pile.
+  const restore = stubLlm(() => asDeepseek(outlineWith([], [{ story_id: openId, reason: 'no article behind the link' }])))
+  try {
+    await assert.rejects(
+      generateEpisode(db, {
+        userId: user.id,
+        targetSec: 300,
+        language: 'en',
+        sourceIds: [...airedSources, ...openSources],
+      }),
+      (err: Error) => {
+        assert.equal(err.message, unusableMaterialMessage('en'))
+        return true
+      },
+    )
+    const [aired] = await db.select({ status: stories.status }).from(stories).where(eq(stories.id, airedId))
+    assert.equal(aired?.status, 'aired')
+    const [openAfter] = await db.select({ status: stories.status }).from(stories).where(eq(stories.id, openId))
+    assert.equal(openAfter?.status, 'discarded')
+  } finally {
+    restore()
+    await cleanup()
+  }
 })
 
 // Seed exactly the way every real caller seeds. POST /episodes (both

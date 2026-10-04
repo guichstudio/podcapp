@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict'
 import { generateKeyPairSync } from 'node:crypto'
 import { test } from 'node:test'
-import { APPLE_SUBSCRIPTION_STATUS, createAppStoreClient, readOriginalTransactionId } from './appstore.js'
+import {
+  APPLE_SUBSCRIPTION_STATUS,
+  createAppStoreClient,
+  entitledUntil,
+  isEntitled,
+  readOriginalTransactionId,
+  readSignedTransactionFromNotification,
+  type AppleSubscription,
+} from './appstore.js'
 
 const b64url = (o: unknown) => Buffer.from(JSON.stringify(o)).toString('base64url')
 
@@ -314,4 +322,50 @@ test('un status absent ou non documente devient null plutot qu un chiffre invent
       { lastTransactions: [{ originalTransactionId: '2000000901', status: 99, signedTransactionInfo: validTransaction() }] },
     ])) as typeof fetch
   assert.equal((await createAppStoreClient(bogus).lookup('2000000901'))?.status, null)
+})
+
+const subOf = (over: Partial<AppleSubscription> = {}): AppleSubscription => ({
+  originalTransactionId: '2000000901',
+  productId: 'com.louisguichard.podcapp.pro.monthly',
+  bundleId: 'com.louisguichard.podcapp',
+  expiresDate: new Date('2027-01-01T00:00:00Z'),
+  appAccountToken: null,
+  environment: 'Production',
+  status: 1,
+  ...over,
+})
+
+test('le droit suit le statut d Apple : actif, nouvelle tentative et grace y ont droit', () => {
+  assert.equal(isEntitled(subOf({ status: APPLE_SUBSCRIPTION_STATUS.active })), true)
+  assert.equal(isEntitled(subOf({ status: APPLE_SUBSCRIPTION_STATUS.billingRetry })), true)
+  assert.equal(isEntitled(subOf({ status: APPLE_SUBSCRIPTION_STATUS.gracePeriod })), true)
+  assert.equal(isEntitled(subOf({ status: APPLE_SUBSCRIPTION_STATUS.expired })), false)
+  // Rembourse : l'echeance est encore dans le futur, et c'est le statut qui dit non.
+  assert.equal(isEntitled(subOf({ status: APPLE_SUBSCRIPTION_STATUS.revoked })), false)
+  // Apple n'a rien dit, ou une valeur inconnue : ce n'est pas un droit.
+  assert.equal(isEntitled(subOf({ status: null })), false)
+})
+
+test('LA GRACE : statut 4 avec une echeance deja passee a toujours droit', () => {
+  assert.equal(isEntitled(subOf({ status: 4, expiresDate: new Date('2026-01-01T00:00:00Z') })), true)
+})
+
+test('le droit s inscrit en base jusqu a l echeance, ou pour un jour quand elle est deja passee', () => {
+  const now = new Date('2026-09-09T12:00:00Z')
+  // Echeance future : on la prend telle quelle.
+  assert.equal(entitledUntil(subOf(), now).toISOString(), '2027-01-01T00:00:00.000Z')
+  // Grace : l'echeance d'Apple est passee, planOf la lirait comme gratuit. Un
+  // bail d'un jour, et le filet relit chez Apple quand il expire.
+  const lease = entitledUntil(subOf({ status: 4, expiresDate: new Date('2026-09-01T00:00:00Z') }), now)
+  assert.equal(lease.toISOString(), '2026-09-10T12:00:00.000Z')
+})
+
+test('la notification V2 emboite le JWS de la transaction dans le sien', () => {
+  const seg = (o: unknown) => btoa(JSON.stringify(o)).replace(/=+$/, '')
+  const inner = `h.${seg({ originalTransactionId: '2000000901' })}.s`
+  const outer = `h.${seg({ notificationType: 'DID_RENEW', data: { signedTransactionInfo: inner } })}.s`
+  assert.equal(readSignedTransactionFromNotification(outer), inner)
+  assert.equal(readOriginalTransactionId(readSignedTransactionFromNotification(outer)!), '2000000901')
+  assert.equal(readSignedTransactionFromNotification('not.a.jws'), null)
+  assert.equal(readSignedTransactionFromNotification(`h.${seg({ data: {} })}.s`), null)
 })

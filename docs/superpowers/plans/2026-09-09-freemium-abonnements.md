@@ -21,6 +21,8 @@ node-postgres, Trigger.dev, `jose`, SwiftUI + StoreKit 2.
 
 ## Global Constraints
 
+- **Règle de Louis, 2026-10-04 : aucun paywall tant que l'app n'est pas en ligne sur l'App Store.** Pendant la bêta TestFlight, `FREEMIUM_ENFORCED` reste non posé (aucune borne de palier) et l'écran d'achat n'est jamais présenté. Les tâches 7 et 8 (StoreKit, paywall) attendent la sortie publique, ou livrent le paywall caché derrière la même règle.
+
 - **Worktree `~/Code/podcapp-appstore`, branche `appstore`. Jamais de commit sur `main`.** Jamais de `git add -A` ni `git add .` : stager les chemins qu'on a touchés.
 - **Tests :** `pnpm test` (`tsx --test src/**/*.test.ts`, runner `node:test`). 152 tests passent aujourd'hui — le compte ne doit jamais baisser. Base de test : `createTestDb()` de `src/db/testDb.ts` (PGlite neuf par test).
 - **`api/index.ts` déclare `export const config = { runtime: 'edge' }` (ligne 55).** Pas de `node:crypto` : ni `createSign`, ni `X509Certificate`, ni `Buffer`. Signature ES256 par `jose` (`importPKCS8` + `SignJWT`). **Ne jamais importer `src/push/apns.ts` depuis l'edge**, il tourne en Node sur Trigger.dev.
@@ -789,7 +791,9 @@ git commit -m "apple: client App Store Server API, signe par jose pour l'edge"
 
 ---
 
-## Task 5 : Rattacher un abonnement à un compte
+## Task 5 : Rattacher un abonnement à un compte — FAIT 2026-10-04
+
+> **Écarts voulus.** (1) `entitledUntil` : le code ci-dessous écrivait `expiresDate` telle quelle, et `planOf` lit une date passée comme gratuit — l'abonné en grâce était déclaré pro puis lu gratuit ; un bail d'un jour est écrit quand l'échéance est passée. (2) Le type `LinkResult` disait `expired`, le code `not_entitled` : c'est `not_entitled`. (3) Une transaction déjà tenue par un autre compte rend `not_my_purchase` au lieu de lever sur l'index unique. (4) 503 lisible tant que `APPLE_IAP_KEY` n'est pas posée.
 
 **Files:**
 - Create: `src/apple/link.ts`
@@ -1125,7 +1129,9 @@ git commit -m "abonnements: appAccountToken ferme le vol d'abonnement"
 
 ---
 
-## Task 6 : Le webhook des notifications, et le filet
+## Task 6 : Le webhook des notifications, et le filet — FAIT 2026-10-04
+
+> **Écarts voulus.** (1) `refreshByTransaction` décide avec `isEntitled`, pas avec `expiresDate <= now` (même piège que la Task 5, que l'étape 0 interdisait de re-dériver). (2) Le filet est écrit une fois, `planWithSafetyNet`, appelé par `POST /episodes` et le cron ; Apple injoignable → le palier payant est gardé pour cette fois. (3) Un échec de lecture chez Apple dans le webhook lève (500) pour qu'Apple rejoue ; seul un corps illisible répond 200.
 
 **Files:**
 - Modify: `api/index.ts` (route publique `app.post('/apple/notifications')`, **avant** `app.route('/', authed)`)

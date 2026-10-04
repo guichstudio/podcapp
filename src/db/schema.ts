@@ -153,6 +153,16 @@ export const stories = pgTable('stories', {
   embedding: vector('embedding'),
   firstSeenAt: timestamp('first_seen_at', { withTimezone: true }).notNull(),
   lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull(),
+  // 'open' | 'aired' | 'discarded'. Plain text on purpose (no enum, no check
+  // constraint), so a new value needs no migration.
+  //   open      — waiting for an episode; this is what countAvailableSources
+  //               counts and what the daily briefing builds from.
+  //   aired     — broadcast, set by publishEpisode once the audio exists.
+  //   discarded — the editor read this material and judged NONE of it usable
+  //               (see generateEpisode: it is written only when the outline
+  //               selected zero sections). It stops counting towards the link
+  //               rule, so the same run cannot fail on it every morning.
+  //               Nothing is deleted: the sources stay in the user's library.
   status: text('status').notNull().default('open'),
 })
 
@@ -237,4 +247,25 @@ export const pushTokens = pgTable(
     lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
   },
   (t) => [index('push_tokens_user_idx').on(t.userId)],
+)
+
+/// One support thread per user: no tickets, no subjects. `read_at` is set by the
+/// RECIPIENT reading it -- the admin for author='user', the user for
+/// author='admin' -- so each side's unread count is one column, not two.
+/// `broadcast_id` ties together one feedback question sent to several threads,
+/// which is how the admin page counts who answered it.
+export const supportMessages = pgTable(
+  'support_messages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    author: text('author').notNull(),
+    body: text('body').notNull(),
+    broadcastId: uuid('broadcast_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    readAt: timestamp('read_at', { withTimezone: true }),
+  },
+  (t) => [index('support_messages_user_idx').on(t.userId, t.createdAt)],
 )

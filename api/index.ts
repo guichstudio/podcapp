@@ -9,6 +9,9 @@ import { CATEGORIES, MAX_TARGET_MINUTES, MIN_SOURCES_PER_EPISODE, VOICE_OPTIONS,
 import { feedKey } from '../src/rss/feed.js'
 import { countAvailableSources, hasEnoughSources, shortageMessage } from '../src/jobs/material.js'
 import { countEpisodesThisMonth, hasQuotaLeft, monthResetsAt, PLAN_EPISODE_LIMIT, planOf, quotaMessage } from '../src/jobs/quota.js'
+import { createAppStoreClient, readOriginalTransactionId, readSignedTransactionFromNotification } from '../src/apple/appstore.js'
+import { planWithSafetyNet, refreshByTransaction } from '../src/apple/refresh.js'
+import { linkSubscription } from '../src/apple/link.js'
 import { privacyHtml } from '../src/legal/privacy.js'
 import { termsHtml } from '../src/legal/terms.js'
 import * as schema from '../src/db/schema.js'
@@ -17,6 +20,20 @@ import { authenticateWithPassword } from '../src/auth/password.js'
 import { createSession, listSessions, revokeAllSessions, revokeSession, sessionForToken } from '../src/auth/session.js'
 import { AuthError, type Provider } from '../src/auth/types.js'
 import { verifyIdentityToken } from '../src/auth/verify.js'
+import { checkAdmin } from '../src/support/admin.js'
+import { adminPageHtml } from '../src/support/adminPage.js'
+import {
+  broadcast,
+  broadcastStats,
+  listRecipients,
+  listThread,
+  listThreads,
+  markRead,
+  postMessage,
+  SupportError,
+  unreadFor,
+  type SupportMessage,
+} from '../src/support/thread.js'
 
 // THE deployed API. This file, and only this file, is what the iOS app talks
 // to: every /auth route, /sources, /episodes and /me lives here.
@@ -247,6 +264,37 @@ function spfHardFail(headers: { Name: string; Value: string }[] | undefined): bo
 // every beta user; forwarding from the address on your users row is the auth.
 // Rejections answer 200 on purpose (a non-2xx would make Postmark retry a mail
 // that will never route) and land in events so no failure is silent.
+// App Store Server Notifications V2. The secret in the URL is not
+// authentication -- the payload is never believed anyway, only its transaction
+// id is read and the state comes from Apple over TLS -- it is what stops a
+// stranger from making us hammer Apple's API from a guessed URL. Same shape as
+// POST /ingest/email for Postmark. Public route, so db() and not c.get('conn'),
+// which only the authed middleware sets.
+//
+// An unreadable body answers 200 (a retry would read the same bytes); a failed
+// lookup at Apple is left to throw, so the 500 makes Apple retry -- a renewal
+// missed for good would otherwise rest on the safety net alone.
+app.post('/apple/notifications', async (c) => {
+  const expected = process.env.APPLE_NOTIFICATIONS_TOKEN
+  if (!expected || c.req.query('token') !== expected) return c.json({ error: 'not found' }, 404)
+
+  const body = await c.req.json().catch(() => null)
+  const payload = (body as { signedPayload?: unknown } | null)?.signedPayload
+  const conn = db()
+  const inner = typeof payload === 'string' ? readSignedTransactionFromNotification(payload) : null
+  const id = inner ? readOriginalTransactionId(inner) : null
+  if (!id) {
+    await conn.insert(events).values({ userId: null, name: 'apple_notification_unreadable', payload: {} })
+    return c.json({ ok: true })
+  }
+
+  const outcome = await refreshByTransaction(conn, createAppStoreClient(), id)
+  if (outcome === 'unknown') {
+    await conn.insert(events).values({ userId: null, name: 'apple_notification_unknown_txn', payload: { originalTransactionId: id } })
+  }
+  return c.json({ ok: true })
+})
+
 app.post('/ingest/email', async (c) => {
   const secret = process.env.POSTMARK_INBOUND_TOKEN
   if (!secret) return c.json({ error: 'server misconfigured: POSTMARK_INBOUND_TOKEN is not set' }, 500)
@@ -440,15 +488,18 @@ const MeUpdateSchema = z.object({
   target_minutes: z.number().int().min(1).max(MAX_TARGET_MINUTES).optional(),
 })
 
-function meView(user: {
-  id: string
-  outputLanguage: string
-  voiceId: string | null
-  targetMinutes: number
-  rssToken: string
-  plan: string
-  planExpiresAt: Date | null
-}) {
+function meView(
+  user: {
+    id: string
+    outputLanguage: string
+    voiceId: string | null
+    targetMinutes: number
+    rssToken: string
+    plan: string
+    planExpiresAt: Date | null
+  },
+  supportUnread: number,
+) {
   const language = user.outputLanguage.trim().toLowerCase().slice(0, 2)
   const base = (process.env.R2_PUBLIC_BASE_URL ?? '').replace(/\/+$/, '')
   return {
@@ -468,6 +519,8 @@ function meView(user: {
     feed_url: base ? `${base}/${feedKey(user.rssToken)}` : null,
     // Null until the Postmark inbound address exists; the app hides the row.
     ingest_address: process.env.INGEST_ADDRESS ?? null,
+    // Replies and feedback requests not opened yet: the badge on Settings.
+    support_unread: supportUnread,
   }
 }
 
@@ -478,7 +531,7 @@ authed.get('/me', async (c) => {
     .from(users)
     .where(eq(users.id, c.get('userId')))
   if (!user) return c.json({ error: 'not found' }, 404)
-  return c.json(meView(user))
+  return c.json(meView(user, await unreadFor(c.get('conn'), c.get('userId'))))
 })
 
 authed.put('/me', async (c) => {
@@ -505,7 +558,7 @@ authed.put('/me', async (c) => {
     .from(users)
     .where(eq(users.id, userId))
   if (!user) return c.json({ error: 'not found' }, 404)
-  return c.json(meView(user))
+  return c.json(meView(user, await unreadFor(c.get('conn'), c.get('userId'))))
 })
 
 /// A device asking to be told when its briefing is ready.
@@ -518,6 +571,39 @@ authed.put('/me', async (c) => {
 /// `environment` rides along because a token minted by a development build is
 /// meaningless to the production APNs host and the reverse: the same phone
 /// carrying TestFlight and a sideloaded build has two tokens on two hosts.
+// The app hands over the purchase it just made; the server decides what it is
+// worth. Only the originalTransactionId is read from the JWS the app sends --
+// the state comes from Apple over TLS, and appAccountToken ties it to THIS
+// account (see linkSubscription). Unreachable until StoreKit ships in the app,
+// and the freemium rule keeps the paywall off until the App Store release.
+authed.post('/me/subscription', async (c) => {
+  // Readable rather than a 500: the keys are not set before the subscriptions
+  // exist in App Store Connect, and a bare "internal error" names nothing.
+  if (!process.env.APPLE_IAP_KEY) return c.json({ error: 'subscriptions are not configured on this server' }, 503)
+  const body = await c.req.json().catch(() => null)
+  const jws = (body as { signed_transaction?: unknown } | null)?.signed_transaction
+  if (typeof jws !== 'string') return c.json({ error: 'expected { signed_transaction: string }' }, 400)
+
+  const id = readOriginalTransactionId(jws)
+  if (!id) return c.json({ error: 'unreadable transaction' }, 400)
+
+  const sub = await createAppStoreClient().lookup(id)
+  if (!sub) return c.json({ error: 'unknown transaction' }, 404)
+
+  const conn = c.get('conn')
+  const result = await linkSubscription(conn, c.get('userId'), sub)
+  if (!result.ok) {
+    await conn.insert(events).values({
+      userId: c.get('userId'),
+      name: 'subscription_rejected',
+      payload: { reason: result.reason, originalTransactionId: id },
+    })
+    // 403 and not 400: the request is well formed, the right is what is missing.
+    return c.json({ error: result.reason }, 403)
+  }
+  return c.json({ plan: result.plan, expires_at: sub.expiresDate.toISOString() })
+})
+
 authed.post('/me/push-token', async (c) => {
   const parsed = PushTokenSchema.safeParse(await c.req.json().catch(() => null))
   if (!parsed.success) return c.json({ error: 'expected { token, environment: "development" | "production" }' }, 400)
@@ -543,6 +629,56 @@ authed.delete('/me/push-token/:token', async (c) => {
     .delete(pushTokens)
     .where(and(eq(pushTokens.userId, c.get('userId')), eq(pushTokens.token, c.req.param('token'))))
   return c.json({ ok: true })
+})
+
+/// The support thread, as the user sees it. Opening it is reading it: what the
+/// admin wrote is marked read, which clears the badge.
+function supportView(m: SupportMessage) {
+  return { id: m.id, author: m.author, body: m.body, created_at: m.createdAt.toISOString() }
+}
+
+const SupportBodySchema = z.object({ body: z.string() })
+
+// ADMIN_USER_IDS names the accounts whose devices are told about a new
+// message. Passed to the worker in the payload, so Trigger.dev needs no new
+// variable; a malformed entry is dropped rather than failing the send.
+function adminUserIds(): string[] {
+  return (process.env.ADMIN_USER_IDS ?? '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(isUuid)
+}
+
+// A push is a bonus on top of a message already saved: a failed trigger is
+// logged, never returned to the person who wrote.
+async function notifySupport(payload: Record<string, unknown>): Promise<void> {
+  try {
+    await triggerTask('notify-support', payload)
+  } catch (err) {
+    console.error('notify-support trigger failed', payload.kind, err)
+  }
+}
+
+authed.get('/support/messages', async (c) => {
+  const conn = c.get('conn')
+  const userId = c.get('userId')
+  const messages = await listThread(conn, userId)
+  await markRead(conn, userId, 'admin')
+  return c.json({ messages: messages.map(supportView) })
+})
+
+authed.post('/support/messages', async (c) => {
+  const parsed = SupportBodySchema.safeParse(await c.req.json().catch(() => null))
+  if (!parsed.success) return c.json({ error: 'expected { body }' }, 400)
+  try {
+    const message = await postMessage(c.get('conn'), { userId: c.get('userId'), author: 'user', body: parsed.data.body })
+    const admins = adminUserIds()
+    if (admins.length > 0) await notifySupport({ kind: 'to_admin', messageId: message.id, adminUserIds: admins })
+    return c.json(supportView(message), 201)
+  } catch (err) {
+    if (err instanceof SupportError) return c.json({ error: err.message }, 400)
+    throw err
+  }
 })
 
 authed.get('/me/sessions', async (c) => {
@@ -649,6 +785,7 @@ authed.post('/episodes', async (c) => {
       outputLanguage: users.outputLanguage,
       plan: users.plan,
       planExpiresAt: users.planExpiresAt,
+      planOriginalTxnId: users.planOriginalTxnId,
     })
     .from(users)
     .where(eq(users.id, userId))
@@ -714,7 +851,8 @@ authed.post('/episodes', async (c) => {
   // juste qu'une fois les runs morts rendus a 'failed'. Code DISTINCT du 422 :
   // l'app doit pouvoir distinguer "pas assez de liens" de "plus de quota", les
   // deux ecrans ne sont pas les memes.
-  const plan = planOf(user)
+  // Le filet : un palier payant echu se relit chez Apple avant d'etre refuse.
+  const plan = await planWithSafetyNet(conn, { id: userId, ...user }, () => createAppStoreClient())
   const used = await countEpisodesThisMonth(conn, userId)
   if (!hasQuotaLeft(used, plan)) {
     return c.json(
@@ -1245,6 +1383,105 @@ authed.get('/sources', async (c) => {
   })
 })
 
+// The admin side of support: the page, and the four routes it calls. Mounted
+// before the authed sub-app so its own bearer (ADMIN_TOKEN) is the only check
+// -- an admin is not a user session. The page itself is public HTML with no
+// data in it; it asks for the token and keeps it in the browser.
+app.get('/admin/support', (c) => {
+  c.header('X-Robots-Tag', 'noindex')
+  c.header('Cache-Control', 'no-store')
+  return c.html(adminPageHtml())
+})
+
+const admin = new Hono<Env>()
+
+admin.use('*', async (c, next) => {
+  const verdict = checkAdmin(c.req.header('Authorization'), process.env.ADMIN_TOKEN)
+  if (verdict === 'disabled') return c.json({ error: 'admin disabled: ADMIN_TOKEN is not set' }, 503)
+  if (verdict === 'denied') return c.json({ error: 'invalid admin token' }, 401)
+  c.set('conn', db())
+  await next()
+})
+
+admin.get('/threads', async (c) => {
+  const conn = c.get('conn')
+  const [threads, recipients, broadcasts] = await Promise.all([listThreads(conn), listRecipients(conn), broadcastStats(conn)])
+  return c.json({
+    threads: threads.map((t) => ({
+      user_id: t.userId,
+      email: t.email,
+      language: t.language,
+      last_body: t.lastBody,
+      last_author: t.lastAuthor,
+      last_at: t.lastAt.toISOString(),
+      unread: t.unread,
+      total: t.total,
+    })),
+    recipients: recipients.map((r) => ({ user_id: r.userId, email: r.email, language: r.language, devices: r.devices })),
+    broadcasts: broadcasts.map((b) => ({
+      broadcast_id: b.broadcastId,
+      body: b.body,
+      sent_at: b.sentAt.toISOString(),
+      sent: b.sent,
+      replied: b.replied,
+    })),
+    admin_user_ids: adminUserIds(),
+  })
+})
+
+// Shared by the two routes that address one thread: a malformed id is a 400
+// before it reaches a uuid column, an unknown account a 404.
+async function threadOwner(c: Context<Env>): Promise<string | Response> {
+  const userId = c.req.param('userId') ?? ''
+  if (!isUuid(userId)) return c.json({ error: 'invalid user id' }, 400)
+  const [user] = await c.get('conn').select({ id: users.id }).from(users).where(eq(users.id, userId))
+  if (!user) return c.json({ error: 'not found' }, 404)
+  return userId
+}
+
+admin.get('/threads/:userId', async (c) => {
+  const owner = await threadOwner(c)
+  if (owner instanceof Response) return owner
+  const conn = c.get('conn')
+  const messages = await listThread(conn, owner)
+  await markRead(conn, owner, 'user')
+  return c.json({ messages: messages.map(supportView) })
+})
+
+admin.post('/threads/:userId', async (c) => {
+  const owner = await threadOwner(c)
+  if (owner instanceof Response) return owner
+  const parsed = SupportBodySchema.safeParse(await c.req.json().catch(() => null))
+  if (!parsed.success) return c.json({ error: 'expected { body }' }, 400)
+  try {
+    const message = await postMessage(c.get('conn'), { userId: owner, author: 'admin', body: parsed.data.body })
+    await notifySupport({ kind: 'to_users', messageId: message.id })
+    return c.json(supportView(message), 201)
+  } catch (err) {
+    if (err instanceof SupportError) return c.json({ error: err.message }, 400)
+    throw err
+  }
+})
+
+const BroadcastSchema = z.object({
+  body: z.string(),
+  user_ids: z.union([z.literal('all'), z.array(z.string().uuid()).max(1000)]),
+})
+
+admin.post('/broadcast', async (c) => {
+  const parsed = BroadcastSchema.safeParse(await c.req.json().catch(() => null))
+  if (!parsed.success) return c.json({ error: 'expected { body, user_ids: "all" | uuid[] }' }, 400)
+  try {
+    const sent = await broadcast(c.get('conn'), { body: parsed.data.body, userIds: parsed.data.user_ids })
+    await notifySupport({ kind: 'broadcast', broadcastId: sent.broadcastId })
+    return c.json({ broadcast_id: sent.broadcastId, sent: sent.userIds.length }, 201)
+  } catch (err) {
+    if (err instanceof SupportError) return c.json({ error: err.message }, 400)
+    throw err
+  }
+})
+
+app.route('/admin/support', admin)
 app.route('/', authed)
 
 app.notFound((c) => c.json({ error: 'not found' }, 404))

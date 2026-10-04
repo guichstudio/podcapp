@@ -32,6 +32,7 @@ struct TodayView: View {
     /// the hero. SwiftUI sizes them independently, so the hero measures itself
     /// and the others follow.
     @State private var heroHeight: CGFloat = 250
+    @ObservedObject private var inbox = SupportInbox.shared
 
     var body: some View {
         ScrollView {
@@ -97,10 +98,44 @@ struct TodayView: View {
                 .textCase(.uppercase)
                 .typo(Typo.dateLabel)
                 .foregroundStyle(Palette.muted)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            supportShortcut
         }
         .padding(.horizontal, 20)
         .padding(.top, 6)
         .padding(.bottom, 18)
+    }
+
+    /// The support chat, one tap from the first screen, with the unread count
+    /// on it: a reply or a feedback request should not wait for someone to
+    /// wander into Settings. Opens the same sheet RootView owns.
+    private var supportShortcut: some View {
+        Button {
+            Feedback.tap()
+            NotificationCenter.default.post(name: .podcappOpenSupport, object: nil)
+        } label: {
+            Image(systemName: "bubble.left")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Palette.ink)
+                .frame(width: 34, height: 34)
+                .background(Palette.tileFillStrong, in: Circle())
+                .overlay(Circle().strokeBorder(Palette.tileBorder, lineWidth: 1))
+                .overlay(alignment: .topTrailing) {
+                    if inbox.unread > 0 {
+                        Text(verbatim: inbox.unread > 9 ? "9+" : "\(inbox.unread)")
+                            .typo(Typo.metaMicro)
+                            .foregroundStyle(Palette.onDark)
+                            .padding(.horizontal, 4)
+                            .frame(minWidth: 16, minHeight: 16)
+                            .background(Palette.danger, in: Capsule())
+                            .offset(x: 5, y: -4)
+                    }
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("Contact support"))
+        .accessibilityValue(inbox.unread > 0 ? Text("\(inbox.unread) unread") : Text(verbatim: ""))
     }
 
     // MARK: - States
