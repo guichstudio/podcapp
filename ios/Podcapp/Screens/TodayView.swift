@@ -241,6 +241,7 @@ struct TodayView: View {
                 readySourceCount: data.available ?? data.readyCount,
                 minimum: data.minimum ?? 4,
                 targetMinutes: $targetMinutes,
+                maxMinutes: data.maxMinutes ?? 5,
                 inFlight: data.inFlight
             )
             .padding(.horizontal, 20)
@@ -383,6 +384,7 @@ struct TodayView: View {
                     readyCount: focus.filter { $0.status == "ready" }.count,
                     available: batch.available,
                     minimum: batch.minimum,
+                    maxMinutes: batch.maxMinutes,
                     newTodayCount: focus.filter { Calendar.current.isDateInToday($0.capturedAt) }.count,
                     // The server is the one that knows: these are the statuses
                     // a generation moves through, and ACTIVE_EPISODE_STATUSES in
@@ -422,6 +424,8 @@ struct TodayView: View {
         // The server's count of sources behind open stories, and its minimum.
         let available: Int?
         let minimum: Int?
+        /// The longest episode the plan allows; nil on an older server.
+        let maxMinutes: Int?
         let newTodayCount: Int
         /// A briefing being made right now, wherever it was started from. The
         /// Library can queue one from picked links and then the reader walks
@@ -742,6 +746,9 @@ private struct TodayGenerateCard: View {
     let readySourceCount: Int
     let minimum: Int
     @Binding var targetMinutes: Int
+    /// The plan's ceiling, from the server: lengths above it are not offered,
+    /// because the server would cut them back to this anyway.
+    let maxMinutes: Int
     /// A briefing already being made, started from anywhere: this card, the
     /// Library's picked-links button, or the 06:00 cron. The card then stops
     /// offering to start another and shows that one -- the server refuses a
@@ -758,6 +765,10 @@ private struct TodayGenerateCard: View {
     /// The episode length the server accepts. The cap is 5 minutes, so the
     /// prototype's 10/15/20 becomes the three lengths that actually exist.
     private static let lengths = [3, 4, 5]
+    private var offeredLengths: [Int] {
+        let allowed = Self.lengths.filter { $0 <= maxMinutes }
+        return allowed.isEmpty ? [Self.lengths[0]] : allowed
+    }
 
     private enum Outcome {
         case queued
@@ -771,6 +782,8 @@ private struct TodayGenerateCard: View {
         card.sheet(item: $generation) { target in
             GenerationSheet(episodeId: target.id)
         }
+        .onAppear { clampLength() }
+        .onChange(of: maxMinutes) { _, _ in clampLength() }
     }
 
     private var card: some View {
@@ -786,7 +799,8 @@ private struct TodayGenerateCard: View {
                             .foregroundStyle(Palette.muted)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    lengthPicker
+                    // A single allowed length is a fact, not a choice: no picker.
+                    if offeredLengths.count > 1 { lengthPicker }
                 }
 
                 // The four-link rule, drawn rather than explained: the ring fills
@@ -921,9 +935,15 @@ private struct TodayGenerateCard: View {
         }
     }
 
+    /// Keeps the selection inside what the plan allows: the stored default is 5,
+    /// and a 3-minute plan must not send a 5 the server would silently cut.
+    private func clampLength() {
+        if targetMinutes > maxMinutes { targetMinutes = max(Self.lengths[0], maxMinutes) }
+    }
+
     private var lengthPicker: some View {
         HStack(spacing: 0) {
-            ForEach(Self.lengths, id: \.self) { minutes in
+            ForEach(offeredLengths, id: \.self) { minutes in
                 Button {
                     if minutes != targetMinutes { Feedback.select() }
                     targetMinutes = minutes

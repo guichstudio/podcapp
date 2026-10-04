@@ -366,6 +366,9 @@ actor API {
         /// Replies and feedback requests not opened yet. Optional so an older
         /// server still decodes.
         let supportUnread: Int?
+        /// False when the plan does not let this account pick its narrator;
+        /// the voice card is then hidden rather than shown and ignored.
+        let voiceChoice: Bool?
 
         enum CodingKeys: String, CodingKey {
             case language, voice, voices
@@ -377,6 +380,7 @@ actor API {
             case feedUrl = "feed_url"
             case ingestAddress = "ingest_address"
             case supportUnread = "support_unread"
+            case voiceChoice = "voice_choice"
         }
 
         var feedURL: URL? { feedUrl.flatMap(URL.init(string:)) }
@@ -417,6 +421,14 @@ actor API {
         let minimum: Int?
         // The shelves, in the server's order. Absent on older servers.
         let categories: [String]?
+        /// The longest episode this account's plan allows. Absent on older
+        /// servers, which allowed 5.
+        let maxMinutes: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case sources, available, minimum, categories
+            case maxMinutes = "max_minutes"
+        }
     }
     private struct GenerateBody: Encodable { let target_min: Int; let category: String?; let source_ids: [String]? }
     private struct GenerateAck: Decodable { let episode_id: String }

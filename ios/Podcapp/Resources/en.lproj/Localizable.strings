@@ -291,6 +291,7 @@
 "The generation stopped." = "The generation stopped.";
 "The gesture, in 3 steps" = "The gesture, in 3 steps";
 "The language follows your phone and the voice is yours to pick; the rest is decided by the pipeline." = "The language follows your phone and the voice is yours to pick; the rest is decided by the pipeline.";
+"The language follows your phone; the rest is decided by the pipeline." = "The language follows your phone; the rest is decided by the pipeline.";
 "The provider returned no identity token." = "The provider returned no identity token.";
 "The run stopped before publishing. Try again from Today." = "The run stopped before publishing. Try again from Today.";
 "The script is still being written. Come back in a few minutes." = "The script is still being written. Come back in a few minutes.";

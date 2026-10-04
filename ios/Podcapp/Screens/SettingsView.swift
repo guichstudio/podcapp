@@ -68,7 +68,9 @@ struct SettingsView: View {
                 languageCard
                     .padding(.bottom, 12)
 
-                if me != nil {
+                // Hidden, not disabled, when the plan cannot pick a narrator:
+                // a picker whose choice the server ignores reads as broken.
+                if let me, me.voiceChoice != false {
                     voiceCard
                         .padding(.bottom, 12)
                 }
@@ -85,7 +87,11 @@ struct SettingsView: View {
                     footnote(Text(message), color: Palette.danger)
                 }
 
-                footnote(Text("The language follows your phone and the voice is yours to pick; the rest is decided by the pipeline."))
+                footnote(
+                    me?.voiceChoice == false
+                        ? Text("The language follows your phone; the rest is decided by the pipeline.")
+                        : Text("The language follows your phone and the voice is yours to pick; the rest is decided by the pipeline.")
+                )
 
                 shareHelpCard
                     .padding(.top, 12)
